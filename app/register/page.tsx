@@ -61,8 +61,8 @@ export default function RegisterPage() {
       const data = await response.json()
 
       if (response.ok) {
-        // Success - redirect to login with success message
-        router.push('/login?message=Account created successfully! Please sign in.')
+        // Success - redirect to login with verification message
+        router.push('/login?message=Account created! Please check your email to verify your account before signing in.')
       } else {
         setError(data.error || 'Something went wrong')
       }
