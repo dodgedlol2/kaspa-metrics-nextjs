@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user ID from database since session.user.id doesn't exist
-    const { createClient } = require('@supabase/supabase-js');
+    const { createClient } = await import('@supabase/supabase-js');
     const supabase = createClient(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { createClient } = require('@supabase/supabase-js');
+    const { createClient } = await import('@supabase/supabase-js');
     const supabase = createClient(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
