@@ -110,3 +110,54 @@ export async function sendPasswordResetEmail(email: string, name: string, resetT
     console.error('Error sending password reset email:', error)
   }
 }
+
+export async function sendVerificationEmail(email: string, name: string, token: string) {
+  const verifyUrl = `https://kaspa-metrics-nextjs-production.up.railway.app/verify-email?token=${token}`
+  
+  try {
+    await transporter.sendMail({
+      from: `"Kaspa Metrics" <${process.env.MAILJET_FROM_EMAIL || 'noreply@kaspametrics.com'}>`,
+      to: email,
+      subject: 'Please verify your Kaspa Metrics account 📧',
+      html: `
+        <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
+          <div style="background: linear-gradient(135deg, #5B6CFF 0%, #6366F1 100%); padding: 40px 20px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">Almost there! 🎉</h1>
+          </div>
+          
+          <div style="padding: 40px 20px; background: #f8f9fa;">
+            <h2 style="color: #333; margin-bottom: 20px;">Hi ${name}! 👋</h2>
+            
+            <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+              Welcome to Kaspa Metrics! Just one more step to complete your account setup.
+            </p>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #5B6CFF;">
+              <p style="color: #333; margin: 0; font-weight: bold;">Please verify your email address to unlock all features:</p>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${verifyUrl}" 
+                 style="background: linear-gradient(135deg, #5B6CFF 0%, #6366F1 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                Verify Email Address →
+              </a>
+            </div>
+            
+            <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p style="color: #0066cc; margin: 0; font-size: 14px;">
+                ✨ Once verified, you'll get full access to premium alerts, data exports, and priority support!
+              </p>
+            </div>
+            
+            <p style="color: #888; font-size: 14px; text-align: center; margin-top: 40px;">
+              This link will expire in 24 hours. Having trouble? Copy and paste this link: <br>
+              <span style="word-break: break-all; font-size: 12px;">${verifyUrl}</span>
+            </p>
+          </div>
+        </div>
+      `,
+    })
+  } catch (error) {
+    console.error('Error sending verification email:', error)
+  }
+}
