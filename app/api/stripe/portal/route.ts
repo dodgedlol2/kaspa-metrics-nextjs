@@ -2,12 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { createCustomerPortalSession } from '@/lib/stripe';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,7 +15,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user's Stripe customer ID
+    // Get user's Stripe customer ID from database
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     const { data: user, error } = await supabase
       .from('users')
       .select('stripe_customer_id')
