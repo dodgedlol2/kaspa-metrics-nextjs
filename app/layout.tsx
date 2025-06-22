@@ -19,13 +19,16 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.className} bg-kaspa-dark min-h-screen`}>
-        <div className="flex h-screen">
-          {/* Sidebar */}
-          <Sidebar />
+        <div className="flex flex-col h-screen">
+          {/* Header - Full Width on Top */}
+          <Header />
           
-          {/* Main Content */}
-          <div className="flex-1 flex flex-col">
-            <Header />
+          {/* Content Area - Sidebar + Main */}
+          <div className="flex flex-1">
+            {/* Sidebar */}
+            <Sidebar />
+            
+            {/* Main Content */}
             <main className="flex-1 overflow-y-auto bg-gradient-to-br from-kaspa-dark via-kaspa-darker to-kaspa-dark">
               {children}
             </main>
