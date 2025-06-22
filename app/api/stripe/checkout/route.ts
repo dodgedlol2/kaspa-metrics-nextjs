@@ -25,9 +25,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get user ID from database since session.user.id doesn't exist
+    const { createClient } = require('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', session.user.email)
+      .single();
+
+    if (error || !user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
     // Get or create Stripe customer
     const customerId = await getOrCreateStripeCustomer(
-      session.user.id,
+      user.id,
       session.user.email,
       session.user.name || undefined
     );
