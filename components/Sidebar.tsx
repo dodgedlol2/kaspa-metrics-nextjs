@@ -64,10 +64,8 @@ export default function Sidebar() {
   const isActive = (href: string) => pathname === href
 
   return (
-    <div className="w-64 bg-black/20 backdrop-blur-sm border-r border-white/10 h-screen overflow-y-auto">
+    <div className="w-64 bg-black/20 backdrop-blur-sm border-r border-white/10 h-full overflow-y-auto">
       <div className="p-4">
-        <h2 className="text-lg font-semibold text-white mb-4">Navigation</h2>
-        
         <nav className="space-y-2">
           {navigation.map((item) => (
             <div key={item.name}>
