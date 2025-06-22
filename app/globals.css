@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Kaspa Styling */
+body {
+  background: #1a1a2e;
+  color: white;
+}
+
+/* Glassmorphism Effects */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Kaspa Gradient */
+.kaspa-gradient {
+  background: linear-gradient(135deg, #5B6CFF 0%, #6366F1 100%);
+}
+
+/* Smooth Animations */
+* {
+  transition: all 0.2s ease;
+}
+
+/* Chart Container */
+.chart-container {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+/* Hover Effects */
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(91, 108, 255, 0.15);
+}
