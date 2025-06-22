@@ -34,7 +34,7 @@ export default function AlertsPage() {
               <span className="text-yellow-400">🔒 Premium</span>
             </div>
             <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-              <span className="text-gray-300">24h change > 10%</span>
+              <span className="text-gray-300">24h change &gt; 10%</span>
               <span className="text-yellow-400">🔒 Premium</span>
             </div>
           </div>
@@ -48,7 +48,7 @@ export default function AlertsPage() {
               <span className="text-yellow-400">🔒 Premium</span>
             </div>
             <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-              <span className="text-gray-300">Difficulty change > 5%</span>
+              <span className="text-gray-300">Difficulty change &gt; 5%</span>
               <span className="text-yellow-400">🔒 Premium</span>
             </div>
             <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
