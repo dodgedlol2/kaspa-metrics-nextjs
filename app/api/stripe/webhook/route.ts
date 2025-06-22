@@ -195,7 +195,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
 // Email functions (using your existing Mailjet setup)
 async function sendPremiumWelcomeEmail(email: string, userId: string) {
   try {
-    const mailjet = require('node-mailjet').apiConnect(
+    const mailjet = (await import('node-mailjet')).default.apiConnect(
       process.env.MAILJET_API_KEY,
       process.env.MAILJET_API_SECRET
     );
