@@ -1,11 +1,11 @@
 import { GoogleSpreadsheet } from 'google-spreadsheet'
 
-// Your Google Sheets IDs (from your Streamlit setup)
+// Your Google Sheets IDs
 const SHEETS_CONFIG = {
-  hashrate: process.env.HASHRATE_SHEET_ID || 'your_hashrate_sheet_id',
-  price: process.env.PRICE_SHEET_ID || 'your_price_sheet_id',
-  volume: process.env.VOLUME_SHEET_ID || 'your_volume_sheet_id',
-  marketcap: process.env.MARKETCAP_SHEET_ID || 'your_marketcap_sheet_id',
+  hashrate: process.env.HASHRATE_SHEET_ID!,
+  price: process.env.PRICE_SHEET_ID!,
+  volume: process.env.VOLUME_SHEET_ID!,
+  marketcap: process.env.MARKETCAP_SHEET_ID!,
 }
 
 // Service account authentication
@@ -32,46 +32,33 @@ export interface CurrentMetrics {
   lastUpdated: string
 }
 
-// Fetch current price data
-export async function getPriceData(): Promise<KaspaMetric[]> {
-  try {
-    const doc = new GoogleSpreadsheet(SHEETS_CONFIG.price)
-    await doc.useServiceAccountAuth(serviceAccountAuth)
-    await doc.loadInfo()
-    
-    const sheet = doc.sheetsByIndex[0]
-    const rows = await sheet.getRows()
-    
-    return rows
-      .map(row => ({
-        date: row.get('Date') || row.get('date') || row.get('timestamp'),
-        value: parseFloat(row.get('Price') || row.get('price') || row.get('value') || '0'),
-        timestamp: new Date(row.get('Date') || row.get('date')).getTime()
-      }))
-      .filter(item => !isNaN(item.value) && item.value > 0)
-      .sort((a, b) => a.timestamp - b.timestamp)
-  } catch (error) {
-    console.error('Error fetching price data:', error)
-    return []
-  }
-}
-
-// Fetch hashrate data
+// Fetch hashrate data from "kaspa_daily_hashrate (3)" sheet
 export async function getHashrateData(): Promise<KaspaMetric[]> {
   try {
     const doc = new GoogleSpreadsheet(SHEETS_CONFIG.hashrate)
     await doc.useServiceAccountAuth(serviceAccountAuth)
     await doc.loadInfo()
     
-    const sheet = doc.sheetsByIndex[0]
+    // Find the sheet by name
+    const sheet = doc.sheetsByTitle['kaspa_daily_hashrate (3)']
+    if (!sheet) {
+      console.error('Sheet "kaspa_daily_hashrate (3)" not found')
+      return []
+    }
+    
     const rows = await sheet.getRows()
     
     return rows
-      .map(row => ({
-        date: row.get('Date') || row.get('date') || row.get('timestamp'),
-        value: parseFloat(row.get('Hashrate') || row.get('hashrate') || row.get('value') || '0'),
-        timestamp: new Date(row.get('Date') || row.get('date')).getTime()
-      }))
+      .map(row => {
+        const date = row.get('Date')
+        const hashrate = parseFloat(row.get('Hashrate (H/s)'))
+        
+        return {
+          date: date,
+          value: hashrate,
+          timestamp: new Date(date).getTime()
+        }
+      })
       .filter(item => !isNaN(item.value) && item.value > 0)
       .sort((a, b) => a.timestamp - b.timestamp)
   } catch (error) {
@@ -80,22 +67,66 @@ export async function getHashrateData(): Promise<KaspaMetric[]> {
   }
 }
 
-// Fetch volume data
+// Fetch price data from "kaspa_daily_price" sheet
+export async function getPriceData(): Promise<KaspaMetric[]> {
+  try {
+    const doc = new GoogleSpreadsheet(SHEETS_CONFIG.price)
+    await doc.useServiceAccountAuth(serviceAccountAuth)
+    await doc.loadInfo()
+    
+    const sheet = doc.sheetsByTitle['kaspa_daily_price']
+    if (!sheet) {
+      console.error('Sheet "kaspa_daily_price" not found')
+      return []
+    }
+    
+    const rows = await sheet.getRows()
+    
+    return rows
+      .map(row => {
+        const date = row.get('Date')
+        const price = parseFloat(row.get('Price'))
+        
+        return {
+          date: date,
+          value: price,
+          timestamp: new Date(date).getTime()
+        }
+      })
+      .filter(item => !isNaN(item.value) && item.value > 0)
+      .sort((a, b) => a.timestamp - b.timestamp)
+  } catch (error) {
+    console.error('Error fetching price data:', error)
+    return []
+  }
+}
+
+// Fetch volume data from "KAS_VOLUME_ETC" sheet
 export async function getVolumeData(): Promise<KaspaMetric[]> {
   try {
     const doc = new GoogleSpreadsheet(SHEETS_CONFIG.volume)
     await doc.useServiceAccountAuth(serviceAccountAuth)
     await doc.loadInfo()
     
-    const sheet = doc.sheetsByIndex[0]
+    const sheet = doc.sheetsByTitle['KAS_VOLUME_ETC']
+    if (!sheet) {
+      console.error('Sheet "KAS_VOLUME_ETC" not found')
+      return []
+    }
+    
     const rows = await sheet.getRows()
     
     return rows
-      .map(row => ({
-        date: row.get('Date') || row.get('date') || row.get('timestamp'),
-        value: parseFloat(row.get('Volume') || row.get('volume') || row.get('value') || '0'),
-        timestamp: new Date(row.get('Date') || row.get('date')).getTime()
-      }))
+      .map(row => {
+        const date = row.get('date')
+        const volume = parseFloat(row.get('total_volume'))
+        
+        return {
+          date: date,
+          value: volume,
+          timestamp: new Date(date).getTime()
+        }
+      })
       .filter(item => !isNaN(item.value) && item.value > 0)
       .sort((a, b) => a.timestamp - b.timestamp)
   } catch (error) {
@@ -104,22 +135,32 @@ export async function getVolumeData(): Promise<KaspaMetric[]> {
   }
 }
 
-// Fetch market cap data
+// Fetch market cap data from "kaspa_market_cap" sheet
 export async function getMarketCapData(): Promise<KaspaMetric[]> {
   try {
     const doc = new GoogleSpreadsheet(SHEETS_CONFIG.marketcap)
     await doc.useServiceAccountAuth(serviceAccountAuth)
     await doc.loadInfo()
     
-    const sheet = doc.sheetsByIndex[0]
+    const sheet = doc.sheetsByTitle['kaspa_market_cap']
+    if (!sheet) {
+      console.error('Sheet "kaspa_market_cap" not found')
+      return []
+    }
+    
     const rows = await sheet.getRows()
     
     return rows
-      .map(row => ({
-        date: row.get('Date') || row.get('date') || row.get('timestamp'),
-        value: parseFloat(row.get('MarketCap') || row.get('marketcap') || row.get('market_cap') || row.get('value') || '0'),
-        timestamp: new Date(row.get('Date') || row.get('date')).getTime()
-      }))
+      .map(row => {
+        const date = row.get('Date')
+        const marketCap = parseFloat(row.get('MarketCap'))
+        
+        return {
+          date: date,
+          value: marketCap,
+          timestamp: new Date(date).getTime()
+        }
+      })
       .filter(item => !isNaN(item.value) && item.value > 0)
       .sort((a, b) => a.timestamp - b.timestamp)
   } catch (error) {
@@ -150,14 +191,11 @@ export async function getCurrentMetrics(): Promise<CurrentMetrics> {
     const latestVolume = volumeData[volumeData.length - 1]?.value || 0
     const latestMarketCap = marketCapData[marketCapData.length - 1]?.value || 0
 
-    // Get 24h ago values (approximate)
-    const now = Date.now()
-    const yesterday = now - (24 * 60 * 60 * 1000)
-    
-    const price24hAgo = priceData.find(d => Math.abs(d.timestamp - yesterday) < (2 * 60 * 60 * 1000))?.value || latestPrice
-    const hashrate24hAgo = hashrateData.find(d => Math.abs(d.timestamp - yesterday) < (2 * 60 * 60 * 1000))?.value || latestHashrate
-    const volume24hAgo = volumeData.find(d => Math.abs(d.timestamp - yesterday) < (2 * 60 * 60 * 1000))?.value || latestVolume
-    const marketCap24hAgo = marketCapData.find(d => Math.abs(d.timestamp - yesterday) < (2 * 60 * 60 * 1000))?.value || latestMarketCap
+    // Get previous day values (if available)
+    const price24hAgo = priceData[priceData.length - 2]?.value || latestPrice
+    const hashrate24hAgo = hashrateData[hashrateData.length - 2]?.value || latestHashrate
+    const volume24hAgo = volumeData[volumeData.length - 2]?.value || latestVolume
+    const marketCap24hAgo = marketCapData[marketCapData.length - 2]?.value || latestMarketCap
 
     return {
       price: latestPrice,
