@@ -38,7 +38,7 @@ export function formatPrice(price: number): string {
 export async function getOrCreateStripeCustomer(userId: string, email: string, name?: string) {
   try {
     // First check if customer already exists in our database
-    const { createClient } = require('@supabase/supabase-js');
+    const { createClient } = await import('@supabase/supabase-js');
     const supabase = createClient(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
