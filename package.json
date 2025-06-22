@@ -1,0 +1,41 @@
+{
+  "name": "kaspa-metrics",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "14.0.4",
+    "react": "^18",
+    "react-dom": "^18",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "typescript": "^5",
+    "tailwindcss": "^3.3.0",
+    "autoprefixer": "^10.0.1",
+    "postcss": "^8",
+    "@supabase/supabase-js": "^2.38.4",
+    "stripe": "^14.7.0",
+    "@stripe/stripe-js": "^2.1.11",
+    "next-auth": "^4.24.5",
+    "googleapis": "^128.0.0",
+    "nodemailer": "^6.9.7",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "chart.js": "^4.4.0",
+    "react-chartjs-2": "^5.2.0",
+    "date-fns": "^2.30.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/nodemailer": "^6.4.14"
+  },
+  "devDependencies": {
+    "eslint": "^8",
+    "eslint-config-next": "14.0.4"
+  }
+}
