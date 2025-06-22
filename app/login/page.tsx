@@ -127,6 +127,11 @@ export default function LoginPage() {
                 placeholder="Enter your password"
                 required
               />
+              <div className="flex justify-end mt-2">
+                <Link href="/forgot-password" className="text-kaspa-purple hover:text-kaspa-blue text-sm">
+                  Forgot password?
+                </Link>
+              </div>
             </div>
             <button
               type="submit"
