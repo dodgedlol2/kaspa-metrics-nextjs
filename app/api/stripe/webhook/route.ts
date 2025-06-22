@@ -195,6 +195,11 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
 // Email functions (using your existing Mailjet setup)
 async function sendPremiumWelcomeEmail(email: string, userId: string) {
   try {
+    if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_API_SECRET) {
+      console.error('Mailjet credentials not configured');
+      return;
+    }
+
     const mailjet = (await import('node-mailjet')).default.apiConnect(
       process.env.MAILJET_API_KEY,
       process.env.MAILJET_API_SECRET
@@ -204,7 +209,7 @@ async function sendPremiumWelcomeEmail(email: string, userId: string) {
       Messages: [
         {
           From: {
-            Email: process.env.MAILJET_FROM_EMAIL,
+            Email: process.env.MAILJET_FROM_EMAIL || 'noreply@kaspametrics.com',
             Name: 'Kaspa Metrics'
           },
           To: [{ Email: email }],
