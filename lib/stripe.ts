@@ -11,7 +11,7 @@ export const STRIPE_CONFIG = {
   publishableKey: process.env.STRIPE_PUBLISHABLE_KEY!,
   
   // Premium subscription price (create this in Stripe dashboard)
-  premiumPriceId: process.env.STRIPE_PREMIUM_PRICE_ID || 'price_premium_monthly',
+  premiumPriceId: process.env.STRIPE_PREMIUM_PRICE_ID || 'price_1RcvleFa5YIiSYw6MAWIAQAo',
   
   // Subscription metadata
   premiumProductName: 'Kaspa Metrics Premium',
