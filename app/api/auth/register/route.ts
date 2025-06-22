@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createUser, findUserByEmail } from '@/lib/database'
-import { sendWelcomeEmail } from '@/lib/email'
+import { createUser, findUserByEmail, createEmailVerificationToken } from '@/lib/database'
+import { sendVerificationEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create new user
+    // Create new user (email_verified will be false by default)
     const user = await createUser(email, password, name)
     if (!user) {
       return NextResponse.json(
@@ -39,21 +39,32 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Send welcome email (non-blocking)
+    // Create verification token
+    const verificationToken = await createEmailVerificationToken(user.id)
+    if (!verificationToken) {
+      return NextResponse.json(
+        { error: 'Failed to create verification token' },
+        { status: 500 }
+      )
+    }
+
+    // Send verification email
     try {
-      await sendWelcomeEmail(email, name)
+      await sendVerificationEmail(email, name, verificationToken)
     } catch (emailError) {
-      console.error('Failed to send welcome email:', emailError)
-      // Don't fail registration if email fails
+      console.error('Failed to send verification email:', emailError)
+      // Don't fail registration if email fails - user can request new verification
     }
 
     return NextResponse.json(
       { 
-        message: 'Account created successfully',
+        message: 'Account created successfully! Please check your email to verify your account.',
+        requiresVerification: true,
         user: {
           id: user.id,
           email: user.email,
-          name: user.name
+          name: user.name,
+          emailVerified: false
         }
       },
       { status: 201 }
