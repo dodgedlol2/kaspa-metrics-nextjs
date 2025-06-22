@@ -55,7 +55,7 @@ export default function PricingPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          priceId: 'price_premium_monthly', // You'll need to create this in Stripe
+          priceId: process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID || 'price_1RcvleFa5YIiSYw6MAWIAQAo',
         }),
       });
 
