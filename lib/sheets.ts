@@ -1,4 +1,5 @@
 import { GoogleSpreadsheet } from 'google-spreadsheet'
+import { JWT } from 'google-auth-library'
 
 // Your Google Sheets IDs
 const SHEETS_CONFIG = {
@@ -8,11 +9,15 @@ const SHEETS_CONFIG = {
   marketcap: process.env.MARKETCAP_SHEET_ID!,
 }
 
-// Service account authentication
-const serviceAccountAuth = {
-  client_email: process.env.GOOGLE_CLIENT_EMAIL!,
-  private_key: process.env.GOOGLE_PRIVATE_KEY!.replace(/\\n/g, '\n'),
-}
+// Create JWT auth
+const serviceAccountAuth = new JWT({
+  email: process.env.GOOGLE_CLIENT_EMAIL!,
+  key: process.env.GOOGLE_PRIVATE_KEY!.replace(/\\n/g, '\n'),
+  scopes: [
+    'https://www.googleapis.com/auth/spreadsheets',
+    'https://www.googleapis.com/auth/drive.file',
+  ],
+})
 
 export interface KaspaMetric {
   date: string
@@ -35,8 +40,7 @@ export interface CurrentMetrics {
 // Fetch hashrate data from "kaspa_daily_hashrate (3)" sheet
 export async function getHashrateData(): Promise<KaspaMetric[]> {
   try {
-    const doc = new GoogleSpreadsheet(SHEETS_CONFIG.hashrate)
-    await doc.useServiceAccountAuth(serviceAccountAuth)
+    const doc = new GoogleSpreadsheet(SHEETS_CONFIG.hashrate, serviceAccountAuth)
     await doc.loadInfo()
     
     // Find the sheet by name
@@ -70,8 +74,7 @@ export async function getHashrateData(): Promise<KaspaMetric[]> {
 // Fetch price data from "kaspa_daily_price" sheet
 export async function getPriceData(): Promise<KaspaMetric[]> {
   try {
-    const doc = new GoogleSpreadsheet(SHEETS_CONFIG.price)
-    await doc.useServiceAccountAuth(serviceAccountAuth)
+    const doc = new GoogleSpreadsheet(SHEETS_CONFIG.price, serviceAccountAuth)
     await doc.loadInfo()
     
     const sheet = doc.sheetsByTitle['kaspa_daily_price']
@@ -104,8 +107,7 @@ export async function getPriceData(): Promise<KaspaMetric[]> {
 // Fetch volume data from "KAS_VOLUME_ETC" sheet
 export async function getVolumeData(): Promise<KaspaMetric[]> {
   try {
-    const doc = new GoogleSpreadsheet(SHEETS_CONFIG.volume)
-    await doc.useServiceAccountAuth(serviceAccountAuth)
+    const doc = new GoogleSpreadsheet(SHEETS_CONFIG.volume, serviceAccountAuth)
     await doc.loadInfo()
     
     const sheet = doc.sheetsByTitle['KAS_VOLUME_ETC']
@@ -138,8 +140,7 @@ export async function getVolumeData(): Promise<KaspaMetric[]> {
 // Fetch market cap data from "kaspa_market_cap" sheet
 export async function getMarketCapData(): Promise<KaspaMetric[]> {
   try {
-    const doc = new GoogleSpreadsheet(SHEETS_CONFIG.marketcap)
-    await doc.useServiceAccountAuth(serviceAccountAuth)
+    const doc = new GoogleSpreadsheet(SHEETS_CONFIG.marketcap, serviceAccountAuth)
     await doc.loadInfo()
     
     const sheet = doc.sheetsByTitle['kaspa_market_cap']
