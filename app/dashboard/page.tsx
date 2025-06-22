@@ -1,5 +1,7 @@
-import { getCurrentMetrics } from '@/lib/sheets'
+import { getCurrentMetrics, getPriceData, getHashrateData } from '@/lib/sheets'
 import MetricCard from '@/components/MetricCard'
+import PriceChart from '@/components/charts/PriceChart'
+import HashrateChart from '@/components/charts/HashrateChart'
 
 // Format numbers nicely
 function formatPrice(price: number): string {
@@ -26,7 +28,11 @@ function formatVolume(volume: number): string {
 
 export default async function DashboardPage() {
   // Fetch real data from Google Sheets
-  const metrics = await getCurrentMetrics()
+  const [metrics, priceData, hashrateData] = await Promise.all([
+    getCurrentMetrics(),
+    getPriceData(),
+    getHashrateData()
+  ])
   
   return (
     <div className="p-6">
@@ -73,20 +79,16 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {/* Charts Placeholder */}
+      {/* Real Interactive Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
           <h3 className="text-lg font-semibold text-white mb-4">Price Chart</h3>
-          <div className="h-64 bg-white/5 rounded-lg flex items-center justify-center">
-            <p className="text-gray-400">📈 Interactive chart coming in Phase 2B...</p>
-          </div>
+          <PriceChart data={priceData.slice(-30)} height={250} />
         </div>
 
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
           <h3 className="text-lg font-semibold text-white mb-4">Hashrate Trend</h3>
-          <div className="h-64 bg-white/5 rounded-lg flex items-center justify-center">
-            <p className="text-gray-400">⛏️ Interactive chart coming in Phase 2B...</p>
-          </div>
+          <HashrateChart data={hashrateData.slice(-30)} height={250} />
         </div>
       </div>
     </div>
