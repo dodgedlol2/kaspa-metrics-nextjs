@@ -68,20 +68,71 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   try {
     const customerId = subscription.customer as string;
     
+    console.log('Processing subscription update for customer:', customerId);
+    console.log('Subscription status:', subscription.status);
+    console.log('Subscription ID:', subscription.id);
+    console.log('Current period end:', subscription.current_period_end);
+    
     // Find user by Stripe customer ID
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, email')
+      .select('id, email, stripe_customer_id')
       .eq('stripe_customer_id', customerId)
       .single();
 
-    if (error || !user) {
-      console.error('User not found for customer:', customerId);
+    if (error) {
+      console.error('Database error when looking up user:', error);
+      console.log('Searching for customer ID:', customerId);
+      
+      // Try to find any users with this customer ID
+      const { data: allUsers } = await supabase
+        .from('users')
+        .select('id, email, stripe_customer_id')
+        .not('stripe_customer_id', 'is', null);
+      
+      console.log('All users with stripe_customer_id:', allUsers);
       return;
     }
 
-    // Calculate subscription end date
-    const subscriptionEndDate = new Date(subscription.current_period_end * 1000);
+    if (!user) {
+      console.error('User not found for customer:', customerId);
+      
+      // Try to find any users with this customer ID
+      const { data: allUsers } = await supabase
+        .from('users')
+        .select('id, email, stripe_customer_id')
+        .not('stripe_customer_id', 'is', null);
+      
+      console.log('All users with stripe_customer_id:', allUsers);
+      return;
+    }
+
+    console.log('Found user:', user.email);
+
+    // Calculate subscription end date with proper error handling
+    let subscriptionEndDate: Date;
+    try {
+      if (subscription.current_period_end && typeof subscription.current_period_end === 'number') {
+        subscriptionEndDate = new Date(subscription.current_period_end * 1000);
+      } else {
+        // Fallback: set to 1 month from now
+        subscriptionEndDate = new Date();
+        subscriptionEndDate.setMonth(subscriptionEndDate.getMonth() + 1);
+      }
+      
+      // Validate the date
+      if (isNaN(subscriptionEndDate.getTime())) {
+        throw new Error('Invalid date created');
+      }
+    } catch (dateError) {
+      console.error('Error creating subscription end date:', dateError);
+      // Fallback: set to 1 month from now
+      subscriptionEndDate = new Date();
+      subscriptionEndDate.setMonth(subscriptionEndDate.getMonth() + 1);
+    }
+
+    console.log('Subscription end date:', subscriptionEndDate.toISOString());
+    console.log('Updating user subscription for user ID:', user.id);
 
     // Update user subscription status
     const { error: updateError } = await supabase
@@ -100,7 +151,7 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
       return;
     }
 
-    console.log(`Updated subscription for user ${user.email}: ${subscription.status}`);
+    console.log(`Successfully updated subscription for user ${user.email}: ${subscription.status}`);
 
     // Send welcome email for new subscriptions
     if (subscription.status === 'active') {
