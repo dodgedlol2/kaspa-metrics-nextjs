@@ -228,3 +228,83 @@ export async function resetPassword(token: string, newPassword: string): Promise
     return false
   }
 }
+// Create email verification token
+export async function createEmailVerificationToken(userId: string): Promise<string | null> {
+  try {
+    const token = Math.random().toString(36).substring(2, 15) + 
+                  Math.random().toString(36).substring(2, 15) +
+                  Math.random().toString(36).substring(2, 15) // Longer token for email verification
+    
+    const expiresAt = new Date()
+    expiresAt.setHours(expiresAt.getHours() + 24) // 24 hour expiry
+
+    const { error } = await supabase
+      .from('email_verification_tokens')
+      .insert({
+        user_id: userId,
+        token,
+        expires_at: expiresAt.toISOString(),
+      })
+
+    if (error) {
+      console.error('Error creating verification token:', error)
+      return null
+    }
+
+    return token
+  } catch (error) {
+    console.error('Error creating verification token:', error)
+    return null
+  }
+}
+
+// Verify email verification token
+export async function verifyEmailVerificationToken(token: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('email_verification_tokens')
+      .select('*')
+      .eq('token', token)
+      .gt('expires_at', new Date().toISOString())
+      .single()
+
+    if (error || !data) {
+      return null
+    }
+
+    // Mark user as verified
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ email_verified: true })
+      .eq('id', data.user_id)
+
+    if (updateError) {
+      return null
+    }
+
+    // Delete the used token
+    await supabase
+      .from('email_verification_tokens')
+      .delete()
+      .eq('token', token)
+
+    return data.user_id
+  } catch (error) {
+    return null
+  }
+}
+
+// Get user verification status
+export async function getUserVerificationStatus(userId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('email_verified')
+      .eq('id', userId)
+      .single()
+
+    return data?.email_verified || false
+  } catch (error) {
+    return false
+  }
+}
