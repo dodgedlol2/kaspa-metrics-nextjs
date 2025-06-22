@@ -35,7 +35,8 @@
     "@types/jsonwebtoken": "^9.0.5",
     "@types/nodemailer": "^6.4.14",
     "google-spreadsheet": "^4.1.2",
-    "google-auth-library": "^9.4.0"
+    "google-auth-library": "^9.4.0",
+    "crypto": "^1.0.1"
   },
   "devDependencies": {
     "eslint": "^8",
