@@ -50,7 +50,7 @@ export default function VerifyEmailPage() {
         setMessage('Email verified successfully! You can now access all features.');
         // Redirect to dashboard after 3 seconds
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push('/login?message=Email verified successfully! Please sign in to access your account.');
         }, 3000);
       } else {
         setStatus('error');
