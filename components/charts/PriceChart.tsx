@@ -654,17 +654,17 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
   }, [priceScale, timeScale, filteredData])
 
   return (
-    <div className="space-y-6">
-      {/* Interactive Controls */}
-      <div className="flex flex-wrap gap-4 items-center justify-between">
-        <div className="flex flex-wrap gap-4">
+    <div className="space-y-8">
+      {/* Interactive Controls - BetterStack Style */}
+      <div className="flex flex-wrap gap-6 items-center justify-between p-6 rounded-2xl bg-gradient-to-r from-slate-800/40 to-slate-900/40 border border-slate-700/30 backdrop-blur-sm">
+        <div className="flex flex-wrap gap-6">
           {/* Price Scale Control */}
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-300">Price Scale:</label>
+          <div className="flex items-center space-x-3">
+            <label className="text-sm font-medium text-slate-300">Price Scale:</label>
             <select
               value={priceScale}
               onChange={(e) => setPriceScale(e.target.value as 'Linear' | 'Log')}
-              className="bg-white/10 border border-white/20 rounded px-3 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="bg-slate-700/50 border border-slate-600/50 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200"
             >
               <option value="Linear">Linear</option>
               <option value="Log">Log</option>
@@ -672,12 +672,12 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
           </div>
 
           {/* Time Scale Control */}
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-300">Time Scale:</label>
+          <div className="flex items-center space-x-3">
+            <label className="text-sm font-medium text-slate-300">Time Scale:</label>
             <select
               value={timeScale}
               onChange={(e) => setTimeScale(e.target.value as 'Linear' | 'Log')}
-              className="bg-white/10 border border-white/20 rounded px-3 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="bg-slate-700/50 border border-slate-600/50 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200"
             >
               <option value="Linear">Linear</option>
               <option value="Log">Log</option>
@@ -685,12 +685,12 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
           </div>
 
           {/* Power Law Control */}
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-300">Power Law:</label>
+          <div className="flex items-center space-x-3">
+            <label className="text-sm font-medium text-slate-300">Power Law:</label>
             <select
               value={showPowerLaw}
               onChange={(e) => setShowPowerLaw(e.target.value as 'Hide' | 'Show')}
-              className="bg-white/10 border border-white/20 rounded px-3 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="bg-slate-700/50 border border-slate-600/50 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200"
             >
               <option value="Hide">Hide</option>
               <option value="Show">Show</option>
@@ -704,10 +704,10 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
             <button
               key={period}
               onClick={() => setTimePeriod(period)}
-              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                 timePeriod === period
-                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                  : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                  ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                  : 'bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white'
               }`}
             >
               {period}
@@ -716,8 +716,8 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
         </div>
       </div>
 
-      {/* Chart Container - Clean, no border */}
-      <div style={{ height: `${height}px` }} className="bg-transparent">
+      {/* Chart Container - Completely Clean */}
+      <div style={{ height: `${height}px` }} className="w-full">
         {filteredData.length > 0 ? (
           <Line 
             data={chartData} 
@@ -744,60 +744,74 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
             }}
           />
         ) : (
-          <div className="h-full flex items-center justify-center">
+          <div className="h-full flex items-center justify-center rounded-2xl bg-slate-800/30 border border-slate-700/30">
             <div className="text-center">
-              <p className="text-gray-400 mb-2">No data available for selected time period</p>
-              <p className="text-sm text-gray-500">Try selecting a different time range</p>
+              <p className="text-slate-400 mb-2">No data available for selected time period</p>
+              <p className="text-sm text-slate-500">Try selecting a different time range</p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Chart Info */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-        <div className="bg-white/5 rounded-lg p-3">
-          <span className="text-gray-400">Data Points:</span>
-          <span className="text-white ml-2 font-semibold">{filteredData.length}</span>
+      {/* Chart Info - BetterStack Style */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="rounded-xl bg-slate-800/40 border border-slate-700/30 p-4 text-center">
+          <div className="text-sm text-slate-400 mb-1">Data Points</div>
+          <div className="text-lg font-bold text-white">{filteredData.length.toLocaleString()}</div>
         </div>
         
         {powerLawData && (
           <>
-            <div className="bg-white/5 rounded-lg p-3">
-              <span className="text-gray-400">Power Law R²:</span>
-              <span className="text-white ml-2 font-semibold">{powerLawData.r2.toFixed(4)}</span>
+            <div className="rounded-xl bg-slate-800/40 border border-slate-700/30 p-4 text-center">
+              <div className="text-sm text-slate-400 mb-1">Power Law R²</div>
+              <div className="text-lg font-bold text-white">{powerLawData.r2.toFixed(4)}</div>
             </div>
-            <div className="bg-white/5 rounded-lg p-3">
-              <span className="text-gray-400">Power Law Slope:</span>
-              <span className="text-white ml-2 font-semibold">{powerLawData.slope.toFixed(4)}</span>
+            <div className="rounded-xl bg-slate-800/40 border border-slate-700/30 p-4 text-center">
+              <div className="text-sm text-slate-400 mb-1">Power Law Slope</div>
+              <div className="text-lg font-bold text-white">{powerLawData.slope.toFixed(4)}</div>
             </div>
           </>
         )}
         
-        <div className="bg-white/5 rounded-lg p-3">
-          <span className="text-gray-400">Time Range:</span>
-          <span className="text-white ml-2 font-semibold">{timePeriod}</span>
+        <div className="rounded-xl bg-slate-800/40 border border-slate-700/30 p-4 text-center">
+          <div className="text-sm text-slate-400 mb-1">Time Range</div>
+          <div className="text-lg font-bold text-white">{timePeriod}</div>
         </div>
       </div>
 
       {/* ATH and 1YL Info */}
       {(athData || oylData) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {athData && (
-            <div className="bg-white/5 rounded-lg p-3">
-              <span className="text-gray-400">All-Time High:</span>
-              <span className="text-white ml-2 font-semibold">{formatCurrency(athData.price)}</span>
-              <div className="text-xs text-gray-500 mt-1">
-                {athData.date.toLocaleDateString()}
+            <div className="rounded-xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 p-6">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                <span className="text-sm font-medium text-slate-300 uppercase tracking-wide">All-Time High</span>
+              </div>
+              <div className="text-2xl font-bold text-white mb-1">{formatCurrency(athData.price)}</div>
+              <div className="text-sm text-slate-400">
+                {athData.date.toLocaleDateString('en-US', { 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
               </div>
             </div>
           )}
           
           {oylData && (
-            <div className="bg-white/5 rounded-lg p-3">
-              <span className="text-gray-400">One Year Low:</span>
-              <span className="text-white ml-2 font-semibold">{formatCurrency(oylData.price)}</span>
-              <div className="text-xs text-gray-500 mt-1">
-                {oylData.date.toLocaleDateString()}
+            <div className="rounded-xl bg-gradient-to-r from-red-500/10 to-pink-500/10 border border-red-500/20 p-6">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                <span className="text-sm font-medium text-slate-300 uppercase tracking-wide">One Year Low</span>
+              </div>
+              <div className="text-2xl font-bold text-white mb-1">{formatCurrency(oylData.price)}</div>
+              <div className="text-sm text-slate-400">
+                {oylData.date.toLocaleDateString('en-US', { 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
               </div>
             </div>
           )}
