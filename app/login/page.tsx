@@ -66,13 +66,9 @@ export default function LoginPage() {
         setError(errorMessage);
         setShowError(true);
       } else if (result?.ok) {
-        // Check if user needs email verification
-        const session = await getSession();
-        if (session?.user?.email && !session.user.email_verified) {
-          router.push('/verify-email?message=Please verify your email to continue');
-        } else {
-          router.push(callbackUrl);
-        }
+        // Successful login - redirect to callback URL
+        // Middleware will handle email verification checks
+        router.push(callbackUrl);
       }
     } catch (error) {
       console.error('Login error:', error);
