@@ -30,8 +30,9 @@ ChartJS.register(
   TimeScale
 )
 
-interface AdvancedPriceChartProps {
+interface PriceChartProps {
   data: KaspaMetric[]
+  height?: number
 }
 
 // Power law regression function
@@ -116,7 +117,7 @@ function formatCurrency(value: number): string {
   }
 }
 
-export default function AdvancedPriceChart({ data }: AdvancedPriceChartProps) {
+export default function PriceChart({ data, height = 400 }: PriceChartProps) {
   const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
   const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear')
   const [timePeriod, setTimePeriod] = useState<'1W' | '1M' | '3M' | '6M' | '1Y' | 'All'>('All')
@@ -386,7 +387,7 @@ export default function AdvancedPriceChart({ data }: AdvancedPriceChartProps) {
       </div>
 
       {/* Chart Container */}
-      <div className="h-[600px] bg-white/5 rounded-lg p-4">
+      <div style={{ height: `${height}px` }} className="bg-white/5 rounded-lg p-4">
         {filteredData.length > 0 ? (
           <Line data={chartData} options={chartOptions} />
         ) : (
