@@ -74,7 +74,7 @@ export const authOptions: NextAuthOptions = {
           // Check if user already exists
           const { data: existingUser, error: selectError } = await supabase
             .from('users')
-            .select('id, email_verified')
+            .select('id, name, email_verified')
             .eq('email', user.email!)
             .single();
 
