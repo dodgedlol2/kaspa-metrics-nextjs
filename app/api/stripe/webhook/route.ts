@@ -73,10 +73,10 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     console.log('Subscription ID:', subscription.id);
     console.log('Current period end:', subscription.current_period_end);
     
-    // Find user by Stripe customer ID
+    // Check if user was already premium to avoid duplicate welcome emails
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, email, stripe_customer_id')
+      .select('id, email, is_premium')
       .eq('stripe_customer_id', customerId)
       .single();
 
@@ -107,7 +107,10 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
       return;
     }
 
-    console.log('Found user:', user.email);
+    console.log('Found user:', user.email, 'Current premium status:', user.is_premium);
+
+    // Store if user was already premium before this update
+    const wasPremiumBefore = user.is_premium;
 
     // Calculate subscription end date with proper error handling
     let subscriptionEndDate: Date;
@@ -154,7 +157,7 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     console.log(`Successfully updated subscription for user ${user.email}: ${subscription.status}`);
 
     // Send welcome email ONLY for new active subscriptions (not updates)
-    if (subscription.status === 'active' && !user.was_premium_before) {
+    if (subscription.status === 'active' && !wasPremiumBefore) {
       console.log('Sending welcome email for new premium user');
       await sendPremiumWelcomeEmail(user.email, user.id);
     } else {
