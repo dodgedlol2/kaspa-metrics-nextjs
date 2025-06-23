@@ -37,6 +37,8 @@ export function formatPrice(price: number): string {
 // Helper function to create or retrieve Stripe customer
 export async function getOrCreateStripeCustomer(userId: string, email: string, name?: string) {
   try {
+    console.log('getOrCreateStripeCustomer called for user:', userId, email);
+    
     // First check if customer already exists in our database
     const { createClient } = await import('@supabase/supabase-js');
     const supabase = createClient(
@@ -51,8 +53,11 @@ export async function getOrCreateStripeCustomer(userId: string, email: string, n
       .single();
 
     if (user?.stripe_customer_id) {
+      console.log('Found existing Stripe customer:', user.stripe_customer_id);
       return user.stripe_customer_id;
     }
+
+    console.log('Creating new Stripe customer for user:', userId);
 
     // Create new Stripe customer
     const customer = await stripe.customers.create({
@@ -63,11 +68,19 @@ export async function getOrCreateStripeCustomer(userId: string, email: string, n
       },
     });
 
+    console.log('Created Stripe customer:', customer.id);
+
     // Update user record with Stripe customer ID
-    await supabase
+    const { error: updateError } = await supabase
       .from('users')
       .update({ stripe_customer_id: customer.id })
       .eq('id', userId);
+
+    if (updateError) {
+      console.error('Error updating user with Stripe customer ID:', updateError);
+    } else {
+      console.log('Successfully linked Stripe customer to user');
+    }
 
     return customer.id;
   } catch (error) {
