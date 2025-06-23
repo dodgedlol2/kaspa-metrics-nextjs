@@ -35,66 +35,119 @@ interface PriceChartProps {
   height?: number
 }
 
-// Power law regression function
-function fitPowerLaw(data: KaspaMetric[], xKey: 'timestamp' | 'days_from_genesis' = 'timestamp') {
+// Kaspa genesis date - November 7, 2021
+const GENESIS_DATE = new Date('2021-11-07T00:00:00.000Z').getTime()
+
+// Calculate days from genesis for a timestamp
+function getDaysFromGenesis(timestamp: number): number {
+  return Math.max(1, Math.floor((timestamp - GENESIS_DATE) / (24 * 60 * 60 * 1000)) + 1)
+}
+
+// Enhanced power law regression function (from Streamlit data_manager.py)
+function fitPowerLaw(data: KaspaMetric[], useGenesisDays: boolean = false) {
   // Filter valid data points
-  const validData = data.filter(point => {
-    const xValue = xKey === 'days_from_genesis' 
-      ? (point.timestamp - data[0].timestamp) / (24 * 60 * 60 * 1000) + 1
-      : point.timestamp
-    return xValue > 0 && point.value > 0
-  })
+  const validData = data.filter(point => point.value > 0)
   
   if (validData.length < 2) {
     throw new Error("Not enough valid data points for power law fitting")
   }
   
-  // Transform to log space
+  // Transform to log space using days from genesis or timestamp
   const logX = validData.map(point => {
-    const xValue = xKey === 'days_from_genesis' 
-      ? (point.timestamp - data[0].timestamp) / (24 * 60 * 60 * 1000) + 1
-      : point.timestamp / (24 * 60 * 60 * 1000) // Convert to days for stability
-    return Math.log(xValue)
+    const xValue = useGenesisDays 
+      ? getDaysFromGenesis(point.timestamp)
+      : point.timestamp / (24 * 60 * 60 * 1000) // Convert to days
+    return Math.log(Math.max(1, xValue))
   })
   const logY = validData.map(point => Math.log(point.value))
   
-  // Linear regression on log-transformed data
+  // Linear regression on log-transformed data (scipy.stats.linregress equivalent)
   const n = logX.length
   const sumX = logX.reduce((a, b) => a + b, 0)
   const sumY = logY.reduce((a, b) => a + b, 0)
   const sumXY = logX.reduce((sum, x, i) => sum + x * logY[i], 0)
   const sumX2 = logX.reduce((sum, x) => sum + x * x, 0)
+  const sumY2 = logY.reduce((sum, y) => sum + y * y, 0)
   
   // Calculate slope and intercept
   const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
   const intercept = (sumY - slope * sumX) / n
   
-  // Calculate R²
+  // Calculate correlation coefficient and R²
+  const meanX = sumX / n
   const meanY = sumY / n
-  const ssRes = logY.reduce((sum, y, i) => {
-    const predicted = intercept + slope * logX[i]
-    return sum + Math.pow(y - predicted, 2)
-  }, 0)
-  const ssTot = logY.reduce((sum, y) => sum + Math.pow(y - meanY, 2), 0)
-  const r2 = 1 - (ssRes / ssTot)
+  const ssXY = sumXY - n * meanX * meanY
+  const ssXX = sumX2 - n * meanX * meanX
+  const ssYY = sumY2 - n * meanY * meanY
+  const rValue = ssXY / Math.sqrt(ssXX * ssYY)
+  const r2 = rValue * rValue
   
-  // Convert back to power law coefficients
+  // Convert back to power law coefficients: y = a * x^b
   const a = Math.exp(intercept)
   const b = slope
   
   return { a, b, r2 }
 }
 
-// Generate power law prediction data
-function generatePowerLawData(data: KaspaMetric[], a: number, b: number, multiplier: number = 1, xKey: 'timestamp' | 'days_from_genesis' = 'timestamp') {
+// Calculate ATH (All-Time High) data
+function calculateATH(data: KaspaMetric[]) {
+  if (data.length === 0) return null
+  
+  const athPoint = data.reduce((max, point) => 
+    point.value > max.value ? point : max
+  )
+  
+  return {
+    price: athPoint.value,
+    date: new Date(athPoint.timestamp),
+    timestamp: athPoint.timestamp,
+    daysFromGenesis: getDaysFromGenesis(athPoint.timestamp)
+  }
+}
+
+// Calculate 1YL (One Year Low) data
+function calculate1YL(data: KaspaMetric[]) {
+  if (data.length === 0) return null
+  
+  // Get data from last 365 days
+  const oneYearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000)
+  const recentData = data.filter(point => point.timestamp >= oneYearAgo)
+  
+  if (recentData.length === 0) {
+    // Fallback to global minimum
+    const minPoint = data.reduce((min, point) => 
+      point.value < min.value ? point : min
+    )
+    return {
+      price: minPoint.value,
+      date: new Date(minPoint.timestamp),
+      timestamp: minPoint.timestamp,
+      daysFromGenesis: getDaysFromGenesis(minPoint.timestamp)
+    }
+  }
+  
+  const oylPoint = recentData.reduce((min, point) => 
+    point.value < min.value ? point : min
+  )
+  
+  return {
+    price: oylPoint.value,
+    date: new Date(oylPoint.timestamp),
+    timestamp: oylPoint.timestamp,
+    daysFromGenesis: getDaysFromGenesis(oylPoint.timestamp)
+  }
+}
+
+// Generate power law prediction data with proper genesis days calculation
+function generatePowerLawData(data: KaspaMetric[], a: number, b: number, multiplier: number = 1, useGenesisDays: boolean = false) {
   return data.map(point => {
-    const xValue = xKey === 'days_from_genesis' 
-      ? (point.timestamp - data[0].timestamp) / (24 * 60 * 60 * 1000) + 1
+    const xValue = useGenesisDays 
+      ? getDaysFromGenesis(point.timestamp)
       : point.timestamp / (24 * 60 * 60 * 1000)
     
     return {
-      x: xKey === 'days_from_genesis' ? xValue : point.timestamp,
-      y: a * Math.pow(xValue, b) * multiplier
+      x: useGenesisDays ? xValue : point.timestamp,
+      y: a * Math.pow(Math.max(1, xValue), b) * multiplier
     }
   })
 }
@@ -142,14 +195,16 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
     if (showPowerLaw === 'Hide' || filteredData.length < 10) return null
     
     try {
-      const xKey = timeScale === 'Log' ? 'days_from_genesis' : 'timestamp'
-      const { a, b, r2 } = fitPowerLaw(filteredData, xKey)
+      const useGenesisDays = timeScale === 'Log'
+      const { a, b, r2 } = fitPowerLaw(filteredData, useGenesisDays)
       
       return {
-        regression: generatePowerLawData(filteredData, a, b, 1, xKey),
-        support: generatePowerLawData(filteredData, a, b, 0.4, xKey), // -60%
-        resistance: generatePowerLawData(filteredData, a, b, 2.2, xKey), // +120%
-        r2: r2
+        regression: generatePowerLawData(filteredData, a, b, 1, useGenesisDays),
+        support: generatePowerLawData(filteredData, a, b, 0.4, useGenesisDays), // -60%
+        resistance: generatePowerLawData(filteredData, a, b, 2.2, useGenesisDays), // +120%
+        r2: r2,
+        slope: b,
+        coefficient: a
       }
     } catch (error) {
       console.error('Power law calculation failed:', error)
@@ -157,29 +212,36 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
     }
   }, [filteredData, timeScale, showPowerLaw])
 
-  // Prepare chart data
+  // Calculate ATH and 1YL points
+  const athData = useMemo(() => calculateATH(filteredData), [filteredData])
+  const oylData = useMemo(() => calculate1YL(filteredData), [filteredData])
+
+  // Prepare chart data with Streamlit-inspired styling
   const chartData = useMemo(() => {
-    const datasets: any[] = [
-      {
-        label: 'Kaspa Price (USD)',
-        data: filteredData.map(point => ({
-          x: timeScale === 'Log' 
-            ? (point.timestamp - filteredData[0]?.timestamp) / (24 * 60 * 60 * 1000) + 1
-            : point.timestamp,
-          y: point.value
-        })),
-        borderColor: '#00d4ff',
-        backgroundColor: 'rgba(0, 212, 255, 0.1)',
-        borderWidth: 3,
-        tension: 0.3,
-        fill: false,
-        pointRadius: 0,
-        pointHoverRadius: 6,
-        pointHoverBackgroundColor: '#00d4ff',
-        pointHoverBorderColor: '#ffffff',
-        pointHoverBorderWidth: 2,
-      }
-    ]
+    const datasets: any[] = []
+
+    // Main price line with gradient fill (inspired by Streamlit #5B6CFF)
+    const priceDataPoints = filteredData.map(point => ({
+      x: timeScale === 'Log' 
+        ? getDaysFromGenesis(point.timestamp)
+        : point.timestamp,
+      y: point.value
+    }))
+
+    datasets.push({
+      label: 'Kaspa Price (USD)',
+      data: priceDataPoints,
+      borderColor: '#5B6CFF', // Streamlit primary color
+      backgroundColor: 'rgba(91, 108, 255, 0.1)',
+      borderWidth: 3,
+      tension: 0.3,
+      fill: true,
+      pointRadius: 0,
+      pointHoverRadius: 6,
+      pointHoverBackgroundColor: '#5B6CFF',
+      pointHoverBorderColor: '#ffffff',
+      pointHoverBorderWidth: 2,
+    })
 
     // Add power law datasets if enabled
     if (powerLawData) {
@@ -209,11 +271,11 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
         tension: 0
       })
 
-      // Power law regression line
+      // Power law regression line (orange like Streamlit)
       datasets.push({
         label: `Power Law Fit (R²=${powerLawData.r2.toFixed(3)})`,
         data: powerLawData.regression,
-        borderColor: '#ff8c00',
+        borderColor: '#ff8c00', // Orange power law line
         backgroundColor: 'transparent',
         borderWidth: 3,
         fill: false,
@@ -222,8 +284,52 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
       })
     }
 
+    // Add ATH point if visible
+    if (athData) {
+      const athX = timeScale === 'Log' ? athData.daysFromGenesis : athData.timestamp
+      // Check if ATH is in current view
+      const minX = Math.min(...priceDataPoints.map(p => p.x))
+      const maxX = Math.max(...priceDataPoints.map(p => p.x))
+      
+      if (athX >= minX && athX <= maxX) {
+        datasets.push({
+          label: 'ATH',
+          data: [{ x: athX, y: athData.price }],
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          borderColor: 'rgba(91, 108, 255, 0.8)',
+          borderWidth: 2,
+          pointRadius: 8,
+          pointHoverRadius: 10,
+          showLine: false,
+          fill: false
+        })
+      }
+    }
+
+    // Add 1YL point if visible
+    if (oylData) {
+      const oylX = timeScale === 'Log' ? oylData.daysFromGenesis : oylData.timestamp
+      // Check if 1YL is in current view
+      const minX = Math.min(...priceDataPoints.map(p => p.x))
+      const maxX = Math.max(...priceDataPoints.map(p => p.x))
+      
+      if (oylX >= minX && oylX <= maxX) {
+        datasets.push({
+          label: '1YL',
+          data: [{ x: oylX, y: oylData.price }],
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          borderColor: 'rgba(239, 68, 68, 0.8)',
+          borderWidth: 2,
+          pointRadius: 8,
+          pointHoverRadius: 10,
+          showLine: false,
+          fill: false
+        })
+      }
+    }
+
     return { datasets }
-  }, [filteredData, timeScale, powerLawData])
+  }, [filteredData, timeScale, powerLawData, athData, oylData])
 
   // Chart options with proper typing
   const chartOptions: any = useMemo(() => {
@@ -338,7 +444,7 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
             <select
               value={priceScale}
               onChange={(e) => setPriceScale(e.target.value as 'Linear' | 'Log')}
-              className="bg-white/10 border border-white/20 rounded px-3 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-kaspa-blue"
+              className="bg-white/10 border border-white/20 rounded px-3 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="Linear">Linear</option>
               <option value="Log">Log</option>
@@ -351,7 +457,7 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
             <select
               value={timeScale}
               onChange={(e) => setTimeScale(e.target.value as 'Linear' | 'Log')}
-              className="bg-white/10 border border-white/20 rounded px-3 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-kaspa-blue"
+              className="bg-white/10 border border-white/20 rounded px-3 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="Linear">Linear</option>
               <option value="Log">Log</option>
@@ -364,7 +470,7 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
             <select
               value={showPowerLaw}
               onChange={(e) => setShowPowerLaw(e.target.value as 'Hide' | 'Show')}
-              className="bg-white/10 border border-white/20 rounded px-3 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-kaspa-blue"
+              className="bg-white/10 border border-white/20 rounded px-3 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="Hide">Hide</option>
               <option value="Show">Show</option>
@@ -380,7 +486,7 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
               onClick={() => setTimePeriod(period)}
               className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
                 timePeriod === period
-                  ? 'bg-kaspa-gradient text-white'
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
                   : 'bg-white/10 text-gray-300 hover:bg-white/20'
               }`}
             >
@@ -405,17 +511,23 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
       </div>
 
       {/* Chart Info */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
         <div className="bg-white/5 rounded-lg p-3">
           <span className="text-gray-400">Data Points:</span>
           <span className="text-white ml-2 font-semibold">{filteredData.length}</span>
         </div>
         
         {powerLawData && (
-          <div className="bg-white/5 rounded-lg p-3">
-            <span className="text-gray-400">Power Law R²:</span>
-            <span className="text-white ml-2 font-semibold">{powerLawData.r2.toFixed(4)}</span>
-          </div>
+          <>
+            <div className="bg-white/5 rounded-lg p-3">
+              <span className="text-gray-400">Power Law R²:</span>
+              <span className="text-white ml-2 font-semibold">{powerLawData.r2.toFixed(4)}</span>
+            </div>
+            <div className="bg-white/5 rounded-lg p-3">
+              <span className="text-gray-400">Power Law Slope:</span>
+              <span className="text-white ml-2 font-semibold">{powerLawData.slope.toFixed(4)}</span>
+            </div>
+          </>
         )}
         
         <div className="bg-white/5 rounded-lg p-3">
@@ -423,6 +535,31 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
           <span className="text-white ml-2 font-semibold">{timePeriod}</span>
         </div>
       </div>
+
+      {/* ATH and 1YL Info */}
+      {(athData || oylData) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mt-4">
+          {athData && (
+            <div className="bg-white/5 rounded-lg p-3">
+              <span className="text-gray-400">All-Time High:</span>
+              <span className="text-white ml-2 font-semibold">{formatCurrency(athData.price)}</span>
+              <div className="text-xs text-gray-500 mt-1">
+                {athData.date.toLocaleDateString()}
+              </div>
+            </div>
+          )}
+          
+          {oylData && (
+            <div className="bg-white/5 rounded-lg p-3">
+              <span className="text-gray-400">One Year Low:</span>
+              <span className="text-white ml-2 font-semibold">{formatCurrency(oylData.price)}</span>
+              <div className="text-xs text-gray-500 mt-1">
+                {oylData.date.toLocaleDateString()}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
