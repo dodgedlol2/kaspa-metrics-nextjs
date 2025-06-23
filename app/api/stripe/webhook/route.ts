@@ -309,8 +309,76 @@ async function sendPremiumWelcomeEmail(email: string, userId: string) {
 }
 
 async function sendSubscriptionCanceledEmail(email: string, userId: string) {
-  // Implementation for cancellation email
-  console.log('TODO: Send cancellation email to', email);
+  try {
+    if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_API_SECRET) {
+      console.error('Mailjet credentials not configured');
+      return;
+    }
+
+    const mailjet = (await import('node-mailjet')).default.apiConnect(
+      process.env.MAILJET_API_KEY,
+      process.env.MAILJET_API_SECRET
+    );
+
+    await mailjet.post('send', { version: 'v3.1' }).request({
+      Messages: [
+        {
+          From: {
+            Email: process.env.MAILJET_FROM_EMAIL || 'noreply@kaspametrics.com',
+            Name: 'Kaspa Metrics'
+          },
+          To: [{ Email: email }],
+          Subject: '😢 We\'re sorry to see you go',
+          HTMLPart: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <div style="background: linear-gradient(135deg, #6B7280 0%, #9CA3AF 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="color: white; margin: 0;">😢 Subscription Canceled</h1>
+              </div>
+              <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+                <p style="color: #333; font-size: 16px; line-height: 1.6;">
+                  Hi there,
+                </p>
+                <p style="color: #333; font-size: 16px; line-height: 1.6;">
+                  We're sorry to see you cancel your Kaspa Metrics Premium subscription. Your premium features will remain active until the end of your current billing period.
+                </p>
+                
+                <div style="background: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                  <h3 style="color: #374151; margin-top: 0;">What happens next:</h3>
+                  <ul style="color: #6B7280; margin: 0; padding-left: 20px;">
+                    <li>You'll keep premium access until your billing period ends</li>
+                    <li>After that, you'll switch to our free plan</li>
+                    <li>Your account and data will be preserved</li>
+                    <li>You can reactivate premium anytime</li>
+                  </ul>
+                </div>
+
+                <p style="color: #333; font-size: 16px; line-height: 1.6;">
+                  We'd love to hear your feedback about why you canceled. Your input helps us improve Kaspa Metrics for everyone.
+                </p>
+
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${process.env.NEXTAUTH_URL}/premium/pricing" style="background: linear-gradient(135deg, #5B6CFF 0%, #6366F1 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin-right: 10px;">
+                    Reactivate Premium
+                  </a>
+                  <a href="mailto:support@kaspametrics.com" style="background: #6B7280; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                    Send Feedback
+                  </a>
+                </div>
+
+                <p style="color: #666; font-size: 14px; margin-top: 30px;">
+                  Thank you for being part of the Kaspa Metrics community. We hope to see you back soon!
+                </p>
+              </div>
+            </div>
+          `
+        }
+      ]
+    });
+
+    console.log('Cancellation email sent to:', email);
+  } catch (error) {
+    console.error('Error sending cancellation email:', error);
+  }
 }
 
 async function sendPaymentReceiptEmail(email: string, userId: string, invoice: Stripe.Invoice) {
