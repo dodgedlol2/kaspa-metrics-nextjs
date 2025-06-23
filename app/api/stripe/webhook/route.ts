@@ -138,10 +138,15 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     console.log('Updating user subscription for user ID:', user.id);
 
     // Update user subscription status
+    const isPremiumActive = subscription.status === 'active' || 
+                           (subscription.status === 'canceled' && 
+                            subscription.current_period_end && 
+                            new Date(subscription.current_period_end * 1000) > new Date());
+
     const { error: updateError } = await supabase
       .from('users')
       .update({
-        is_premium: subscription.status === 'active',
+        is_premium: isPremiumActive,
         stripe_subscription_id: subscription.id,
         subscription_status: subscription.status,
         subscription_end_date: subscriptionEndDate.toISOString(),
