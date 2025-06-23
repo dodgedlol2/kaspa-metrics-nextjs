@@ -454,7 +454,7 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
             padding: 20,
             generateLabels: (chart: any) => {
               const original = ChartJS.defaults.plugins.legend.labels.generateLabels
-              const labels = original.call(this, chart)
+              const labels = original(chart)
               
               // Customize legend labels to match your images
               return labels.map((label: any) => {
