@@ -119,14 +119,31 @@ export default function BillingPage() {
                      'Free'}
                   </span>
                 </div>
-                {subscriptionData.subscriptionEndDate && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">
-                      {subscriptionData.subscriptionStatus === 'canceled' ? 'Expires:' : 'Renews:'}
-                    </span>
-                    <span className="text-white">
-                      {new Date(subscriptionData.subscriptionEndDate).toLocaleDateString()}
-                    </span>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">
+                    {subscriptionData.subscriptionStatus === 'canceled' ? 'Premium expires:' :
+                     subscriptionData.subscriptionStatus === 'active' ? 'Next billing:' :
+                     'Renews:'}
+                  </span>
+                  <span className="text-white">
+                    {subscriptionData.subscriptionEndDate ? new Date(subscriptionData.subscriptionEndDate).toLocaleDateString() : 'N/A'}
+                  </span>
+                </div>
+                
+                {subscriptionData.subscriptionStatus === 'canceled' && (
+                  <div className="mt-4 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
+                    <div className="flex items-start">
+                      <svg className="w-5 h-5 text-yellow-400 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                      <div>
+                        <p className="text-yellow-300 font-medium">Subscription Canceled</p>
+                        <p className="text-yellow-300 text-sm mt-1">
+                          You'll keep premium access until {subscriptionData.subscriptionEndDate ? new Date(subscriptionData.subscriptionEndDate).toLocaleDateString() : 'your billing period ends'}. 
+                          You can reactivate anytime before then.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
                 <div className="flex justify-between">
@@ -193,26 +210,41 @@ export default function BillingPage() {
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           {subscriptionData.isPremium ? (
             <>
-              <button
-                onClick={handleManageBilling}
-                disabled={loading}
-                className="bg-gradient-to-r from-[#5B6CFF] to-[#6366F1] text-white p-6 rounded-xl font-semibold hover:shadow-lg hover:shadow-[#5B6CFF]/25 transition-all duration-300 disabled:opacity-50"
-              >
-                {loading ? (
-                  <span className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Loading...
-                  </span>
-                ) : (
-                  <>
-                    <div className="text-2xl mb-2">💳</div>
-                    <div>Manage Billing</div>
-                    <div className="text-sm opacity-80 mt-1">
-                      Update payment method, download invoices
-                    </div>
-                  </>
-                )}
-              </button>
+              {subscriptionData.subscriptionStatus === 'canceled' ? (
+                // Canceled subscription - show reactivation
+                <button
+                  onClick={() => router.push('/premium/pricing')}
+                  className="bg-gradient-to-r from-[#5B6CFF] to-[#6366F1] text-white p-6 rounded-xl font-semibold hover:shadow-lg hover:shadow-[#5B6CFF]/25 transition-all duration-300"
+                >
+                  <div className="text-2xl mb-2">🔄</div>
+                  <div>Reactivate Premium</div>
+                  <div className="text-sm opacity-80 mt-1">
+                    Continue your subscription
+                  </div>
+                </button>
+              ) : (
+                // Active subscription - show manage billing
+                <button
+                  onClick={handleManageBilling}
+                  disabled={loading}
+                  className="bg-gradient-to-r from-[#5B6CFF] to-[#6366F1] text-white p-6 rounded-xl font-semibold hover:shadow-lg hover:shadow-[#5B6CFF]/25 transition-all duration-300 disabled:opacity-50"
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      Loading...
+                    </span>
+                  ) : (
+                    <>
+                      <div className="text-2xl mb-2">💳</div>
+                      <div>Manage Billing</div>
+                      <div className="text-sm opacity-80 mt-1">
+                        Update payment, cancel, download invoices
+                      </div>
+                    </>
+                  )}
+                </button>
+              )}
 
               <button
                 onClick={() => router.push('/premium/alerts')}
