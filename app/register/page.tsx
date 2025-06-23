@@ -92,59 +92,6 @@ export default function RegisterPage() {
     setError('');
   };
 
-  // Success state
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f1419] flex items-center justify-center p-6">
-        <div className="max-w-md mx-auto w-full">
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 text-center">
-            {/* Success Animation */}
-            <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-
-            <h1 className="text-2xl font-bold text-white mb-4">
-              🎉 Account Created Successfully!
-            </h1>
-            
-            <p className="text-gray-300 mb-6">
-              We've sent a verification email to <strong className="text-white">{formData.email}</strong>
-            </p>
-
-            <div className="bg-blue-500/20 border border-blue-500/50 rounded-xl p-4 mb-6">
-              <div className="flex items-start">
-                <svg className="w-5 h-5 text-blue-400 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                <div className="text-left">
-                  <p className="text-blue-300 text-sm font-medium mb-1">Next Steps:</p>
-                  <p className="text-blue-300 text-sm">
-                    1. Check your email inbox<br/>
-                    2. Click the verification link<br/>
-                    3. Start analyzing Kaspa data!
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <p className="text-gray-400 text-sm mb-6">
-              Click the button below when you're ready to verify your email.
-            </p>
-
-            <button
-              onClick={() => router.push('/verify-email?message=Check your email for a verification link. Click the link in your email to activate your account.')}
-              className="w-full bg-gradient-to-r from-[#5B6CFF] to-[#6366F1] text-white py-3 px-6 rounded-lg font-semibold hover:shadow-lg hover:shadow-[#5B6CFF]/25 transition-all duration-300"
-            >
-              Continue to Verification
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f1419] flex items-center justify-center p-6">
       <div className="max-w-md mx-auto w-full">
