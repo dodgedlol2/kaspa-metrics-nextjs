@@ -153,9 +153,12 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
 
     console.log(`Successfully updated subscription for user ${user.email}: ${subscription.status}`);
 
-    // Send welcome email for new subscriptions
-    if (subscription.status === 'active') {
+    // Send welcome email ONLY for new active subscriptions (not updates)
+    if (subscription.status === 'active' && !user.was_premium_before) {
+      console.log('Sending welcome email for new premium user');
       await sendPremiumWelcomeEmail(user.email, user.id);
+    } else {
+      console.log('Skipping welcome email - user was already premium or subscription not active');
     }
   } catch (error) {
     console.error('Error handling subscription update:', error);
@@ -165,6 +168,8 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
 async function handleSubscriptionCancellation(subscription: Stripe.Subscription) {
   try {
     const customerId = subscription.customer as string;
+    
+    console.log('Processing subscription cancellation for customer:', customerId);
     
     const { data: user, error } = await supabase
       .from('users')
@@ -176,6 +181,8 @@ async function handleSubscriptionCancellation(subscription: Stripe.Subscription)
       console.error('User not found for customer:', customerId);
       return;
     }
+
+    console.log('Found user for cancellation:', user.email);
 
     // Update user to free tier
     const { error: updateError } = await supabase
