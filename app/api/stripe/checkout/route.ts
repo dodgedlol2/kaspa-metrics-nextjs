@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     const { data: user, error } = await supabase
       .from('users')
-      .select('id')
+      .select('id, stripe_customer_id')
       .eq('email', session.user.email)
       .single();
 
@@ -45,12 +45,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('Found user for checkout:', user.id, 'existing customer:', user.stripe_customer_id);
+
     // Get or create Stripe customer
     const customerId = await getOrCreateStripeCustomer(
       user.id,
       session.user.email,
       session.user.name || undefined
     );
+
+    console.log('Stripe customer ID for checkout:', customerId);
 
     // Create checkout session
     const checkoutSession = await createCheckoutSession(customerId, priceId);
