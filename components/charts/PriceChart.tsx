@@ -44,7 +44,7 @@ function getDaysFromGenesis(timestamp: number): number {
 }
 
 // Enhanced power law regression function (from Streamlit data_manager.py)
-function fitPowerLaw(data: KaspaMetric[], useGenesisDays: boolean = false) {
+function fitPowerLaw(data: KaspaMetric[], useGenesisDays: boolean = true) {
   // Filter valid data points
   const validData = data.filter(point => point.value > 0)
   
@@ -52,12 +52,12 @@ function fitPowerLaw(data: KaspaMetric[], useGenesisDays: boolean = false) {
     throw new Error("Not enough valid data points for power law fitting")
   }
   
-  // Transform to log space using days from genesis or timestamp
+  // CRITICAL: Always use days from genesis for power law calculation
+  // This matches the Streamlit behavior where power law is always calculated
+  // against days_from_genesis, regardless of display scale
   const logX = validData.map(point => {
-    const xValue = useGenesisDays 
-      ? getDaysFromGenesis(point.timestamp)
-      : point.timestamp / (24 * 60 * 60 * 1000) // Convert to days
-    return Math.log(Math.max(1, xValue))
+    const daysFromGenesis = getDaysFromGenesis(point.timestamp)
+    return Math.log(Math.max(1, daysFromGenesis))
   })
   const logY = validData.map(point => Math.log(point.value))
   
@@ -139,15 +139,20 @@ function calculate1YL(data: KaspaMetric[]) {
 }
 
 // Generate power law prediction data with proper genesis days calculation
-function generatePowerLawData(data: KaspaMetric[], a: number, b: number, multiplier: number = 1, useGenesisDays: boolean = false) {
+function generatePowerLawData(data: KaspaMetric[], a: number, b: number, multiplier: number = 1, useGenesisDaysForDisplay: boolean = false) {
   return data.map(point => {
-    const xValue = useGenesisDays 
-      ? getDaysFromGenesis(point.timestamp)
-      : point.timestamp / (24 * 60 * 60 * 1000)
+    // ALWAYS calculate Y values using days from genesis (for power law consistency)
+    const daysFromGenesis = getDaysFromGenesis(point.timestamp)
+    
+    // Choose X coordinate based on display preference
+    const xValue = useGenesisDaysForDisplay ? daysFromGenesis : point.timestamp
+    
+    // Power law: y = a * (days_from_genesis)^b * multiplier
+    const yValue = a * Math.pow(Math.max(1, daysFromGenesis), b) * multiplier
     
     return {
-      x: useGenesisDays ? xValue : point.timestamp,
-      y: a * Math.pow(Math.max(1, xValue), b) * multiplier
+      x: xValue,
+      y: yValue
     }
   })
 }
@@ -190,18 +195,22 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
     return data.filter(point => point.timestamp >= cutoffTime)
   }, [data, timePeriod])
 
-  // Calculate power law regression
+  // Calculate power law regression - ALWAYS use days from genesis for calculation
   const powerLawData = useMemo(() => {
     if (showPowerLaw === 'Hide' || filteredData.length < 10) return null
     
     try {
-      const useGenesisDays = timeScale === 'Log'
-      const { a, b, r2 } = fitPowerLaw(filteredData, useGenesisDays)
+      // CRITICAL FIX: Always use genesis days for power law calculation,
+      // regardless of display scale (matches Streamlit behavior)
+      const { a, b, r2 } = fitPowerLaw(filteredData, true) // Always use genesis days
+      
+      // Generate data for display based on timeScale
+      const useGenesisDaysForDisplay = timeScale === 'Log'
       
       return {
-        regression: generatePowerLawData(filteredData, a, b, 1, useGenesisDays),
-        support: generatePowerLawData(filteredData, a, b, 0.4, useGenesisDays), // -60%
-        resistance: generatePowerLawData(filteredData, a, b, 2.2, useGenesisDays), // +120%
+        regression: generatePowerLawData(filteredData, a, b, 1, useGenesisDaysForDisplay),
+        support: generatePowerLawData(filteredData, a, b, 0.4, useGenesisDaysForDisplay), // -60%
+        resistance: generatePowerLawData(filteredData, a, b, 2.2, useGenesisDaysForDisplay), // +120%
         r2: r2,
         slope: b,
         coefficient: a
