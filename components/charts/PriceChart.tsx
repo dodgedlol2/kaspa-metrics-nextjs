@@ -30,6 +30,94 @@ ChartJS.register(
   TimeScale
 )
 
+// Custom plugin for ATH/1YL annotations
+const annotationPlugin = {
+  id: 'athOylAnnotations',
+  afterDraw: (chart: any, args: any, options: any) => {
+    const { ctx, chartArea: { top, bottom, left, right }, scales: { x, y } } = chart
+
+    ctx.save()
+    
+    // Draw ATH annotation if visible
+    if (options.athData && options.athVisible) {
+      const athX = options.timeScale === 'Log' ? options.athData.daysFromGenesis : options.athData.timestamp
+      const athPixelX = x.getPixelForValue(athX)
+      const athPixelY = y.getPixelForValue(options.athData.price)
+      
+      if (athPixelX >= left && athPixelX <= right && athPixelY >= top && athPixelY <= bottom) {
+        // Draw ATH label
+        ctx.fillStyle = '#1e293b'
+        ctx.strokeStyle = '#5B6CFF'
+        ctx.lineWidth = 1
+        
+        const athText = `ATH ${options.athData.price.toFixed(4)}`
+        ctx.font = '11px Inter'
+        const athTextWidth = ctx.measureText(athText).width
+        
+        const athLabelX = athPixelX + 10
+        const athLabelY = athPixelY - 20
+        
+        // Draw label background
+        ctx.fillRect(athLabelX - 4, athLabelY - 14, athTextWidth + 8, 18)
+        ctx.strokeRect(athLabelX - 4, athLabelY - 14, athTextWidth + 8, 18)
+        
+        // Draw label text
+        ctx.fillStyle = '#ffffff'
+        ctx.fillText(athText, athLabelX, athLabelY)
+        
+        // Draw pointer line
+        ctx.strokeStyle = '#5B6CFF'
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.moveTo(athPixelX, athPixelY)
+        ctx.lineTo(athLabelX - 4, athLabelY)
+        ctx.stroke()
+      }
+    }
+    
+    // Draw 1YL annotation if visible
+    if (options.oylData && options.oylVisible) {
+      const oylX = options.timeScale === 'Log' ? options.oylData.daysFromGenesis : options.oylData.timestamp
+      const oylPixelX = x.getPixelForValue(oylX)
+      const oylPixelY = y.getPixelForValue(options.oylData.price)
+      
+      if (oylPixelX >= left && oylPixelX <= right && oylPixelY >= top && oylPixelY <= bottom) {
+        // Draw 1YL label
+        ctx.fillStyle = '#1e293b'
+        ctx.strokeStyle = '#ef4444'
+        ctx.lineWidth = 1
+        
+        const oylText = `1YL ${options.oylData.price.toFixed(4)}`
+        ctx.font = '11px Inter'
+        const oylTextWidth = ctx.measureText(oylText).width
+        
+        const oylLabelX = oylPixelX + 10
+        const oylLabelY = oylPixelY + 35
+        
+        // Draw label background
+        ctx.fillRect(oylLabelX - 4, oylLabelY - 14, oylTextWidth + 8, 18)
+        ctx.strokeRect(oylLabelX - 4, oylLabelY - 14, oylTextWidth + 8, 18)
+        
+        // Draw label text
+        ctx.fillStyle = '#ffffff'
+        ctx.fillText(oylText, oylLabelX, oylLabelY)
+        
+        // Draw pointer line
+        ctx.strokeStyle = '#ef4444'
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.moveTo(oylPixelX, oylPixelY)
+        ctx.lineTo(oylLabelX - 4, oylLabelY)
+        ctx.stroke()
+      }
+    }
+    
+    ctx.restore()
+  }
+}
+
+ChartJS.register(annotationPlugin)
+
 interface PriceChartProps {
   data: KaspaMetric[]
   height?: number
@@ -293,7 +381,7 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
       })
     }
 
-    // Add ATH point if visible
+    // Add ATH point with label annotation if visible
     if (athData) {
       const athX = timeScale === 'Log' ? athData.daysFromGenesis : athData.timestamp
       // Check if ATH is in current view
@@ -304,18 +392,18 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
         datasets.push({
           label: 'ATH',
           data: [{ x: athX, y: athData.price }],
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
-          borderColor: 'rgba(91, 108, 255, 0.8)',
+          backgroundColor: '#ffffff',
+          borderColor: '#5B6CFF',
           borderWidth: 2,
-          pointRadius: 8,
-          pointHoverRadius: 10,
+          pointRadius: 6,
+          pointHoverRadius: 8,
           showLine: false,
           fill: false
         })
       }
     }
 
-    // Add 1YL point if visible
+    // Add 1YL point with label annotation if visible
     if (oylData) {
       const oylX = timeScale === 'Log' ? oylData.daysFromGenesis : oylData.timestamp
       // Check if 1YL is in current view
@@ -326,11 +414,11 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
         datasets.push({
           label: '1YL',
           data: [{ x: oylX, y: oylData.price }],
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
-          borderColor: 'rgba(239, 68, 68, 0.8)',
+          backgroundColor: '#ffffff',
+          borderColor: '#ef4444',
           borderWidth: 2,
-          pointRadius: 8,
-          pointHoverRadius: 10,
+          pointRadius: 6,
+          pointHoverRadius: 8,
           showLine: false,
           fill: false
         })
@@ -340,7 +428,7 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
     return { datasets }
   }, [filteredData, timeScale, powerLawData, athData, oylData])
 
-  // Chart options with proper typing
+  // Chart options with professional styling and detailed tick marks
   const chartOptions: any = useMemo(() => {
     const baseOptions = {
       responsive: true,
@@ -353,35 +441,89 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
         legend: {
           display: true,
           position: 'top' as const,
+          align: 'start' as const,
           labels: {
             color: '#e2e8f0',
             font: {
               family: 'Inter',
-              size: 12
+              size: 12,
+              weight: 500
             },
             usePointStyle: true,
-            pointStyle: 'line'
+            pointStyle: 'line',
+            padding: 20,
+            generateLabels: (chart: any) => {
+              const original = ChartJS.defaults.plugins.legend.labels.generateLabels
+              const labels = original.call(this, chart)
+              
+              // Customize legend labels to match your images
+              return labels.map((label: any) => {
+                if (label.text === 'Kaspa Price (USD)') {
+                  label.text = 'Kaspa Price'
+                  label.strokeStyle = '#5B6CFF'
+                  label.lineWidth = 3
+                }
+                if (label.text.includes('Power Law')) {
+                  label.text = 'Power Law'
+                  label.strokeStyle = '#ff8c00'
+                  label.lineWidth = 3
+                }
+                if (label.text === 'ATH') {
+                  label.pointStyle = 'circle'
+                  label.strokeStyle = '#5B6CFF'
+                  label.fillStyle = '#ffffff'
+                }
+                if (label.text === '1YL') {
+                  label.pointStyle = 'circle'
+                  label.strokeStyle = '#ef4444'
+                  label.fillStyle = '#ffffff'
+                }
+                return label
+              })
+            }
           }
         },
         tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          backgroundColor: 'rgba(15, 23, 42, 0.95)',
           titleColor: '#ffffff',
-          bodyColor: '#ffffff',
-          borderColor: '#6366f1',
+          bodyColor: '#e2e8f0',
+          borderColor: '#475569',
           borderWidth: 1,
+          cornerRadius: 8,
           displayColors: false,
+          titleFont: {
+            family: 'Inter',
+            size: 13,
+            weight: 600
+          },
+          bodyFont: {
+            family: 'Inter',
+            size: 12
+          },
           callbacks: {
             title: (tooltipItems: any[]) => {
               const item = tooltipItems[0]
               if (timeScale === 'Log') {
-                return `Day ${Math.round(item.parsed.x)}`
+                return `Day ${Math.round(item.parsed.x)} Since Genesis`
               } else {
-                return new Date(item.parsed.x).toLocaleDateString()
+                return new Date(item.parsed.x).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+                })
               }
             },
             label: (context: any) => {
               const value = context.parsed.y
-              return `${context.dataset.label}: ${formatCurrency(value)}`
+              const label = context.dataset.label
+              
+              if (label === 'ATH') {
+                return `ATH: ${formatCurrency(value)}`
+              } else if (label === '1YL') {
+                return `1YL: ${formatCurrency(value)}`
+              } else {
+                return `${label}: ${formatCurrency(value)}`
+              }
             }
           }
         },
@@ -392,55 +534,124 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
           title: {
             display: true,
             text: timeScale === 'Log' ? 'Days Since Genesis (Log Scale)' : 'Date',
-            color: '#cbd5e1',
+            color: '#94a3b8',
             font: {
               family: 'Inter',
-              size: 13,
-              weight: '600'
-            }
+              size: 12,
+              weight: 500
+            },
+            padding: 10
           },
           grid: {
-            color: timeScale === 'Log' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.08)',
-            lineWidth: 1.2,
+            color: 'rgba(71, 85, 105, 0.3)',
+            lineWidth: 1,
+            drawTicks: true,
+            tickLength: 6,
+            tickColor: 'rgba(71, 85, 105, 0.5)'
+          },
+          border: {
+            color: '#475569',
+            width: 1
           },
           ticks: {
-            color: '#9ca3af',
+            color: '#94a3b8',
             font: {
               family: 'Inter',
               size: 11
-            }
-          }
+            },
+            maxTicksLimit: timeScale === 'Log' ? 8 : 10,
+            padding: 8,
+            callback: timeScale === 'Log' ? 
+              (value: any) => {
+                // Custom formatting for log scale days
+                const num = Number(value)
+                if (num >= 1000) return `${(num/1000).toFixed(0)}k`
+                if (num >= 100) return num.toFixed(0)
+                return num.toFixed(0)
+              } : undefined
+          },
+          ...(timeScale === 'Log' && {
+            min: Math.min(...filteredData.map(p => getDaysFromGenesis(p.timestamp))),
+            max: Math.max(...filteredData.map(p => getDaysFromGenesis(p.timestamp)))
+          })
         },
         y: {
           type: priceScale === 'Log' ? 'logarithmic' : 'linear',
           title: {
             display: true,
-            text: `Price (USD) ${priceScale === 'Log' ? '- Log Scale' : ''}`,
-            color: '#cbd5e1',
+            text: 'Price (USD)',
+            color: '#94a3b8',
             font: {
               family: 'Inter',
-              size: 13,
-              weight: '600'
-            }
+              size: 12,
+              weight: 500
+            },
+            padding: 15
           },
           grid: {
-            color: priceScale === 'Log' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.08)',
-            lineWidth: 1.2,
+            color: 'rgba(71, 85, 105, 0.3)',
+            lineWidth: 1,
+            drawTicks: true,
+            tickLength: 6,
+            tickColor: 'rgba(71, 85, 105, 0.5)'
+          },
+          border: {
+            color: '#475569',
+            width: 1
           },
           ticks: {
-            color: '#9ca3af',
+            color: '#94a3b8',
             font: {
               family: 'Inter',
               size: 11
             },
-            callback: (value: any) => formatCurrency(Number(value))
-          }
+            padding: 8,
+            maxTicksLimit: priceScale === 'Log' ? 8 : 10,
+            callback: (value: any) => {
+              const num = Number(value)
+              if (priceScale === 'Log') {
+                // Enhanced log scale formatting
+                if (num >= 1) {
+                  if (num >= 10) return `${num.toFixed(0)}`
+                  return `${num.toFixed(1)}`
+                } else if (num >= 0.1) {
+                  return `${num.toFixed(2)}`
+                } else if (num >= 0.01) {
+                  return `${num.toFixed(3)}`
+                } else if (num >= 0.001) {
+                  return `${num.toFixed(4)}`
+                } else {
+                  return `${num.toFixed(5)}`
+                }
+              } else {
+                return formatCurrency(num)
+              }
+            }
+          },
+          ...(priceScale === 'Log' && {
+            min: Math.min(...filteredData.map(p => p.value)) * 0.8,
+            max: Math.max(...filteredData.map(p => p.value)) * 1.3
+          })
         },
       },
+      elements: {
+        point: {
+          radius: 0,
+          hoverRadius: 4,
+          hitRadius: 8
+        },
+        line: {
+          tension: 0.1
+        }
+      },
+      animation: {
+        duration: 750,
+        easing: 'easeInOutQuart'
+      }
     }
 
     return baseOptions
-  }, [priceScale, timeScale])
+  }, [priceScale, timeScale, filteredData])
 
   return (
     <div className="space-y-6">
@@ -506,9 +717,32 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
       </div>
 
       {/* Chart Container */}
-      <div style={{ height: `${height}px` }} className="bg-white/5 rounded-lg p-4">
+      <div style={{ height: `${height}px` }} className="bg-gradient-to-br from-slate-900/50 to-slate-800/50 rounded-lg p-4 border border-slate-700/50">
         {filteredData.length > 0 ? (
-          <Line data={chartData} options={chartOptions} />
+          <Line 
+            data={chartData} 
+            options={{
+              ...chartOptions,
+              plugins: {
+                ...chartOptions.plugins,
+                athOylAnnotations: {
+                  athData: athData,
+                  oylData: oylData,
+                  athVisible: athData && timeScale === 'Log' ? 
+                    athData.daysFromGenesis >= Math.min(...filteredData.map(p => getDaysFromGenesis(p.timestamp))) &&
+                    athData.daysFromGenesis <= Math.max(...filteredData.map(p => getDaysFromGenesis(p.timestamp))) :
+                    athData && athData.timestamp >= Math.min(...filteredData.map(p => p.timestamp)) &&
+                    athData.timestamp <= Math.max(...filteredData.map(p => p.timestamp)),
+                  oylVisible: oylData && timeScale === 'Log' ? 
+                    oylData.daysFromGenesis >= Math.min(...filteredData.map(p => getDaysFromGenesis(p.timestamp))) &&
+                    oylData.daysFromGenesis <= Math.max(...filteredData.map(p => getDaysFromGenesis(p.timestamp))) :
+                    oylData && oylData.timestamp >= Math.min(...filteredData.map(p => p.timestamp)) &&
+                    oylData.timestamp <= Math.max(...filteredData.map(p => p.timestamp)),
+                  timeScale: timeScale
+                }
+              }
+            }}
+          />
         ) : (
           <div className="h-full flex items-center justify-center">
             <div className="text-center">
