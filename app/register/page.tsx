@@ -15,7 +15,6 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showError, setShowError] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -61,11 +60,8 @@ export default function RegisterPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setSuccess(true);
-        // Auto-redirect to verification page after 3 seconds
-        setTimeout(() => {
-          router.push('/verify-email?message=Account created successfully! Please check your email and click the verification link to activate your account.');
-        }, 3000);
+        // Redirect directly to verification page
+        router.push('/verify-email?message=Account created successfully! Please check your email and click the verification link to activate your account.');
       } else {
         setError(data.error || 'Failed to create account');
         setShowError(true);
@@ -134,11 +130,11 @@ export default function RegisterPage() {
             </div>
 
             <p className="text-gray-400 text-sm mb-6">
-              Redirecting to verification page in 3 seconds...
+              Click the button below when you're ready to verify your email.
             </p>
 
             <button
-              onClick={() => router.push('/verify-email')}
+              onClick={() => router.push('/verify-email?message=Check your email for a verification link. Click the link in your email to activate your account.')}
               className="w-full bg-gradient-to-r from-[#5B6CFF] to-[#6366F1] text-white py-3 px-6 rounded-lg font-semibold hover:shadow-lg hover:shadow-[#5B6CFF]/25 transition-all duration-300"
             >
               Continue to Verification
