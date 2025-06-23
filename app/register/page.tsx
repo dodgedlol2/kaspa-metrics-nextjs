@@ -218,3 +218,113 @@ export default function RegisterPage() {
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-4 bg-[#1a1a2e] text-gray-400">Or create account with email</span>
+            </div>
+          </div>
+
+          {/* Registration Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
+                Full Name
+              </label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                value={formData.name}
+                onChange={handleInputChange}
+                required
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#5B6CFF] focus:ring-1 focus:ring-[#5B6CFF] transition-all duration-300"
+                placeholder="Enter your full name"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                Email Address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                required
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#5B6CFF] focus:ring-1 focus:ring-[#5B6CFF] transition-all duration-300"
+                placeholder="Enter your email"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                required
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#5B6CFF] focus:ring-1 focus:ring-[#5B6CFF] transition-all duration-300"
+                placeholder="Create a password (min. 6 characters)"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                required
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#5B6CFF] focus:ring-1 focus:ring-[#5B6CFF] transition-all duration-300"
+                placeholder="Confirm your password"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-[#5B6CFF] to-[#6366F1] text-white py-3 px-6 rounded-lg font-semibold hover:shadow-lg hover:shadow-[#5B6CFF]/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Creating Account...
+                </span>
+              ) : (
+                'Create Account'
+              )}
+            </button>
+          </form>
+
+          {/* Terms */}
+          <p className="text-xs text-gray-400 text-center mt-4">
+            By creating an account, you agree to our{' '}
+            <a href="/terms" className="text-[#5B6CFF] hover:text-[#6366F1]">Terms of Service</a>{' '}
+            and{' '}
+            <a href="/privacy" className="text-[#5B6CFF] hover:text-[#6366F1]">Privacy Policy</a>
+          </p>
+
+          {/* Login Link */}
+          <div className="mt-6 text-center">
+            <p className="text-gray-400 text-sm">
+              Already have an account?{' '}
+              <button
+                onClick={() => router.push('/login')}
+                className="text-[#5B6CFF] hover:text-[#6366F1] font-medium transition-colors"
+              >
+                Sign in here
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
