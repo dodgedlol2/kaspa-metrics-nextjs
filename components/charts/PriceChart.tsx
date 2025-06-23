@@ -716,8 +716,8 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
         </div>
       </div>
 
-      {/* Chart Container */}
-      <div style={{ height: `${height}px` }} className="bg-gradient-to-br from-slate-900/50 to-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+      {/* Chart Container - Clean, no border */}
+      <div style={{ height: `${height}px` }} className="bg-transparent">
         {filteredData.length > 0 ? (
           <Line 
             data={chartData} 
