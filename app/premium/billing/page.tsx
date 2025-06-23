@@ -101,7 +101,9 @@ export default function BillingPage() {
                 <div className="flex justify-between">
                   <span className="text-gray-400">Plan:</span>
                   <span className="text-white font-semibold">
-                    {subscriptionData.isPremium ? 'Premium' : 'Free'}
+                    {subscriptionData.subscriptionStatus === 'canceled' 
+                      ? 'Premium (Canceled)' 
+                      : subscriptionData.isPremium ? 'Premium' : 'Free'}
                   </span>
                 </div>
                 <div className="flex justify-between">
