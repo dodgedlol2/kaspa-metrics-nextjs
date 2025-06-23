@@ -225,103 +225,107 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
     return { datasets }
   }, [filteredData, timeScale, powerLawData])
 
-  // Chart options
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: {
-      mode: 'index' as const,
-      intersect: false,
-    },
-    plugins: {
-      legend: {
-        display: true,
-        position: 'top' as const,
-        labels: {
-          color: '#e2e8f0',
-          font: {
-            family: 'Inter',
-            size: 12
-          },
-          usePointStyle: true,
-          pointStyle: 'line'
-        }
+  // Chart options with proper typing
+  const chartOptions: any = useMemo(() => {
+    const baseOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index' as const,
+        intersect: false,
       },
-      tooltip: {
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        titleColor: '#ffffff',
-        bodyColor: '#ffffff',
-        borderColor: '#6366f1',
-        borderWidth: 1,
-        displayColors: false,
-        callbacks: {
-          title: (tooltipItems: any[]) => {
-            const item = tooltipItems[0]
-            if (timeScale === 'Log') {
-              return `Day ${Math.round(item.parsed.x)}`
-            } else {
-              return new Date(item.parsed.x).toLocaleDateString()
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top' as const,
+          labels: {
+            color: '#e2e8f0',
+            font: {
+              family: 'Inter',
+              size: 12
+            },
+            usePointStyle: true,
+            pointStyle: 'line'
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          titleColor: '#ffffff',
+          bodyColor: '#ffffff',
+          borderColor: '#6366f1',
+          borderWidth: 1,
+          displayColors: false,
+          callbacks: {
+            title: (tooltipItems: any[]) => {
+              const item = tooltipItems[0]
+              if (timeScale === 'Log') {
+                return `Day ${Math.round(item.parsed.x)}`
+              } else {
+                return new Date(item.parsed.x).toLocaleDateString()
+              }
+            },
+            label: (context: any) => {
+              const value = context.parsed.y
+              return `${context.dataset.label}: ${formatCurrency(value)}`
+            }
+          }
+        },
+      },
+      scales: {
+        x: {
+          type: timeScale === 'Log' ? 'logarithmic' : 'time',
+          title: {
+            display: true,
+            text: timeScale === 'Log' ? 'Days Since Genesis (Log Scale)' : 'Date',
+            color: '#cbd5e1',
+            font: {
+              family: 'Inter',
+              size: 13,
+              weight: '600'
             }
           },
-          label: (context: any) => {
-            const value = context.parsed.y
-            return `${context.dataset.label}: ${formatCurrency(value)}`
-          }
-        }
-      },
-    },
-    scales: {
-      x: {
-        type: timeScale === 'Log' ? 'logarithmic' as const : 'time' as const,
-        title: {
-          display: true,
-          text: timeScale === 'Log' ? 'Days Since Genesis (Log Scale)' : 'Date',
-          color: '#cbd5e1',
-          font: {
-            family: 'Inter',
-            size: 13,
-            weight: '600'
-          }
-        },
-        grid: {
-          color: timeScale === 'Log' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.08)',
-          lineWidth: 1.2,
-        },
-        ticks: {
-          color: '#9ca3af',
-          font: {
-            family: 'Inter',
-            size: 11
-          }
-        }
-      },
-      y: {
-        type: priceScale === 'Log' ? 'logarithmic' as const : 'linear' as const,
-        title: {
-          display: true,
-          text: `Price (USD) ${priceScale === 'Log' ? '- Log Scale' : ''}`,
-          color: '#cbd5e1',
-          font: {
-            family: 'Inter',
-            size: 13,
-            weight: '600'
-          }
-        },
-        grid: {
-          color: priceScale === 'Log' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.08)',
-          lineWidth: 1.2,
-        },
-        ticks: {
-          color: '#9ca3af',
-          font: {
-            family: 'Inter',
-            size: 11
+          grid: {
+            color: timeScale === 'Log' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.08)',
+            lineWidth: 1.2,
           },
-          callback: (value: any) => formatCurrency(Number(value))
-        }
+          ticks: {
+            color: '#9ca3af',
+            font: {
+              family: 'Inter',
+              size: 11
+            }
+          }
+        },
+        y: {
+          type: priceScale === 'Log' ? 'logarithmic' : 'linear',
+          title: {
+            display: true,
+            text: `Price (USD) ${priceScale === 'Log' ? '- Log Scale' : ''}`,
+            color: '#cbd5e1',
+            font: {
+              family: 'Inter',
+              size: 13,
+              weight: '600'
+            }
+          },
+          grid: {
+            color: priceScale === 'Log' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.08)',
+            lineWidth: 1.2,
+          },
+          ticks: {
+            color: '#9ca3af',
+            font: {
+              family: 'Inter',
+              size: 11
+            },
+            callback: (value: any) => formatCurrency(Number(value))
+          }
+        },
       },
-    },
-  }
+    }
+
+    return baseOptions
+  }, [priceScale, timeScale])
 
   return (
     <div className="space-y-6">
