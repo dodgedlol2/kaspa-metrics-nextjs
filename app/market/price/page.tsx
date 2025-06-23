@@ -1,6 +1,6 @@
 import { getCurrentMetrics, getPriceData } from '@/lib/sheets'
 import MetricCard from '@/components/MetricCard'
-import AdvancedPriceChart from '@/components/charts/AdvancedPriceChart'
+import PriceChart from '@/components/charts/PriceChart'
 
 // Format numbers nicely
 function formatPrice(price: number): string {
@@ -114,7 +114,7 @@ export default async function PricePage() {
           </p>
         </div>
         
-        <AdvancedPriceChart data={priceData} />
+        <PriceChart data={priceData} height={400} />
       </div>
 
       {/* Price Statistics */}
