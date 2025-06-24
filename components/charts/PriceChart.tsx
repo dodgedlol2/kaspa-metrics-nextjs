@@ -443,6 +443,11 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
 
     // Configure X-axis based on time scale
     if (timeScale === 'Log') {
+      // For log time scale, calculate the actual data range
+      const daysFromGenesisValues = filteredData.map(d => getDaysFromGenesis(d.timestamp))
+      const minDays = Math.min(...daysFromGenesisValues)
+      const maxDays = Math.max(...daysFromGenesisValues)
+      
       layout.xaxis = {
         title: { text: 'Days Since Genesis (Log Scale)' },
         type: 'log',
@@ -452,6 +457,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         linecolor: '#3A3C4A',
         zerolinecolor: '#3A3C4A',
         color: '#9CA3AF',
+        range: [Math.log10(minDays), Math.log10(maxDays * 1.02)], // Add small padding (2%)
         minor: {
           ticklen: 6,
           gridcolor: 'rgba(255, 255, 255, 0.05)',
@@ -459,7 +465,11 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         }
       }
     } else {
-      // Linear time scale - use date format
+      // Linear time scale - use date format with data range
+      const dates = filteredData.map(d => new Date(d.timestamp))
+      const minDate = new Date(Math.min(...dates.map(d => d.getTime())))
+      const maxDate = new Date(Math.max(...dates.map(d => d.getTime())))
+      
       layout.xaxis = {
         title: { text: 'Date' },
         type: 'date',
@@ -470,7 +480,8 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         zerolinecolor: '#3A3C4A',
         color: '#9CA3AF',
         tickformat: '%b %Y',
-        hoverformat: '%B %d, %Y'
+        hoverformat: '%B %d, %Y',
+        range: [minDate.toISOString(), maxDate.toISOString()]
       }
     }
 
