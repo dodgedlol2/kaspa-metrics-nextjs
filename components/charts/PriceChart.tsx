@@ -452,10 +452,9 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       const minDays = Math.min(...daysFromGenesisValues)
       const maxDays = Math.max(...daysFromGenesisValues)
       
-      // For log scale, we need to be more precise with the range
-      // Use a very small padding that won't create empty space
-      const logMin = Math.log10(Math.max(1, minDays * 0.98)) // Small padding on left
-      const logMax = Math.log10(maxDays * 1.01) // Minimal padding on right
+      // No padding - fit exactly to data range
+      const logMin = Math.log10(Math.max(1, minDays))
+      const logMax = Math.log10(maxDays)
       
       layout.xaxis = {
         title: { text: 'Days Since Genesis (Log Scale)' },
@@ -473,12 +472,12 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
           gridcolor: 'rgba(255, 255, 255, 0.05)',
           gridwidth: 0.5
         },
-        // Very thin vertical crosshair only
+        // Very thin full crosshair lines
         showspikes: true,
-        spikecolor: 'rgba(255, 255, 255, 0.2)',
+        spikecolor: 'rgba(255, 255, 255, 0.15)',
         spikethickness: 0.5,
-        spikedash: 'solid',
-        spikemode: 'toaxis'
+        spikedash: 'dash',
+        spikemode: 'across'
       }
     } else {
       // Linear time scale - use date format with data range
@@ -499,12 +498,12 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         hoverformat: '%B %d, %Y',
         range: [minDate.toISOString(), maxDate.toISOString()],
         autorange: false, // Disable autorange to use our custom range
-        // Very thin vertical crosshair only
+        // Very thin full crosshair lines
         showspikes: true,
-        spikecolor: 'rgba(255, 255, 255, 0.2)',
+        spikecolor: 'rgba(255, 255, 255, 0.15)',
         spikethickness: 0.5,
-        spikedash: 'solid',
-        spikemode: 'toaxis'
+        spikedash: 'dash',
+        spikemode: 'across'
       }
     }
 
@@ -518,8 +517,12 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       range: priceScale === 'Log' 
         ? [Math.log10(yMinChart), Math.log10(yMaxChart)]
         : [yMinChart, yMaxChart],
-      // No horizontal crosshair - only vertical from X-axis
-      showspikes: false
+      // Full horizontal crosshair line
+      showspikes: true,
+      spikecolor: 'rgba(255, 255, 255, 0.15)',
+      spikethickness: 0.5,
+      spikedash: 'dash',
+      spikemode: 'across'
     }
 
     // Add log-specific Y-axis configuration
