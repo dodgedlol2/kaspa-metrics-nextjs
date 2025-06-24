@@ -284,7 +284,8 @@ function generateLogTicks(dataMin: number, dataMax: number) {
   }
   
   // Sort and remove duplicates
-  return [...new Set(allTicks)].sort((a, b) => a - b)
+  const uniqueTicks = Array.from(new Set(allTicks))
+  return uniqueTicks.sort((a, b) => a - b)
 }
 
 // Generate specific Y-axis ticks for price (matching your images)
