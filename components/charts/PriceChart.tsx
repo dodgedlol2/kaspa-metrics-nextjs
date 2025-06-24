@@ -443,7 +443,7 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
       datasets.push({
         label: `Power Law Fit (R²=${powerLawData.r2.toFixed(3)})`,
         data: powerLawData.regression,
-        borderColor: '#ff8c00', // Orange power law line
+        borderColor: '#ef4444', // Changed from orange to red
         backgroundColor: 'transparent',
         borderWidth: 3,
         fill: false,
@@ -536,7 +536,7 @@ export default function PriceChart({ data, height = 400 }: PriceChartProps) {
                 }
                 if (label.text.includes('Power Law')) {
                   label.text = 'Power Law'
-                  label.strokeStyle = '#ff8c00'
+                  label.strokeStyle = '#ef4444' // Changed to red
                   label.lineWidth = 3
                 }
                 if (label.text === 'ATH') {
