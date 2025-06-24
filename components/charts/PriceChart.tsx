@@ -255,12 +255,13 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       yMaxChart = yMaxData * (athInView ? 1.15 : 1.05)
     }
 
-    // For log scale: add invisible baseline
+    // For log scale: add invisible baseline using regular scatter
     if (priceScale === 'Log') {
       traces.push({
         x: xValues,
         y: Array(xValues.length).fill(yMinChart),
         mode: 'lines',
+        type: 'scatter',
         name: 'baseline',
         line: { color: 'rgba(0,0,0,0)', width: 0 },
         showlegend: false,
@@ -268,21 +269,20 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       })
     }
 
-    // Main price trace
+    // Main price trace using ScatterGL for better performance
     traces.push({
       x: xValues,
       y: yValues,
       mode: 'lines',
+      type: 'scattergl', // Using ScatterGL for better performance
       name: 'Kaspa Price',
-      line: { color: '#5B6CFF', width: 2 },
-      fill: priceScale === 'Log' ? 'tonexty' : 'tozeroy',
-      fillgradient: {
-        type: "vertical",
-        colorscale: [
-          [0, "rgba(13, 13, 26, 0.01)"],
-          [1, "rgba(91, 108, 255, 0.6)"]
-        ]
+      line: { 
+        color: '#5B6CFF', 
+        width: 2 
       },
+      fill: priceScale === 'Log' ? 'tonexty' : 'tozeroy',
+      fillcolor: 'rgba(91, 108, 255, 0.2)', // ScatterGL doesn't support gradients, use solid color
+      connectgaps: true,
       hovertemplate: timeScale === 'Linear' 
         ? '<b>%{fullData.name}</b><br>Price: $%{y:.4f}<extra></extra>'
         : '%{text}<br><b>%{fullData.name}</b><br>Price: $%{y:.4f}<extra></extra>',
@@ -293,7 +293,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       })),
     })
 
-    // Add power law if enabled
+    // Add power law if enabled using ScatterGL
     if (powerLawData) {
       const xFit = filteredData.map(d => getDaysFromGenesis(d.timestamp))
       const yFit = xFit.map(x => powerLawData.a * Math.pow(x, powerLawData.b))
@@ -309,8 +309,14 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         x: fitX,
         y: yFit,
         mode: 'lines',
+        type: 'scattergl', // Using ScatterGL for power law line
         name: 'Power Law',
-        line: { color: '#ff8c00', width: 2, dash: 'solid' },
+        line: { 
+          color: '#ff8c00', 
+          width: 2,
+          dash: 'solid'
+        },
+        connectgaps: true,
         showlegend: true,
         hovertemplate: timeScale === 'Linear'
           ? '<b>%{fullData.name}</b><br>Fit: $%{y:.4f}<extra></extra>'
@@ -318,7 +324,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       })
     }
 
-    // Add ATH marker
+    // Add ATH marker using regular scatter (markers work better with scatter type)
     if (athData) {
       let athX: number | Date
       if (timeScale === 'Log') {
@@ -331,6 +337,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         x: [athX],
         y: [athData.price],
         mode: 'markers+text',
+        type: 'scatter', // Use regular scatter for markers
         name: 'ATH',
         marker: {
           color: '#ffffff',
@@ -345,7 +352,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       })
     }
 
-    // Add 1YL marker
+    // Add 1YL marker using regular scatter
     if (oylData) {
       let oylX: number | Date
       if (timeScale === 'Log') {
@@ -358,6 +365,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         x: [oylX],
         y: [oylData.price],
         mode: 'markers+text',
+        type: 'scatter', // Use regular scatter for markers
         name: '1YL',
         marker: {
           color: '#ffffff',
@@ -622,7 +630,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
               width: 1400,
               scale: 2
             },
-            // Improve zoom performance
+            // Improve zoom performance with ScatterGL
             responsive: true,
             doubleClick: 'reset+autosize',
             scrollZoom: true,
