@@ -431,13 +431,24 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         .tickSize(6)
     } else {
       // Linear time scale - use D3's time ticks
-      xAxis = d3.axisBottom(xScale as d3.ScaleTime<number, number, never>)
-        .ticks(d3.timeMonth.every(2)) // Every 2 months
-        .tickFormat((d: any) => d3.timeFormat("%b %Y")(d))
-        .tickSize(6)
-      
-      // Get the actual tick values for grid alignment
-      xTickValues = (xScale as d3.ScaleTime<number, number, never>).ticks(d3.timeMonth.every(2))
+      const timeInterval = d3.timeMonth.every(2)
+      if (timeInterval) {
+        xAxis = d3.axisBottom(xScale as d3.ScaleTime<number, number, never>)
+          .ticks(timeInterval)
+          .tickFormat((d: any) => d3.timeFormat("%b %Y")(d))
+          .tickSize(6)
+        
+        // Get the actual tick values for grid alignment
+        xTickValues = (xScale as d3.ScaleTime<number, number, never>).ticks(timeInterval)
+      } else {
+        // Fallback to regular ticks
+        xAxis = d3.axisBottom(xScale as d3.ScaleTime<number, number, never>)
+          .ticks(8)
+          .tickFormat((d: any) => d3.timeFormat("%b %Y")(d))
+          .tickSize(6)
+        
+        xTickValues = (xScale as d3.ScaleTime<number, number, never>).ticks(8)
+      }
     }
 
     // Y-AXIS CONFIGURATION
