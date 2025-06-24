@@ -16,7 +16,7 @@ export default async function PricePage() {
 
       {/* Clean Price Chart - No borders, no containers */}
       <div className="mb-8">
-        <PriceChart data={priceData} height={900} />
+        <PriceChart data={priceData} height={750} />
       </div>
     </div>
   )
