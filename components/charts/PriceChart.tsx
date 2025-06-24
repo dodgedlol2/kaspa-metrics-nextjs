@@ -452,6 +452,11 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       const minDays = Math.min(...daysFromGenesisValues)
       const maxDays = Math.max(...daysFromGenesisValues)
       
+      // For log scale, we need to be more precise with the range
+      // Use a very small padding that won't create empty space
+      const logMin = Math.log10(Math.max(1, minDays * 0.98)) // Small padding on left
+      const logMax = Math.log10(maxDays * 1.01) // Minimal padding on right
+      
       layout.xaxis = {
         title: { text: 'Days Since Genesis (Log Scale)' },
         type: 'log',
@@ -461,7 +466,8 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         linecolor: '#3A3C4A',
         zerolinecolor: '#3A3C4A',
         color: '#9CA3AF',
-        range: [Math.log10(minDays), Math.log10(maxDays * 1.02)], // Add small padding (2%)
+        range: [logMin, logMax],
+        autorange: false, // Disable autorange to use our custom range
         minor: {
           ticklen: 6,
           gridcolor: 'rgba(255, 255, 255, 0.05)',
@@ -492,6 +498,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         tickformat: '%b %Y',
         hoverformat: '%B %d, %Y',
         range: [minDate.toISOString(), maxDate.toISOString()],
+        autorange: false, // Disable autorange to use our custom range
         // Very thin vertical crosshair only
         showspikes: true,
         spikecolor: 'rgba(255, 255, 255, 0.2)',
