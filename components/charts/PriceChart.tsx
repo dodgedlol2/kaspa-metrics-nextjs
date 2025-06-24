@@ -394,72 +394,155 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       .attr("stroke-width", 2)    // EXACT width from Plotly
       .attr("d", line)
 
-    // Create axes with EXACT tick formatting as Plotly
+    // Create axes with EXACT tick formatting as Plotly - PROPER D3.js implementation
     let xAxis: any, yAxis: any
+    let xTickValues: any[] = []
+    let yTickValues: number[] = []
 
+    // X-AXIS CONFIGURATION
     if (timeScale === 'Log') {
-      // For log time scale - no custom ticks in original, use D3 defaults
+      // For log time scale - generate proper logarithmic ticks
+      const xMin = Math.max(1, xExtent[0])
+      const xMax = xExtent[1]
+      
+      // Generate log ticks for time (days from genesis)
+      const logMin = Math.floor(Math.log10(xMin))
+      const logMax = Math.ceil(Math.log10(xMax))
+      
+      for (let i = logMin; i <= logMax; i++) {
+        const base = Math.pow(10, i)
+        // Major ticks: 1, 10, 100, 1000...
+        if (base >= xMin && base <= xMax) {
+          xTickValues.push(base)
+        }
+        // Intermediate ticks: 2, 3, 5 multiples
+        for (const mult of [2, 3, 5]) {
+          const val = mult * base
+          if (val >= xMin && val <= xMax) {
+            xTickValues.push(val)
+          }
+        }
+      }
+      xTickValues.sort((a, b) => a - b)
+      
       xAxis = d3.axisBottom(xScale)
-        .ticks(8)
+        .tickValues(xTickValues)
         .tickFormat((d: any) => d3.format(".0f")(d))
+        .tickSize(6)
     } else {
-      // EXACT format as Plotly
+      // Linear time scale - use D3's time ticks
       xAxis = d3.axisBottom(xScale as d3.ScaleTime<number, number, never>)
-        .ticks(8)
+        .ticks(d3.timeMonth.every(2)) // Every 2 months
         .tickFormat((d: any) => d3.timeFormat("%b %Y")(d))
+        .tickSize(6)
+      
+      // Get the actual tick values for grid alignment
+      xTickValues = (xScale as d3.ScaleTime<number, number, never>).ticks(d3.timeMonth.every(2))
     }
 
+    // Y-AXIS CONFIGURATION
     if (priceScale === 'Log') {
       // Use EXACT generate_log_ticks function from Plotly
-      const { major, intermediate } = generateLogTicks(yMinChart, yMaxChart)
-      const tickValues = [...major, ...intermediate].sort((a, b) => a - b)
+      const { major, intermediate, minor } = generateLogTicks(yMinChart, yMaxChart)
+      yTickValues = [...major, ...intermediate].sort((a, b) => a - b)
       
       yAxis = d3.axisLeft(yScale)
-        .tickValues(tickValues)
+        .tickValues(yTickValues)
         .tickFormat((d: any) => formatCurrency(d))
+        .tickSize(6)
     } else {
+      // Linear scale - generate nice round numbers
+      const yMax = yMaxChart
+      const yMin = yMinChart
+      const range = yMax - yMin
+      const step = Math.pow(10, Math.floor(Math.log10(range))) * 
+                   (range / Math.pow(10, Math.floor(Math.log10(range))) > 5 ? 1 : 
+                    range / Math.pow(10, Math.floor(Math.log10(range))) > 2 ? 0.5 : 0.2)
+      
+      for (let val = Math.ceil(yMin / step) * step; val <= yMax; val += step) {
+        yTickValues.push(val)
+      }
+      
       yAxis = d3.axisLeft(yScale)
-        .ticks(8)
+        .tickValues(yTickValues)
         .tickFormat((d: any) => formatCurrency(d))
+        .tickSize(6)
     }
 
-    // Add grid lines - EXACT styling as Plotly
-    g.append("g")
-      .attr("class", "grid")
+    // ADD GRID LINES FIRST (behind everything)
+    // X-axis grid lines
+    const xGridGroup = g.append("g")
+      .attr("class", "x-grid")
       .attr("transform", `translate(0,${chartHeight})`)
-      .call(xAxis.tickSize(-chartHeight).tickFormat(""))
-      .selectAll("line")
-      .style("stroke", "#363650")  // EXACT color from Plotly
-      .style("stroke-width", 1)
 
-    g.append("g")
-      .attr("class", "grid")
-      .call(yAxis.tickSize(-width).tickFormat(""))
-      .selectAll("line")
-      .style("stroke", "#363650")  // EXACT color from Plotly
+    xGridGroup.selectAll("line")
+      .data(xTickValues)
+      .enter()
+      .append("line")
+      .attr("x1", (d: any) => xScale(d))
+      .attr("x2", (d: any) => xScale(d))
+      .attr("y1", 0)
+      .attr("y2", -chartHeight)
+      .style("stroke", "#363650")
       .style("stroke-width", 1)
+      .style("opacity", 0.7)
 
-    // Add main axes
-    g.append("g")
+    // Y-axis grid lines
+    const yGridGroup = g.append("g")
+      .attr("class", "y-grid")
+
+    yGridGroup.selectAll("line")
+      .data(yTickValues)
+      .enter()
+      .append("line")
+      .attr("x1", 0)
+      .attr("x2", width)
+      .attr("y1", (d: number) => yScale(d))
+      .attr("y2", (d: number) => yScale(d))
+      .style("stroke", "#363650")
+      .style("stroke-width", 1)
+      .style("opacity", 0.7)
+
+    // ADD MAIN AXES WITH TICK LABELS
+    // X-axis
+    const xAxisGroup = g.append("g")
       .attr("transform", `translate(0,${chartHeight})`)
       .attr("class", "x-axis")
       .call(xAxis)
-      .selectAll("text")
-      .style("fill", "#9CA3AF")  // EXACT color from Plotly
-      .style("font-family", "Inter")
-      .style("font-size", "11px")
 
-    g.append("g")
+    // Style X-axis
+    xAxisGroup.selectAll("text")
+      .style("fill", "#9CA3AF")
+      .style("font-family", "Inter, system-ui, sans-serif")
+      .style("font-size", "11px")
+      .style("font-weight", "400")
+
+    xAxisGroup.selectAll(".tick line")
+      .style("stroke", "#3A3C4A")
+      .style("stroke-width", 1)
+
+    xAxisGroup.select(".domain")
+      .style("stroke", "#3A3C4A")
+      .style("stroke-width", 1)
+
+    // Y-axis
+    const yAxisGroup = g.append("g")
       .attr("class", "y-axis")
       .call(yAxis)
-      .selectAll("text")
-      .style("fill", "#9CA3AF")  // EXACT color from Plotly
-      .style("font-family", "Inter")
-      .style("font-size", "11px")
 
-    // Style axes - EXACT colors from Plotly
-    g.selectAll(".domain, .tick line")
-      .style("stroke", "#3A3C4A")  // EXACT color from Plotly
+    // Style Y-axis
+    yAxisGroup.selectAll("text")
+      .style("fill", "#9CA3AF")
+      .style("font-family", "Inter, system-ui, sans-serif")
+      .style("font-size", "11px")
+      .style("font-weight", "400")
+
+    yAxisGroup.selectAll(".tick line")
+      .style("stroke", "#3A3C4A")
+      .style("stroke-width", 1)
+
+    yAxisGroup.select(".domain")
+      .style("stroke", "#3A3C4A")
       .style("stroke-width", 1)
 
     // Add axis labels
