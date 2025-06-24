@@ -505,7 +505,17 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       <div style={{ height: `${height}px` }} className="w-full">
         <Plot
           data={plotlyData as any}
-          layout={plotlyLayout as any}
+          layout={{
+            ...plotlyLayout,
+            xaxis: {
+              ...plotlyLayout.xaxis,
+              title: { text: plotlyLayout.xaxis?.title || 'Date' }
+            },
+            yaxis: {
+              ...plotlyLayout.yaxis,
+              title: { text: 'Price (USD)' }
+            }
+          } as any}
           style={{ width: '100%', height: '100%' }}
           config={{
             displayModeBar: true,
