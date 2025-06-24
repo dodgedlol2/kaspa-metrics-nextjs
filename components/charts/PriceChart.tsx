@@ -268,21 +268,16 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       })
     }
 
-    // Main price trace
+    // Main price trace with scattergl for better performance
     traces.push({
       x: xValues,
       y: yValues,
+      type: 'scattergl', // Use WebGL for better performance
       mode: 'lines',
       name: 'Kaspa Price',
       line: { color: '#5B6CFF', width: 2 },
       fill: priceScale === 'Log' ? 'tonexty' : 'tozeroy',
-      fillgradient: {
-        type: "vertical",
-        colorscale: [
-          [0, "rgba(13, 13, 26, 0.01)"],
-          [1, "rgba(91, 108, 255, 0.6)"]
-        ]
-      },
+      fillcolor: 'rgba(91, 108, 255, 0.3)', // Simplified fill for WebGL
       hovertemplate: timeScale === 'Linear' 
         ? '<b>%{fullData.name}</b><br>Price: $%{y:.4f}<extra></extra>'
         : '%{text}<br><b>%{fullData.name}</b><br>Price: $%{y:.4f}<extra></extra>',
@@ -441,11 +436,11 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         color: "#9CA3AF",
         activecolor: "#5B6CFF"
       },
-      // Improve crosshair and selection performance
+      // Better performance settings and explicit dragmode
       spikedistance: -1,
       hoverdistance: -1,
       selectdirection: 'x', // Only allow X-axis zoom selection for better performance
-      dragmode: 'zoom'
+      dragmode: 'pan' // Default to pan, zoom with shift+drag
     }
 
     // Configure X-axis based on time scale
@@ -475,10 +470,10 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
           gridcolor: 'rgba(255, 255, 255, 0.05)',
           gridwidth: 0.5
         },
-        // Ultra-thin full crosshair lines with spikesnap
+        // Ultra-thin crosshair - minimum thickness is 1px in Plotly
         showspikes: true,
-        spikecolor: 'rgba(255, 255, 255, 0.1)',
-        spikethickness: 0.5,
+        spikecolor: 'rgba(255, 255, 255, 0.3)',
+        spikethickness: 1, // Minimum value that actually works
         spikedash: 'solid',
         spikemode: 'across',
         spikesnap: 'cursor'
@@ -502,10 +497,10 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         hoverformat: '%B %d, %Y',
         range: [minDate.toISOString(), maxDate.toISOString()],
         autorange: false, // Disable autorange to use our custom range
-        // Ultra-thin full crosshair lines with spikesnap
+        // Ultra-thin crosshair - minimum thickness is 1px in Plotly
         showspikes: true,
-        spikecolor: 'rgba(255, 255, 255, 0.1)',
-        spikethickness: 0.5,
+        spikecolor: 'rgba(255, 255, 255, 0.3)',
+        spikethickness: 1, // Minimum value that actually works
         spikedash: 'solid',
         spikemode: 'across',
         spikesnap: 'cursor'
@@ -522,10 +517,10 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       range: priceScale === 'Log' 
         ? [Math.log10(yMinChart), Math.log10(yMaxChart)]
         : [yMinChart, yMaxChart],
-      // Full horizontal crosshair line with spikesnap
+      // Horizontal crosshair - minimum thickness is 1px in Plotly
       showspikes: true,
-      spikecolor: 'rgba(255, 255, 255, 0.1)',
-      spikethickness: 0.5,
+      spikecolor: 'rgba(255, 255, 255, 0.3)',
+      spikethickness: 1, // Minimum value that actually works
       spikedash: 'solid',
       spikemode: 'across',
       spikesnap: 'cursor'
@@ -628,21 +623,16 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
               width: 1400,
               scale: 2
             },
-            // Improve zoom performance and fix double-click reset
+            // Performance and interaction settings
             responsive: true,
-            doubleClick: false, // Disable double-click autorange to prevent log scale zoom out
+            doubleClick: 'reset', // Simple reset behavior
             scrollZoom: true,
             editable: false,
-            // Better performance settings
-            queueLength: 0,
-            fillFrame: false,
-            frameMargins: 0
+            // Performance optimizations
+            plotGlPixelRatio: 2,
+            showTips: false
           }}
           useResizeHandler={true}
-          onDoubleClick={() => {
-            // Reset to "All" time period on double-click
-            setTimePeriod('All')
-          }}
         />
       </div>
 
