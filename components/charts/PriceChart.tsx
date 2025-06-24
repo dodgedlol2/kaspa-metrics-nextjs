@@ -341,6 +341,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         textposition: 'top right',
         textfont: { color: '#ffffff', size: 11 },
         showlegend: false,
+        hoverinfo: 'skip', // Don't show in hover tooltip
         hovertemplate: `<b>All-Time High</b><br>Price: ${formatCurrency(athData.price)}<br>Date: ${athData.date.toLocaleDateString()}<extra></extra>`,
       })
     }
@@ -368,6 +369,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         textposition: 'bottom right',
         textfont: { color: '#ffffff', size: 11 },
         showlegend: false,
+        hoverinfo: 'skip', // Don't show in hover tooltip
         hovertemplate: `<b>One Year Low</b><br>Price: ${formatCurrency(oylData.price)}<br>Date: ${oylData.date.toLocaleDateString()}<extra></extra>`,
       })
     }
@@ -416,7 +418,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       showlegend: true,
       margin: { l: 50, r: 20, t: 20, b: 50 },
       hoverlabel: {
-        bgcolor: 'rgba(15, 20, 25, 0.95)',
+        bgcolor: 'rgba(15, 20, 25, 0.85)', // More transparent background
         bordercolor: 'rgba(91, 108, 255, 0.5)',
         font: { color: '#e2e8f0', size: 11 },
         align: 'left',
@@ -442,7 +444,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       // Improve crosshair and selection performance
       spikedistance: -1,
       hoverdistance: -1,
-      selectdirection: 'diagonal',
+      selectdirection: 'x', // Only allow X-axis zoom selection for better performance
       dragmode: 'zoom'
     }
 
@@ -638,13 +640,8 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
           }}
           useResizeHandler={true}
           onDoubleClick={() => {
-            // Custom double-click handler to properly reset both scales
-            const resetLayout = {
-              ...plotlyLayout,
-              'xaxis.autorange': true,
-              'yaxis.autorange': true
-            }
-            return false // Prevent default
+            // Reset to "All" time period on double-click
+            setTimePeriod('All')
           }}
         />
       </div>
