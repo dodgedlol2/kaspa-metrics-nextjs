@@ -407,24 +407,37 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
     let xTickValues: any[] = []
     let yTickValues: number[] = []
 
-    // X-AXIS CONFIGURATION - PROPER D3.js LOG SCALE APPROACH  
+    // X-AXIS CONFIGURATION - FORCE ALL SCIENTIFIC TICKS (BYPASS D3 FILTERING)
     if (timeScale === 'Log') {
-      // D3.js log scales automatically generate scientific ticks - let D3 handle it!
-      xAxis = d3.axisBottom(xScale)
-        .ticks(10) // Request more ticks, D3 will automatically generate scientific intervals
-        .tickFormat((d: any) => {
-          // Use D3's built-in log tick formatting
-          const logFormat = xScale.tickFormat(100, ".0f") // Integer formatting for days
-          const formatted = logFormat(d)
-          
-          // Keep D3's automatic filtering but ensure integers
-          return formatted === "" ? "" : d3.format(".0f")(d)
-        })
-        .tickSize(6)
+      // Manually generate ALL scientific ticks for time scale
+      xTickValues = []
+      const xMin = Math.max(1, xExtent[0])
+      const xMax = xExtent[1]
       
-      // Get D3's automatically generated tick values for grid alignment
-      xTickValues = xScale.ticks(100) // Request many ticks, D3 will filter appropriately
-      console.log('D3 X-axis ticks:', xTickValues.length, xTickValues.slice(0, 20))
+      const startPower = Math.floor(Math.log10(xMin))
+      const endPower = Math.ceil(Math.log10(xMax))
+      
+      // Generate EVERY scientific tick value manually
+      for (let power = startPower; power <= endPower; power++) {
+        const base = Math.pow(10, power)
+        
+        // Add ALL multiples: 1, 2, 3, 4, 5, 6, 7, 8, 9 times each power of 10
+        for (let mult = 1; mult <= 9; mult++) {
+          const tickValue = mult * base
+          if (tickValue >= xMin * 0.5 && tickValue <= xMax * 2) {
+            xTickValues.push(tickValue)
+          }
+        }
+      }
+      
+      xTickValues = xTickValues.sort((a, b) => a - b)
+      console.log('MANUAL X-axis ticks:', xTickValues.length, xTickValues.slice(0, 20))
+      
+      // Force D3 to use ALL our tick values  
+      xAxis = d3.axisBottom(xScale)
+        .tickValues(xTickValues) // FORCE these exact values
+        .tickFormat((d: any) => d3.format(".0f")(d))
+        .tickSize(6)
     } else {
       // Linear time scale - use D3's time ticks
       const timeInterval = d3.timeMonth.every(2)
