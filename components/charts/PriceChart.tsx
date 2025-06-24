@@ -344,7 +344,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
     // Add area fill - EXACT Plotly behavior
     const area = d3.area<{x: number, y: number}>()
       .x(d => xScale(d.x))
-      .y0(priceScale === 'Log' ? (d) => yScale(yMinChart) : chartHeight)  // Fill to baseline for log, zero for linear
+      .y0(priceScale === 'Log' ? () => yScale(yMinChart) : chartHeight)  // Fill to baseline for log, zero for linear
       .y1(d => yScale(d.y))
       .curve(d3.curveMonotoneX)
 
