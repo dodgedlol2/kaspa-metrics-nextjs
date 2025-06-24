@@ -335,7 +335,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
     return traces
   }, [filteredData, timeScale, priceScale, powerLawData, athData, oylData])
 
-  // Plotly layout (EXACT conversion from Streamlit)
+  // Plotly layout (TypeScript-safe version)
   const plotlyLayout = useMemo(() => {
     if (filteredData.length === 0) return {}
 
@@ -354,7 +354,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       yMaxChart = yMaxData * (athInView ? 1.15 : 1.05)
     }
 
-    // Generate custom ticks for Y-axis if log scale (EXACT Streamlit logic)
+    // Generate custom ticks for Y-axis if log scale
     let yTickVals: number[] | undefined
     let yTickText: string[] | undefined
     let yMinorTicks: number[] = []
@@ -366,76 +366,102 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       yMinorTicks = minorTicks
     }
 
-    return {
-      xaxis: {
-        title: { text: timeScale === 'Log' ? 'Days Since Genesis (Log Scale)' : 'Date' },
-        type: timeScale === 'Log' ? 'log' : undefined,
-        showgrid: true,
-        gridwidth: 1,
-        gridcolor: timeScale === 'Log' ? 'rgba(255, 255, 255, 0.1)' : '#363650',
-        minor: timeScale === 'Log' ? {
-          ticklen: 6,
-          gridcolor: 'rgba(255, 255, 255, 0.05)',
-          gridwidth: 0.5
-        } : undefined,
-        tickformat: timeScale === 'Linear' ? '%b %Y' : undefined,
-        linecolor: '#3A3C4A',
-        zerolinecolor: '#3A3C4A',
-        color: '#9CA3AF',
-        hoverformat: timeScale === 'Linear' ? '%B %d, %Y' : undefined,
-      },
-      yaxis: {
-        title: { text: 'Price (USD)' },
-        type: priceScale === 'Log' ? 'log' : 'linear',
-        gridcolor: '#363650',
-        gridwidth: 1,
-        color: '#9CA3AF',
-        range: priceScale === 'Log' 
-          ? [Math.log10(yMinChart), Math.log10(yMaxChart)]
-          : [yMinChart, yMaxChart],
-        tickmode: priceScale === 'Log' && yTickVals ? 'array' : 'auto',
-        tickvals: yTickVals,
-        ticktext: yTickText,
-        minor: priceScale === 'Log' ? {
-          showgrid: true,
-          gridwidth: 0.5,
-          gridcolor: 'rgba(54, 54, 80, 0.3)',
-          tickmode: 'array',
-          tickvals: yMinorTicks
-        } : undefined,
-      },
+    // Create a simple layout object that TypeScript will accept
+    const layout: any = {
       height: height,
       plot_bgcolor: 'rgba(0,0,0,0)',
       paper_bgcolor: 'rgba(0,0,0,0)',
       font: { color: '#9CA3AF', family: 'Inter' },
       hovermode: 'x unified',
-      hoverlabel: {
-        bgcolor: 'rgba(15, 20, 25, 0.95)',
-        bordercolor: 'rgba(91, 108, 255, 0.5)',
-        font: { color: '#e2e8f0', size: 11 },
-        align: 'left',
-        namelength: -1
-      },
       showlegend: true,
-      legend: {
-        orientation: "h",
-        yanchor: "bottom",
-        y: 1.02,
-        xanchor: "left",
-        x: 0,
-        bgcolor: 'rgba(0,0,0,0)',
-        bordercolor: 'rgba(0,0,0,0)',
-        borderwidth: 0,
-        font: { size: 11 }
-      },
       margin: { l: 50, r: 20, t: 20, b: 50 },
-      modebar: {
-        orientation: "h",
-        bgcolor: "rgba(0,0,0,0)",
-        color: "#9CA3AF",
-        activecolor: "#5B6CFF"
+    }
+
+    // Add xaxis configuration
+    layout.xaxis = {
+      showgrid: true,
+      gridwidth: 1,
+      gridcolor: timeScale === 'Log' ? 'rgba(255, 255, 255, 0.1)' : '#363650',
+      linecolor: '#3A3C4A',
+      zerolinecolor: '#3A3C4A',
+      color: '#9CA3AF',
+    }
+
+    // Add xaxis title and type
+    if (timeScale === 'Log') {
+      layout.xaxis.title = { text: 'Days Since Genesis (Log Scale)' }
+      layout.xaxis.type = 'log'
+      layout.xaxis.minor = {
+        ticklen: 6,
+        gridcolor: 'rgba(255, 255, 255, 0.05)',
+        gridwidth: 0.5
       }
-    } as any // Type assertion to bypass strict typing issues
+    } else {
+      layout.xaxis.title = { text: 'Date' }
+      layout.xaxis.tickformat = '%b %Y'
+      layout.xaxis.hoverformat = '%B %d, %Y'
+    }
+
+    // Add yaxis configuration
+    layout.yaxis = {
+      title: { text: 'Price (USD)' },
+      gridcolor: '#363650',
+      gridwidth: 1,
+      color: '#9CA3AF',
+    }
+
+    // Add yaxis type and range
+    if (priceScale === 'Log') {
+      layout.yaxis.type = 'log'
+      layout.yaxis.range = [Math.log10(yMinChart), Math.log10(yMaxChart)]
+      
+      if (yTickVals && yTickText) {
+        layout.yaxis.tickmode = 'array'
+        layout.yaxis.tickvals = yTickVals
+        layout.yaxis.ticktext = yTickText
+      }
+      
+      layout.yaxis.minor = {
+        showgrid: true,
+        gridwidth: 0.5,
+        gridcolor: 'rgba(54, 54, 80, 0.3)',
+        tickmode: 'array',
+        tickvals: yMinorTicks
+      }
+    } else {
+      layout.yaxis.type = 'linear'
+      layout.yaxis.range = [yMinChart, yMaxChart]
+    }
+
+    // Add other layout properties
+    layout.hoverlabel = {
+      bgcolor: 'rgba(15, 20, 25, 0.95)',
+      bordercolor: 'rgba(91, 108, 255, 0.5)',
+      font: { color: '#e2e8f0', size: 11 },
+      align: 'left',
+      namelength: -1
+    }
+
+    layout.legend = {
+      orientation: "h",
+      yanchor: "bottom",
+      y: 1.02,
+      xanchor: "left",
+      x: 0,
+      bgcolor: 'rgba(0,0,0,0)',
+      bordercolor: 'rgba(0,0,0,0)',
+      borderwidth: 0,
+      font: { size: 11 }
+    }
+
+    layout.modebar = {
+      orientation: "h",
+      bgcolor: "rgba(0,0,0,0)",
+      color: "#9CA3AF",
+      activecolor: "#5B6CFF"
+    }
+
+    return layout
   }, [filteredData, timeScale, priceScale, athData, height])
 
   return (
@@ -505,17 +531,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       <div style={{ height: `${height}px` }} className="w-full">
         <Plot
           data={plotlyData as any}
-          layout={{
-            ...plotlyLayout,
-            xaxis: {
-              ...plotlyLayout.xaxis,
-              title: { text: plotlyLayout.xaxis?.title || 'Date' }
-            },
-            yaxis: {
-              ...plotlyLayout.yaxis,
-              title: { text: 'Price (USD)' }
-            }
-          } as any}
+          layout={plotlyLayout}
           style={{ width: '100%', height: '100%' }}
           config={{
             displayModeBar: true,
