@@ -341,12 +341,24 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         .attr("d", baselineLine)
     }
 
-    // Add area fill - EXACT Plotly behavior
-    const area = d3.area<{x: number, y: number}>()
-      .x(d => xScale(d.x))
-      .y0(priceScale === 'Log' ? () => yScale(yMinChart) : chartHeight)  // Fill to baseline for log, zero for linear
-      .y1(d => yScale(d.y))
-      .curve(d3.curveMonotoneX)
+    // Add area fill - EXACT Plotly behavior (separate generators for TypeScript compatibility)
+    let area: d3.Area<{x: number, y: number}>
+    
+    if (priceScale === 'Log') {
+      // For log scale: fill to baseline
+      area = d3.area<{x: number, y: number}>()
+        .x(d => xScale(d.x))
+        .y0(() => yScale(yMinChart))  // Fill to baseline
+        .y1(d => yScale(d.y))
+        .curve(d3.curveMonotoneX)
+    } else {
+      // For linear scale: fill to zero
+      area = d3.area<{x: number, y: number}>()
+        .x(d => xScale(d.x))
+        .y0(chartHeight)  // Fill to zero
+        .y1(d => yScale(d.y))
+        .curve(d3.curveMonotoneX)
+    }
 
     g.append("path")
       .datum(chartData)
