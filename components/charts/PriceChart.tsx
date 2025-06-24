@@ -467,12 +467,12 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
           gridcolor: 'rgba(255, 255, 255, 0.05)',
           gridwidth: 0.5
         },
-        // Thinner crosshair lines
+        // Very thin vertical crosshair only
         showspikes: true,
-        spikecolor: 'rgba(255, 255, 255, 0.3)',
-        spikethickness: 1,
-        spikedash: 'dot',
-        spikemode: 'across'
+        spikecolor: 'rgba(255, 255, 255, 0.2)',
+        spikethickness: 0.5,
+        spikedash: 'solid',
+        spikemode: 'toaxis'
       }
     } else {
       // Linear time scale - use date format with data range
@@ -492,12 +492,12 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         tickformat: '%b %Y',
         hoverformat: '%B %d, %Y',
         range: [minDate.toISOString(), maxDate.toISOString()],
-        // Thinner crosshair lines
+        // Very thin vertical crosshair only
         showspikes: true,
-        spikecolor: 'rgba(255, 255, 255, 0.3)',
-        spikethickness: 1,
-        spikedash: 'dot',
-        spikemode: 'across'
+        spikecolor: 'rgba(255, 255, 255, 0.2)',
+        spikethickness: 0.5,
+        spikedash: 'solid',
+        spikemode: 'toaxis'
       }
     }
 
@@ -511,12 +511,8 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       range: priceScale === 'Log' 
         ? [Math.log10(yMinChart), Math.log10(yMaxChart)]
         : [yMinChart, yMaxChart],
-      // Thinner crosshair lines for Y-axis too
-      showspikes: true,
-      spikecolor: 'rgba(255, 255, 255, 0.3)',
-      spikethickness: 1,
-      spikedash: 'dot',
-      spikemode: 'across'
+      // No horizontal crosshair - only vertical from X-axis
+      showspikes: false
     }
 
     // Add log-specific Y-axis configuration
