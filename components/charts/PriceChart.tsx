@@ -16,22 +16,23 @@ function getDaysFromGenesis(timestamp: number): number {
   return Math.max(1, Math.floor((timestamp - GENESIS_DATE) / (24 * 60 * 60 * 1000)) + 1)
 }
 
-// Enhanced power law regression function
-function fitPowerLaw(data: KaspaMetric[]) {
+// Enhanced power law regression function (from Streamlit data_manager.py)
+function fitPowerLaw(data: KaspaMetric[], useGenesisDays: boolean = true) {
+  // Filter valid data points
   const validData = data.filter(point => point.value > 0)
   
   if (validData.length < 2) {
     throw new Error("Not enough valid data points for power law fitting")
   }
   
-  // Always use days from genesis for power law calculation
+  // CRITICAL: Always use days from genesis for power law calculation
   const logX = validData.map(point => {
     const daysFromGenesis = getDaysFromGenesis(point.timestamp)
     return Math.log(Math.max(1, daysFromGenesis))
   })
   const logY = validData.map(point => Math.log(point.value))
   
-  // Linear regression on log-transformed data
+  // Linear regression on log-transformed data (scipy.stats.linregress equivalent)
   const n = logX.length
   const sumX = logX.reduce((a, b) => a + b, 0)
   const sumY = logY.reduce((a, b) => a + b, 0)
@@ -59,14 +60,22 @@ function fitPowerLaw(data: KaspaMetric[]) {
   return { a, b, r2 }
 }
 
-// Generate power law prediction data
+// Generate power law prediction data with proper genesis days calculation
 function generatePowerLawData(data: KaspaMetric[], a: number, b: number, multiplier: number = 1, useGenesisDaysForDisplay: boolean = false) {
   return data.map(point => {
+    // ALWAYS calculate Y values using days from genesis (for power law consistency)
     const daysFromGenesis = getDaysFromGenesis(point.timestamp)
+    
+    // Choose X coordinate based on display preference
     const xValue = useGenesisDaysForDisplay ? daysFromGenesis : point.timestamp
+    
+    // Power law: y = a * (days_from_genesis)^b * multiplier
     const yValue = a * Math.pow(Math.max(1, daysFromGenesis), b) * multiplier
     
-    return { x: xValue, y: yValue }
+    return {
+      x: xValue,
+      y: yValue
+    }
   })
 }
 
@@ -90,10 +99,12 @@ function calculateATH(data: KaspaMetric[]) {
 function calculate1YL(data: KaspaMetric[]) {
   if (data.length === 0) return null
   
+  // Get data from last 365 days
   const oneYearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000)
   const recentData = data.filter(point => point.timestamp >= oneYearAgo)
   
   if (recentData.length === 0) {
+    // Fallback to global minimum
     const minPoint = data.reduce((min, point) => 
       point.value < min.value ? point : min
     )
@@ -117,7 +128,7 @@ function calculate1YL(data: KaspaMetric[]) {
   }
 }
 
-// Professional currency formatting
+// Enhanced currency formatting (EXACT match to Streamlit format_currency)
 function formatCurrency(value: number): string {
   if (value >= 1) {
     if (value >= 1000) return `$${(value/1000).toFixed(1)}k`
@@ -135,39 +146,41 @@ function formatCurrency(value: number): string {
   }
 }
 
-// Generate precise logarithmic ticks (1,2,5 pattern) - CRITICAL FOR PROFESSIONAL CHARTS
-function generateLogTicks(min: number, max: number): number[] {
-  const ticks: number[] = []
-  const logMin = Math.floor(Math.log10(min))
-  const logMax = Math.ceil(Math.log10(max))
+// EXACT replication of Streamlit generate_log_ticks function
+function generateLogTicks(dataMin: number, dataMax: number): { major: number[], intermediate: number[], minor: number[] } {
+  const logMin = Math.floor(Math.log10(dataMin))
+  const logMax = Math.ceil(Math.log10(dataMax))
   
-  for (let i = logMin - 1; i <= logMax + 1; i++) {
+  const majorTicks: number[] = []
+  const intermediateTicks: number[] = []  // For 2 and 5
+  const minorTicks: number[] = []
+  
+  for (let i = logMin; i <= logMax + 1; i++) {
     const base = Math.pow(10, i)
     
-    // Professional 1,2,5 pattern for logarithmic scales
-    for (const mult of [1, 2, 3, 5]) {
-      const value = mult * base
-      if (value >= min * 0.3 && value <= max * 3) {
-        ticks.push(value)
+    // Major tick at 1 * 10^i
+    if (dataMin <= base && base <= dataMax) {
+      majorTicks.push(base)
+    }
+    
+    // Intermediate ticks at 2 and 5 * 10^i
+    for (const factor of [2, 5]) {
+      const intermediateVal = factor * base
+      if (dataMin <= intermediateVal && intermediateVal <= dataMax) {
+        intermediateTicks.push(intermediateVal)
+      }
+    }
+    
+    // Minor ticks at 3, 4, 6, 7, 8, 9 * 10^i
+    for (const j of [3, 4, 6, 7, 8, 9]) {
+      const minorVal = j * base
+      if (dataMin <= minorVal && minorVal <= dataMax) {
+        minorTicks.push(minorVal)
       }
     }
   }
   
-  return Array.from(new Set(ticks)).sort((a, b) => a - b)
-}
-
-// Generate time-based logarithmic ticks for days from genesis
-function generateTimeTicks(min: number, max: number): number[] {
-  const ticks: number[] = []
-  
-  // Key milestone days that make sense for Kaspa analysis
-  const milestones = [
-    50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 
-    600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500,
-    1600, 1800, 2000, 2200, 2400, 2600, 2800, 3000
-  ]
-  
-  return milestones.filter(day => day >= min * 0.8 && day <= max * 1.2)
+  return { major: majorTicks, intermediate: intermediateTicks, minor: minorTicks }
 }
 
 export default function PriceChart({ data, height = 600 }: PriceChartProps) {
@@ -197,13 +210,16 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
     if (showPowerLaw === 'Hide' || filteredData.length < 10) return null
     
     try {
-      const { a, b, r2 } = fitPowerLaw(filteredData)
+      // CRITICAL FIX: Always use genesis days for calculation
+      const { a, b, r2 } = fitPowerLaw(filteredData, true)
+      
+      // Generate data for display based on timeScale
       const useGenesisDaysForDisplay = timeScale === 'Log'
       
       return {
         regression: generatePowerLawData(filteredData, a, b, 1, useGenesisDaysForDisplay),
-        support: generatePowerLawData(filteredData, a, b, 0.4, useGenesisDaysForDisplay),
-        resistance: generatePowerLawData(filteredData, a, b, 2.2, useGenesisDaysForDisplay),
+        support: generatePowerLawData(filteredData, a, b, 0.4, useGenesisDaysForDisplay), // -60%
+        resistance: generatePowerLawData(filteredData, a, b, 2.2, useGenesisDaysForDisplay), // +120%
         r2: r2,
         slope: b,
         coefficient: a
@@ -218,21 +234,22 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
   const athData = useMemo(() => calculateATH(filteredData), [filteredData])
   const oylData = useMemo(() => calculate1YL(filteredData), [filteredData])
 
-  // Professional D3 Chart Creation
+  // D3 Chart Creation - EXACT replication of Plotly behavior
   useEffect(() => {
     if (!svgRef.current || filteredData.length === 0) return
 
     const svg = d3.select(svgRef.current)
-    svg.selectAll("*").remove()
+    svg.selectAll("*").remove() // Clear previous chart
 
-    const margin = { top: 40, right: 80, bottom: 100, left: 100 }
+    const margin = { top: 20, right: 20, bottom: 50, left: 80 }
     const width = svgRef.current.clientWidth - margin.left - margin.right
     const chartHeight = height - margin.top - margin.bottom
 
+    // Create main group
     const g = svg.append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`)
 
-    // Prepare data for D3
+    // Prepare data for D3 - EXACT match to Plotly logic
     const chartData = filteredData.map(d => ({
       x: timeScale === 'Log' ? getDaysFromGenesis(d.timestamp) : d.timestamp,
       y: d.value,
@@ -240,40 +257,59 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       originalTimestamp: d.timestamp
     }))
 
-    // Create scales with proper domains
+    // Calculate Y-axis range EXACTLY like Plotly (eliminate gaps, accommodate ATH/1YL labels)
+    const yMinData = d3.min(chartData, d => d.y) || 0
+    const yMaxData = d3.max(chartData, d => d.y) || 1
+    
+    // Check if ATH/1YL points are in current view (same logic as Plotly)
+    const athInView = athData !== null
+    const oylInView = oylData !== null
+    
+    let yMinChart: number, yMaxChart: number
+    
+    if (priceScale === 'Log') {
+      // For log scale, set a sensible minimum that's lower than data min but not too extreme
+      yMinChart = yMinData * 0.8  // 20% below minimum data point
+      // Add extra padding at top if ATH is visible (for text label)
+      yMaxChart = yMaxData * (athInView ? 1.50 : 1.05)  // Extra padding for ATH text
+    } else {
+      // For linear scale, start from zero
+      yMinChart = 0
+      // Add extra padding at top if ATH is visible (for text label)
+      yMaxChart = yMaxData * (athInView ? 1.15 : 1.05)  // Extra padding for ATH text
+    }
+
+    // Create scales - EXACT match to Plotly behavior
     const xExtent = d3.extent(chartData, d => d.x) as [number, number]
-    const yExtent = d3.extent(chartData, d => d.y) as [number, number]
 
     let xScale: any, yScale: any
 
-    // Time scale setup
     if (timeScale === 'Log') {
       xScale = d3.scaleLog()
-        .domain([Math.max(1, xExtent[0] * 0.9), xExtent[1] * 1.1])
+        .domain([Math.max(1, xExtent[0]), xExtent[1]])
         .range([0, width])
         .clamp(true)
     } else {
+      // For linear time scale, use date extent
       const dateExtent = d3.extent(chartData, d => d.date) as [Date, Date]
       xScale = d3.scaleTime()
         .domain(dateExtent)
         .range([0, width])
     }
 
-    // Price scale setup
     if (priceScale === 'Log') {
       yScale = d3.scaleLog()
-        .domain([Math.max(0.0001, yExtent[0] * 0.5), yExtent[1] * 2])
+        .domain([yMinChart, yMaxChart])
         .range([chartHeight, 0])
         .clamp(true)
     } else {
       yScale = d3.scaleLinear()
-        .domain([0, yExtent[1] * 1.1])
+        .domain([yMinChart, yMaxChart])
         .range([chartHeight, 0])
     }
 
-    // Create professional gradient
+    // Add gradient EXACTLY like Plotly
     const defs = svg.append("defs")
-    
     const gradient = defs.append("linearGradient")
       .attr("id", "priceGradient")
       .attr("gradientUnits", "userSpaceOnUse")
@@ -282,57 +318,33 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
 
     gradient.append("stop")
       .attr("offset", "0%")
-      .attr("stop-color", "#5B6CFF")
-      .attr("stop-opacity", 0.2)
-
-    gradient.append("stop")
-      .attr("offset", "50%")
-      .attr("stop-color", "#5B6CFF")
-      .attr("stop-opacity", 0.4)
+      .attr("stop-color", "rgba(13, 13, 26, 0.01)")  // Top: transparent
 
     gradient.append("stop")
       .attr("offset", "100%")
-      .attr("stop-color", "#5B6CFF")
-      .attr("stop-opacity", 0.1)
+      .attr("stop-color", "rgba(91, 108, 255, 0.6)")   // Bottom: full opacity
 
-    // Power law lines (draw first, behind price data)
-    if (powerLawData) {
-      const powerLine = d3.line<{x: number, y: number}>()
+    // For log scale: add invisible baseline (EXACT Plotly behavior)
+    if (priceScale === 'Log') {
+      const baselineData = chartData.map(d => ({ x: d.x, y: yMinChart }))
+      
+      const baselineLine = d3.line<{x: number, y: number}>()
         .x(d => xScale(d.x))
         .y(d => yScale(d.y))
         .curve(d3.curveMonotoneX)
 
-      // Support line (lower band)
       g.append("path")
-        .datum(powerLawData.support.filter(d => d.y > 0))
+        .datum(baselineData)
         .attr("fill", "none")
-        .attr("stroke", "rgba(255, 255, 255, 0.5)")
-        .attr("stroke-width", 1.5)
-        .attr("stroke-dasharray", "8,4")
-        .attr("d", powerLine)
-
-      // Resistance line (upper band)
-      g.append("path")
-        .datum(powerLawData.resistance.filter(d => d.y > 0))
-        .attr("fill", "none")
-        .attr("stroke", "rgba(255, 255, 255, 0.5)")
-        .attr("stroke-width", 1.5)
-        .attr("stroke-dasharray", "8,4")
-        .attr("d", powerLine)
-
-      // Main power law regression line
-      g.append("path")
-        .datum(powerLawData.regression.filter(d => d.y > 0))
-        .attr("fill", "none")
-        .attr("stroke", "#ef4444")
-        .attr("stroke-width", 3)
-        .attr("d", powerLine)
+        .attr("stroke", "rgba(0,0,0,0)")
+        .attr("stroke-width", 0)
+        .attr("d", baselineLine)
     }
 
-    // Create area fill
+    // Add area fill - EXACT Plotly behavior
     const area = d3.area<{x: number, y: number}>()
       .x(d => xScale(d.x))
-      .y0(chartHeight)
+      .y0(priceScale === 'Log' ? (d) => yScale(yMinChart) : chartHeight)  // Fill to baseline for log, zero for linear
       .y1(d => yScale(d.y))
       .curve(d3.curveMonotoneX)
 
@@ -341,7 +353,23 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       .attr("fill", "url(#priceGradient)")
       .attr("d", area)
 
-    // Main price line
+    // Add power law if enabled - EXACT styling as Plotly
+    if (powerLawData) {
+      const powerLine = d3.line<{x: number, y: number}>()
+        .x(d => xScale(d.x))
+        .y(d => yScale(d.y))
+        .curve(d3.curveMonotoneX)
+
+      // Power law regression line - EXACT color and width from Plotly
+      g.append("path")
+        .datum(powerLawData.regression.filter(d => d.y > 0))
+        .attr("fill", "none")
+        .attr("stroke", "#ff8c00")  // EXACT color from Plotly
+        .attr("stroke-width", 2)    // EXACT width from Plotly
+        .attr("d", powerLine)
+    }
+
+    // Main price line - EXACT styling as Plotly
     const line = d3.line<{x: number, y: number}>()
       .x(d => xScale(d.x))
       .y(d => yScale(d.y))
@@ -350,88 +378,86 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
     g.append("path")
       .datum(chartData)
       .attr("fill", "none")
-      .attr("stroke", "#5B6CFF")
-      .attr("stroke-width", 3)
+      .attr("stroke", "#5B6CFF")  // EXACT color from Plotly
+      .attr("stroke-width", 2)    // EXACT width from Plotly
       .attr("d", line)
 
-    // Professional axis creation with precise ticks
+    // Create axes with EXACT tick formatting as Plotly
     let xAxis: any, yAxis: any
 
     if (timeScale === 'Log') {
-      const xTicks = generateTimeTicks(xExtent[0], xExtent[1])
+      // For log time scale - no custom ticks in original, use D3 defaults
       xAxis = d3.axisBottom(xScale)
-        .tickValues(xTicks)
+        .ticks(8)
         .tickFormat((d: any) => d3.format(".0f")(d))
-        .tickSize(6)
     } else {
+      // EXACT format as Plotly
       xAxis = d3.axisBottom(xScale as d3.ScaleTime<number, number, never>)
         .ticks(8)
         .tickFormat((d: any) => d3.timeFormat("%b %Y")(d))
-        .tickSize(6)
     }
 
     if (priceScale === 'Log') {
-      const yTicks = generateLogTicks(yExtent[0] * 0.5, yExtent[1] * 2)
+      // Use EXACT generate_log_ticks function from Plotly
+      const { major, intermediate } = generateLogTicks(yMinChart, yMaxChart)
+      const tickValues = [...major, ...intermediate].sort((a, b) => a - b)
+      
       yAxis = d3.axisLeft(yScale)
-        .tickValues(yTicks)
+        .tickValues(tickValues)
         .tickFormat((d: any) => formatCurrency(d))
-        .tickSize(6)
     } else {
       yAxis = d3.axisLeft(yScale)
         .ticks(8)
         .tickFormat((d: any) => formatCurrency(d))
-        .tickSize(6)
     }
 
-    // Add grid lines (subtle, professional)
+    // Add grid lines - EXACT styling as Plotly
     g.append("g")
       .attr("class", "grid")
       .attr("transform", `translate(0,${chartHeight})`)
       .call(xAxis.tickSize(-chartHeight).tickFormat(""))
       .selectAll("line")
-      .style("stroke", "rgba(148, 163, 184, 0.15)")
+      .style("stroke", "#363650")  // EXACT color from Plotly
       .style("stroke-width", 1)
 
     g.append("g")
       .attr("class", "grid")
       .call(yAxis.tickSize(-width).tickFormat(""))
       .selectAll("line")
-      .style("stroke", "rgba(148, 163, 184, 0.15)")
+      .style("stroke", "#363650")  // EXACT color from Plotly
       .style("stroke-width", 1)
 
     // Add main axes
-    const xAxisGroup = g.append("g")
+    g.append("g")
       .attr("transform", `translate(0,${chartHeight})`)
       .attr("class", "x-axis")
       .call(xAxis)
+      .selectAll("text")
+      .style("fill", "#9CA3AF")  // EXACT color from Plotly
+      .style("font-family", "Inter")
+      .style("font-size", "11px")
 
-    const yAxisGroup = g.append("g")
+    g.append("g")
       .attr("class", "y-axis")
       .call(yAxis)
+      .selectAll("text")
+      .style("fill", "#9CA3AF")  // EXACT color from Plotly
+      .style("font-family", "Inter")
+      .style("font-size", "11px")
 
-    // Style axes professionally
-    g.selectAll(".domain")
-      .style("stroke", "#475569")
-      .style("stroke-width", 1.5)
-
-    g.selectAll(".tick line")
-      .style("stroke", "#475569")
+    // Style axes - EXACT colors from Plotly
+    g.selectAll(".domain, .tick line")
+      .style("stroke", "#3A3C4A")  // EXACT color from Plotly
       .style("stroke-width", 1)
 
-    g.selectAll(".tick text")
-      .style("fill", "#94a3b8")
-      .style("font-family", "Inter, system-ui, sans-serif")
+    // Add axis labels
+    g.append("text")
+      .attr("transform", `translate(${width/2}, ${chartHeight + 40})`)
+      .style("text-anchor", "middle")
+      .style("fill", "#9CA3AF")
+      .style("font-family", "Inter")
       .style("font-size", "12px")
       .style("font-weight", "500")
-
-    // Professional axis labels
-    g.append("text")
-      .attr("transform", `translate(${width/2}, ${chartHeight + 70})`)
-      .style("text-anchor", "middle")
-      .style("fill", "#cbd5e1")
-      .style("font-family", "Inter, system-ui, sans-serif")
-      .style("font-size", "14px")
-      .style("font-weight", "600")
       .text(timeScale === 'Log' ? 'Days Since Genesis (Log Scale)' : 'Date')
 
     g.append("text")
@@ -439,149 +465,116 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       .attr("y", 0 - margin.left + 20)
       .attr("x", 0 - (chartHeight / 2))
       .style("text-anchor", "middle")
-      .style("fill", "#cbd5e1")
-      .style("font-family", "Inter, system-ui, sans-serif")
-      .style("font-size", "14px")
-      .style("font-weight", "600")
-      .text(`Price (USD) ${priceScale === 'Log' ? '- Log Scale' : ''}`)
+      .style("fill", "#9CA3AF")
+      .style("font-family", "Inter")
+      .style("font-size", "12px")
+      .style("font-weight", "500")
+      .text("Price (USD)")
 
-    // ATH marker
+    // Add ATH/1YL markers - EXACT implementation from Plotly add_ath_to_chart function
     if (athData) {
       const athX = timeScale === 'Log' ? athData.daysFromGenesis : athData.timestamp
       const athDisplayX = xScale(athX)
       const athDisplayY = yScale(athData.price)
 
-      // ATH circle
       g.append("circle")
         .attr("cx", athDisplayX)
         .attr("cy", athDisplayY)
-        .attr("r", 8)
+        .attr("r", 6)
         .style("fill", "#ffffff")
         .style("stroke", "#5B6CFF")
-        .style("stroke-width", 3)
-        .style("filter", "drop-shadow(0 2px 4px rgba(0,0,0,0.3))")
+        .style("stroke-width", 2)
 
-      // ATH label with background
-      const athLabel = g.append("g")
-        .attr("transform", `translate(${athDisplayX + 15}, ${athDisplayY - 15})`)
-
-      athLabel.append("rect")
-        .attr("x", -5)
-        .attr("y", -12)
-        .attr("width", 85)
-        .attr("height", 20)
-        .attr("rx", 4)
-        .style("fill", "rgba(0, 0, 0, 0.8)")
-        .style("stroke", "#5B6CFF")
-        .style("stroke-width", 1)
-
-      athLabel.append("text")
-        .attr("x", 0)
-        .attr("y", 0)
+      g.append("text")
+        .attr("x", athDisplayX + 10)
+        .attr("y", athDisplayY - 10)
         .style("fill", "#ffffff")
-        .style("font-family", "Inter, system-ui, sans-serif")
-        .style("font-size", "12px")
-        .style("font-weight", "700")
+        .style("font-family", "Inter")
+        .style("font-size", "11px")
+        .style("font-weight", "600")
         .text(`ATH ${formatCurrency(athData.price)}`)
     }
 
-    // 1YL marker
     if (oylData) {
       const oylX = timeScale === 'Log' ? oylData.daysFromGenesis : oylData.timestamp
       const oylDisplayX = xScale(oylX)
       const oylDisplayY = yScale(oylData.price)
 
-      // 1YL circle
       g.append("circle")
         .attr("cx", oylDisplayX)
         .attr("cy", oylDisplayY)
-        .attr("r", 8)
+        .attr("r", 6)
         .style("fill", "#ffffff")
         .style("stroke", "#ef4444")
-        .style("stroke-width", 3)
-        .style("filter", "drop-shadow(0 2px 4px rgba(0,0,0,0.3))")
+        .style("stroke-width", 2)
 
-      // 1YL label with background
-      const oylLabel = g.append("g")
-        .attr("transform", `translate(${oylDisplayX + 15}, ${oylDisplayY + 25})`)
-
-      oylLabel.append("rect")
-        .attr("x", -5)
-        .attr("y", -12)
-        .attr("width", 85)
-        .attr("height", 20)
-        .attr("rx", 4)
-        .style("fill", "rgba(0, 0, 0, 0.8)")
-        .style("stroke", "#ef4444")
-        .style("stroke-width", 1)
-
-      oylLabel.append("text")
-        .attr("x", 0)
-        .attr("y", 0)
+      g.append("text")
+        .attr("x", oylDisplayX + 10)
+        .attr("y", oylDisplayY + 20)
         .style("fill", "#ffffff")
-        .style("font-family", "Inter, system-ui, sans-serif")
-        .style("font-size", "12px")
-        .style("font-weight", "700")
+        .style("font-family", "Inter")
+        .style("font-size", "11px")
+        .style("font-weight", "600")
         .text(`1YL ${formatCurrency(oylData.price)}`)
     }
 
   }, [filteredData, priceScale, timeScale, powerLawData, athData, oylData, height])
 
   return (
-    <div className="space-y-8">
-      {/* Professional Control Panel */}
-      <div className="flex flex-wrap gap-6 items-center justify-between bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
-        <div className="flex flex-wrap gap-6">
+    <div className="space-y-6">
+      {/* Interactive Controls */}
+      <div className="flex flex-wrap gap-4 items-center justify-between">
+        <div className="flex flex-wrap gap-4">
           {/* Price Scale Control */}
-          <div className="flex items-center space-x-3">
-            <label className="text-sm font-semibold text-slate-300">Price Scale:</label>
+          <div className="flex items-center space-x-2">
+            <label className="text-sm font-medium text-gray-300">Price Scale:</label>
             <select
               value={priceScale}
               onChange={(e) => setPriceScale(e.target.value as 'Linear' | 'Log')}
-              className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-sm text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="bg-slate-700 border border-slate-600 rounded px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="Linear">Linear</option>
-              <option value="Log">Logarithmic</option>
+              <option value="Log">Log</option>
             </select>
           </div>
 
           {/* Time Scale Control */}
-          <div className="flex items-center space-x-3">
-            <label className="text-sm font-semibold text-slate-300">Time Scale:</label>
+          <div className="flex items-center space-x-2">
+            <label className="text-sm font-medium text-gray-300">Time Scale:</label>
             <select
               value={timeScale}
               onChange={(e) => setTimeScale(e.target.value as 'Linear' | 'Log')}
-              className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-sm text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="bg-slate-700 border border-slate-600 rounded px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
-              <option value="Linear">Date</option>
-              <option value="Log">Days from Genesis</option>
+              <option value="Linear">Linear</option>
+              <option value="Log">Log</option>
             </select>
           </div>
 
           {/* Power Law Control */}
-          <div className="flex items-center space-x-3">
-            <label className="text-sm font-semibold text-slate-300">Power Law:</label>
+          <div className="flex items-center space-x-2">
+            <label className="text-sm font-medium text-gray-300">Power Law:</label>
             <select
               value={showPowerLaw}
               onChange={(e) => setShowPowerLaw(e.target.value as 'Hide' | 'Show')}
-              className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-sm text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="bg-slate-700 border border-slate-600 rounded px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
-              <option value="Hide">Hidden</option>
-              <option value="Show">Visible</option>
+              <option value="Hide">Hide</option>
+              <option value="Show">Show</option>
             </select>
           </div>
         </div>
 
         {/* Time Period Buttons */}
-        <div className="flex space-x-2">
+        <div className="flex space-x-1">
           {(['1W', '1M', '3M', '6M', '1Y', 'All'] as const).map((period) => (
             <button
               key={period}
               onClick={() => setTimePeriod(period)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
                 timePeriod === period
-                  ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
               }`}
             >
               {period}
@@ -590,11 +583,8 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         </div>
       </div>
 
-      {/* Professional Chart Container */}
-      <div 
-        style={{ height: `${height}px` }} 
-        className="w-full bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl border border-slate-700/50 shadow-2xl"
-      >
+      {/* D3 Chart Container */}
+      <div style={{ height: `${height}px` }} className="w-full">
         <svg
           ref={svgRef}
           width="100%"
@@ -603,111 +593,52 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         />
       </div>
 
-      {/* Professional Analytics Panel */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
-          <div className="text-slate-400 text-sm font-medium">Data Points</div>
-          <div className="text-white text-2xl font-bold mt-1">{filteredData.length.toLocaleString()}</div>
+      {/* Chart Info */}
+      <div className="flex flex-wrap gap-6 text-sm">
+        <div>
+          <span className="text-gray-400">Data Points:</span>
+          <span className="text-white ml-2 font-semibold">{filteredData.length.toLocaleString()}</span>
         </div>
         
         {powerLawData && (
           <>
-            <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
-              <div className="text-slate-400 text-sm font-medium">Power Law R²</div>
-              <div className="text-emerald-400 text-2xl font-bold mt-1">{powerLawData.r2.toFixed(4)}</div>
+            <div>
+              <span className="text-gray-400">Power Law R²:</span>
+              <span className="text-white ml-2 font-semibold">{powerLawData.r2.toFixed(4)}</span>
             </div>
-            <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
-              <div className="text-slate-400 text-sm font-medium">Power Law Slope</div>
-              <div className="text-blue-400 text-2xl font-bold mt-1">{powerLawData.slope.toFixed(4)}</div>
+            <div>
+              <span className="text-gray-400">Power Law Slope:</span>
+              <span className="text-white ml-2 font-semibold">{powerLawData.slope.toFixed(4)}</span>
             </div>
           </>
         )}
         
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
-          <div className="text-slate-400 text-sm font-medium">Time Range</div>
-          <div className="text-white text-2xl font-bold mt-1">{timePeriod}</div>
+        <div>
+          <span className="text-gray-400">Time Range:</span>
+          <span className="text-white ml-2 font-semibold">{timePeriod}</span>
         </div>
       </div>
 
-      {/* ATH and 1YL Professional Stats */}
+      {/* ATH and 1YL Info */}
       {(athData || oylData) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="flex flex-wrap gap-6 text-sm">
           {athData && (
-            <div className="bg-gradient-to-r from-blue-900/30 to-blue-800/30 rounded-xl p-6 border border-blue-500/30">
-              <div className="flex items-center space-x-3">
-                <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
-                <div className="text-blue-400 text-sm font-semibold">ALL-TIME HIGH</div>
-              </div>
-              <div className="text-white text-3xl font-bold mt-2">{formatCurrency(athData.price)}</div>
-              <div className="text-slate-400 text-sm mt-1">{athData.date.toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}</div>
-              <div className="text-blue-300 text-xs mt-2">Day {athData.daysFromGenesis} from Genesis</div>
+            <div>
+              <span className="text-blue-400">All-Time High:</span>
+              <span className="text-white ml-2 font-semibold">{formatCurrency(athData.price)}</span>
+              <span className="text-gray-500 ml-2">({athData.date.toLocaleDateString()})</span>
             </div>
           )}
           
           {oylData && (
-            <div className="bg-gradient-to-r from-red-900/30 to-red-800/30 rounded-xl p-6 border border-red-500/30">
-              <div className="flex items-center space-x-3">
-                <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-                <div className="text-red-400 text-sm font-semibold">ONE YEAR LOW</div>
-              </div>
-              <div className="text-white text-3xl font-bold mt-2">{formatCurrency(oylData.price)}</div>
-              <div className="text-slate-400 text-sm mt-1">{oylData.date.toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}</div>
-              <div className="text-red-300 text-xs mt-2">Day {oylData.daysFromGenesis} from Genesis</div>
+            <div>
+              <span className="text-red-400">One Year Low:</span>
+              <span className="text-white ml-2 font-semibold">{formatCurrency(oylData.price)}</span>
+              <span className="text-gray-500 ml-2">({oylData.date.toLocaleDateString()})</span>
             </div>
           )}
         </div>
       )}
-
-      {/* Power Law Analysis Legend */}
-      {powerLawData && (
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
-          <h3 className="text-white text-lg font-bold mb-4">Power Law Analysis</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-6 h-1 bg-red-500 rounded"></div>
-              <div>
-                <div className="text-white text-sm font-semibold">Regression Line</div>
-                <div className="text-slate-400 text-xs">y = {powerLawData.coefficient.toFixed(6)} × x^{powerLawData.slope.toFixed(4)}</div>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="w-6 h-1 border-t-2 border-dashed border-white/50 rounded"></div>
-              <div>
-                <div className="text-white text-sm font-semibold">Support (-60%)</div>
-                <div className="text-slate-400 text-xs">Lower power law band</div>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="w-6 h-1 border-t-2 border-dashed border-white/50 rounded"></div>
-              <div>
-                <div className="text-white text-sm font-semibold">Resistance (+120%)</div>
-                <div className="text-slate-400 text-xs">Upper power law band</div>
-              </div>
-            </div>
-          </div>
-          <div className="mt-4 p-4 bg-slate-900/50 rounded-lg">
-            <div className="text-slate-300 text-sm">
-              <strong>R² = {powerLawData.r2.toFixed(4)}</strong> • 
-              The power law model explains <strong>{(powerLawData.r2 * 100).toFixed(1)}%</strong> of Kaspa's price variance since genesis.
-              A higher R² indicates stronger adherence to the power law growth pattern.
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Professional Footer */}
-      <div className="text-center text-slate-500 text-sm">
-        <div>Kaspa Power Law Analysis • Genesis: November 7, 2021</div>
-        <div className="mt-1">Professional-grade cryptocurrency analytics powered by D3.js</div>
-      </div>
     </div>
   )
 }
