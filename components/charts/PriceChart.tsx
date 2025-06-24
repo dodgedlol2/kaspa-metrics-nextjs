@@ -208,11 +208,36 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
     const traces: any[] = []
 
     // Determine X values based on time scale
-    const xValues = timeScale === 'Log' 
-      ? filteredData.map(d => getDaysFromGenesis(d.timestamp))
-      : filteredData.map(d => new Date(d.timestamp))
+    let xValues: (number | Date)[]
+    if (timeScale === 'Log') {
+      xValues = filteredData.map(d => getDaysFromGenesis(d.timestamp))
+    } else {
+      // For linear time scale, ensure we have proper Date objects
+      xValues = filteredData.map(d => {
+        const date = new Date(d.timestamp)
+        // Validate the date
+        if (isNaN(date.getTime())) {
+          console.warn('Invalid timestamp:', d.timestamp)
+          return new Date()
+        }
+        return date
+      })
+    }
 
     const yValues = filteredData.map(d => d.value)
+
+    // Debug logging for linear time scale
+    if (timeScale === 'Linear' && filteredData.length > 0) {
+      console.log('Linear time scale data:', {
+        dataLength: filteredData.length,
+        firstTimestamp: filteredData[0].timestamp,
+        firstDate: new Date(filteredData[0].timestamp),
+        lastTimestamp: filteredData[filteredData.length - 1].timestamp,
+        lastDate: new Date(filteredData[filteredData.length - 1].timestamp),
+        sampleXValues: xValues.slice(0, 3),
+        sampleYValues: yValues.slice(0, 3)
+      })
+    }
 
     // Calculate Y-axis range
     const yMinData = Math.min(...yValues)
@@ -272,7 +297,13 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
     if (powerLawData) {
       const xFit = filteredData.map(d => getDaysFromGenesis(d.timestamp))
       const yFit = xFit.map(x => powerLawData.a * Math.pow(x, powerLawData.b))
-      const fitX = timeScale === 'Log' ? xFit : filteredData.map(d => new Date(d.timestamp))
+      
+      let fitX: (number | Date)[]
+      if (timeScale === 'Log') {
+        fitX = xFit
+      } else {
+        fitX = filteredData.map(d => new Date(d.timestamp))
+      }
 
       traces.push({
         x: fitX,
@@ -289,7 +320,12 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
 
     // Add ATH marker
     if (athData) {
-      const athX = timeScale === 'Log' ? athData.daysFromGenesis : athData.date
+      let athX: number | Date
+      if (timeScale === 'Log') {
+        athX = athData.daysFromGenesis
+      } else {
+        athX = athData.date
+      }
       
       traces.push({
         x: [athX],
@@ -311,7 +347,12 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
 
     // Add 1YL marker
     if (oylData) {
-      const oylX = timeScale === 'Log' ? oylData.daysFromGenesis : oylData.date
+      let oylX: number | Date
+      if (timeScale === 'Log') {
+        oylX = oylData.daysFromGenesis
+      } else {
+        oylX = oylData.date
+      }
       
       traces.push({
         x: [oylX],
@@ -365,6 +406,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       yMinorTicks = minorTicks
     }
 
+    // Create base layout
     const layout: any = {
       height: height,
       plot_bgcolor: 'rgba(0,0,0,0)',
@@ -373,43 +415,6 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       hovermode: 'x unified',
       showlegend: true,
       margin: { l: 50, r: 20, t: 20, b: 50 },
-      xaxis: {
-        title: { text: timeScale === 'Log' ? 'Days Since Genesis (Log Scale)' : 'Date' },
-        type: timeScale === 'Log' ? 'log' : 'linear',
-        showgrid: true,
-        gridwidth: 1,
-        gridcolor: timeScale === 'Log' ? 'rgba(255, 255, 255, 0.1)' : '#363650',
-        linecolor: '#3A3C4A',
-        zerolinecolor: '#3A3C4A',
-        color: '#9CA3AF',
-        tickformat: timeScale === 'Linear' ? '%b %Y' : undefined,
-        hoverformat: timeScale === 'Linear' ? '%B %d, %Y' : undefined,
-        minor: timeScale === 'Log' ? {
-          ticklen: 6,
-          gridcolor: 'rgba(255, 255, 255, 0.05)',
-          gridwidth: 0.5
-        } : undefined
-      },
-      yaxis: {
-        title: { text: 'Price (USD)' },
-        type: priceScale === 'Log' ? 'log' : 'linear',
-        gridcolor: '#363650',
-        gridwidth: 1,
-        color: '#9CA3AF',
-        range: priceScale === 'Log' 
-          ? [Math.log10(yMinChart), Math.log10(yMaxChart)]
-          : [yMinChart, yMaxChart],
-        tickmode: priceScale === 'Log' && yTickVals ? 'array' : 'auto',
-        tickvals: yTickVals,
-        ticktext: yTickText,
-        minor: priceScale === 'Log' ? {
-          showgrid: true,
-          gridwidth: 0.5,
-          gridcolor: 'rgba(54, 54, 80, 0.3)',
-          tickmode: 'array',
-          tickvals: yMinorTicks
-        } : undefined
-      },
       hoverlabel: {
         bgcolor: 'rgba(15, 20, 25, 0.95)',
         bordercolor: 'rgba(91, 108, 255, 0.5)',
@@ -433,6 +438,65 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         bgcolor: "rgba(0,0,0,0)",
         color: "#9CA3AF",
         activecolor: "#5B6CFF"
+      }
+    }
+
+    // Configure X-axis based on time scale
+    if (timeScale === 'Log') {
+      layout.xaxis = {
+        title: { text: 'Days Since Genesis (Log Scale)' },
+        type: 'log',
+        showgrid: true,
+        gridwidth: 1,
+        gridcolor: 'rgba(255, 255, 255, 0.1)',
+        linecolor: '#3A3C4A',
+        zerolinecolor: '#3A3C4A',
+        color: '#9CA3AF',
+        minor: {
+          ticklen: 6,
+          gridcolor: 'rgba(255, 255, 255, 0.05)',
+          gridwidth: 0.5
+        }
+      }
+    } else {
+      // Linear time scale - use date format
+      layout.xaxis = {
+        title: { text: 'Date' },
+        type: 'date',
+        showgrid: true,
+        gridwidth: 1,
+        gridcolor: '#363650',
+        linecolor: '#3A3C4A',
+        zerolinecolor: '#3A3C4A',
+        color: '#9CA3AF',
+        tickformat: '%b %Y',
+        hoverformat: '%B %d, %Y'
+      }
+    }
+
+    // Configure Y-axis
+    layout.yaxis = {
+      title: { text: 'Price (USD)' },
+      type: priceScale === 'Log' ? 'log' : 'linear',
+      gridcolor: '#363650',
+      gridwidth: 1,
+      color: '#9CA3AF',
+      range: priceScale === 'Log' 
+        ? [Math.log10(yMinChart), Math.log10(yMaxChart)]
+        : [yMinChart, yMaxChart]
+    }
+
+    // Add log-specific Y-axis configuration
+    if (priceScale === 'Log' && yTickVals && yTickText) {
+      layout.yaxis.tickmode = 'array'
+      layout.yaxis.tickvals = yTickVals
+      layout.yaxis.ticktext = yTickText
+      layout.yaxis.minor = {
+        showgrid: true,
+        gridwidth: 0.5,
+        gridcolor: 'rgba(54, 54, 80, 0.3)',
+        tickmode: 'array',
+        tickvals: yMinorTicks
       }
     }
 
