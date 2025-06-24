@@ -268,16 +268,21 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       })
     }
 
-    // Main price trace with scattergl for better performance
+    // Main price trace
     traces.push({
       x: xValues,
       y: yValues,
-      type: 'scattergl', // Use WebGL for better performance
       mode: 'lines',
       name: 'Kaspa Price',
       line: { color: '#5B6CFF', width: 2 },
       fill: priceScale === 'Log' ? 'tonexty' : 'tozeroy',
-      fillcolor: 'rgba(91, 108, 255, 0.3)', // Simplified fill for WebGL
+      fillgradient: {
+        type: "vertical",
+        colorscale: [
+          [0, "rgba(13, 13, 26, 0.01)"],
+          [1, "rgba(91, 108, 255, 0.6)"]
+        ]
+      },
       hovertemplate: timeScale === 'Linear' 
         ? '<b>%{fullData.name}</b><br>Price: $%{y:.4f}<extra></extra>'
         : '%{text}<br><b>%{fullData.name}</b><br>Price: $%{y:.4f}<extra></extra>',
@@ -336,7 +341,6 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         textposition: 'top right',
         textfont: { color: '#ffffff', size: 11 },
         showlegend: false,
-        hoverinfo: 'skip', // Don't show in hover tooltip
         hovertemplate: `<b>All-Time High</b><br>Price: ${formatCurrency(athData.price)}<br>Date: ${athData.date.toLocaleDateString()}<extra></extra>`,
       })
     }
@@ -364,7 +368,6 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         textposition: 'bottom right',
         textfont: { color: '#ffffff', size: 11 },
         showlegend: false,
-        hoverinfo: 'skip', // Don't show in hover tooltip
         hovertemplate: `<b>One Year Low</b><br>Price: ${formatCurrency(oylData.price)}<br>Date: ${oylData.date.toLocaleDateString()}<extra></extra>`,
       })
     }
@@ -413,7 +416,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       showlegend: true,
       margin: { l: 50, r: 20, t: 20, b: 50 },
       hoverlabel: {
-        bgcolor: 'rgba(15, 20, 25, 0.85)', // More transparent background
+        bgcolor: 'rgba(15, 20, 25, 0.95)',
         bordercolor: 'rgba(91, 108, 255, 0.5)',
         font: { color: '#e2e8f0', size: 11 },
         align: 'left',
@@ -436,11 +439,10 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         color: "#9CA3AF",
         activecolor: "#5B6CFF"
       },
-      // Better performance settings and explicit dragmode
-      spikedistance: -1,
-      hoverdistance: -1,
-      selectdirection: 'x', // Only allow X-axis zoom selection for better performance
-      dragmode: 'pan' // Default to pan, zoom with shift+drag
+      // Improve crosshair and selection performance
+      spikedistance: 20,
+      hoverdistance: 100,
+      selectdirection: 'diagonal'
     }
 
     // Configure X-axis based on time scale
@@ -470,13 +472,12 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
           gridcolor: 'rgba(255, 255, 255, 0.05)',
           gridwidth: 0.5
         },
-        // Ultra-thin crosshair - minimum thickness is 1px in Plotly
+        // Very thin full crosshair lines
         showspikes: true,
-        spikecolor: 'rgba(255, 255, 255, 0.3)',
-        spikethickness: 1, // Minimum value that actually works
-        spikedash: 'solid',
-        spikemode: 'across',
-        spikesnap: 'cursor'
+        spikecolor: 'rgba(255, 255, 255, 0.15)',
+        spikethickness: 0.5,
+        spikedash: 'dash',
+        spikemode: 'across'
       }
     } else {
       // Linear time scale - use date format with data range
@@ -497,13 +498,12 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         hoverformat: '%B %d, %Y',
         range: [minDate.toISOString(), maxDate.toISOString()],
         autorange: false, // Disable autorange to use our custom range
-        // Ultra-thin crosshair - minimum thickness is 1px in Plotly
+        // Very thin full crosshair lines
         showspikes: true,
-        spikecolor: 'rgba(255, 255, 255, 0.3)',
-        spikethickness: 1, // Minimum value that actually works
-        spikedash: 'solid',
-        spikemode: 'across',
-        spikesnap: 'cursor'
+        spikecolor: 'rgba(255, 255, 255, 0.15)',
+        spikethickness: 0.5,
+        spikedash: 'dash',
+        spikemode: 'across'
       }
     }
 
@@ -517,13 +517,12 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       range: priceScale === 'Log' 
         ? [Math.log10(yMinChart), Math.log10(yMaxChart)]
         : [yMinChart, yMaxChart],
-      // Horizontal crosshair - minimum thickness is 1px in Plotly
+      // Full horizontal crosshair line
       showspikes: true,
-      spikecolor: 'rgba(255, 255, 255, 0.3)',
-      spikethickness: 1, // Minimum value that actually works
-      spikedash: 'solid',
-      spikemode: 'across',
-      spikesnap: 'cursor'
+      spikecolor: 'rgba(255, 255, 255, 0.15)',
+      spikethickness: 0.5,
+      spikedash: 'dash',
+      spikemode: 'across'
     }
 
     // Add log-specific Y-axis configuration
@@ -623,14 +622,11 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
               width: 1400,
               scale: 2
             },
-            // Performance and interaction settings
+            // Improve zoom performance
             responsive: true,
-            doubleClick: 'reset', // Simple reset behavior
+            doubleClick: 'reset+autosize',
             scrollZoom: true,
-            editable: false,
-            // Performance optimizations
-            plotGlPixelRatio: 2,
-            showTips: false
+            editable: false
           }}
           useResizeHandler={true}
         />
