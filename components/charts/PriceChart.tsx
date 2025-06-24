@@ -245,22 +245,59 @@ function generatePowerLawData(data: KaspaMetric[], a: number, b: number, multipl
   })
 }
 
-// Format currency values for display
+// Enhanced currency formatting (from Streamlit format_currency)
 function formatCurrency(value: number): string {
   if (value >= 1) {
-    if (value >= 1000) return `$${(value/1000).toFixed(1)}k`
-    else if (value >= 100) return `$${value.toFixed(0)}`
-    else if (value >= 10) return `$${value.toFixed(1)}`
-    else return `$${value.toFixed(2)}`
+    if (value >= 1000) return `${(value/1000).toFixed(1)}k`
+    else if (value >= 100) return `${value.toFixed(0)}`
+    else if (value >= 10) return `${value.toFixed(1)}`
+    else return `${value.toFixed(2)}`
   } else if (value >= 0.01) {
-    return `$${value.toFixed(3)}`
+    return `${value.toFixed(3)}`
   } else if (value >= 0.001) {
-    return `$${value.toFixed(4)}`
+    return `${value.toFixed(4)}`
   } else if (value >= 0.0001) {
-    return `$${value.toFixed(5)}`
+    return `${value.toFixed(5)}`
   } else {
-    return `$${value.toExponential(2)}`
+    return `${value.toExponential(1)}`
   }
+}
+
+// Generate physics-style log tick marks with 1, 2, 5 pattern (exact Streamlit replica)
+function generateLogTicks(dataMin: number, dataMax: number) {
+  const logMin = Math.floor(Math.log10(dataMin))
+  const logMax = Math.ceil(Math.log10(dataMax))
+  
+  const majorTicks: number[] = []
+  const intermediateTicks: number[] = [] // For 2 and 5
+  const minorTicks: number[] = []
+  
+  for (let i = logMin; i <= logMax + 1; i++) {
+    const base = Math.pow(10, i)
+    
+    // Major tick at 1 * 10^i
+    if (dataMin <= base && base <= dataMax) {
+      majorTicks.push(base)
+    }
+    
+    // Intermediate ticks at 2 and 5 * 10^i
+    for (const factor of [2, 5]) {
+      const intermediateVal = factor * base
+      if (dataMin <= intermediateVal && intermediateVal <= dataMax) {
+        intermediateTicks.push(intermediateVal)
+      }
+    }
+    
+    // Minor ticks at 3, 4, 6, 7, 8, 9 * 10^i
+    for (const j of [3, 4, 6, 7, 8, 9]) {
+      const minorVal = j * base
+      if (dataMin <= minorVal && minorVal <= dataMax) {
+        minorTicks.push(minorVal)
+      }
+    }
+  }
+  
+  return { majorTicks, intermediateTicks, minorTicks }
 }
 
 export default function PriceChart({ data, height = 400 }: PriceChartProps) {
