@@ -353,11 +353,11 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       const xTicks = generateLogTicks(xExtent[0], xExtent[1])
       xAxis = d3.axisBottom(xScale)
         .tickValues(xTicks)
-        .tickFormat(d => d3.format(".0f")(d as number))
+        .tickFormat((d) => d3.format(".0f")(d as number))
     } else {
-      xAxis = d3.axisBottom(xScale)
+      xAxis = d3.axisBottom(xScale as d3.ScaleTime<number, number, never>)
         .ticks(8)
-        .tickFormat(d3.timeFormat("%b %Y"))
+        .tickFormat((d) => d3.timeFormat("%b %Y")(d as Date))
     }
 
     if (priceScale === 'Log') {
