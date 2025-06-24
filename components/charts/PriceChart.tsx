@@ -546,7 +546,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       )}
     </div>
   )
-}'use client'
+}
 import React, { useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { KaspaMetric } from '@/lib/sheets'
