@@ -504,8 +504,8 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       {/* Plotly Chart */}
       <div style={{ height: `${height}px` }} className="w-full">
         <Plot
-          data={plotlyData}
-          layout={plotlyLayout}
+          data={plotlyData as any}
+          layout={plotlyLayout as any}
           style={{ width: '100%', height: '100%' }}
           config={{
             displayModeBar: true,
@@ -519,7 +519,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
               width: 1400,
               scale: 2
             }
-          }}
+          } as any}
         />
       </div>
 
