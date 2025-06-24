@@ -438,7 +438,11 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         bgcolor: "rgba(0,0,0,0)",
         color: "#9CA3AF",
         activecolor: "#5B6CFF"
-      }
+      },
+      // Improve crosshair and selection performance
+      spikedistance: 20,
+      hoverdistance: 100,
+      selectdirection: 'diagonal'
     }
 
     // Configure X-axis based on time scale
@@ -462,7 +466,13 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
           ticklen: 6,
           gridcolor: 'rgba(255, 255, 255, 0.05)',
           gridwidth: 0.5
-        }
+        },
+        // Thinner crosshair lines
+        showspikes: true,
+        spikecolor: 'rgba(255, 255, 255, 0.3)',
+        spikethickness: 1,
+        spikedash: 'dot',
+        spikemode: 'across'
       }
     } else {
       // Linear time scale - use date format with data range
@@ -481,7 +491,13 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         color: '#9CA3AF',
         tickformat: '%b %Y',
         hoverformat: '%B %d, %Y',
-        range: [minDate.toISOString(), maxDate.toISOString()]
+        range: [minDate.toISOString(), maxDate.toISOString()],
+        // Thinner crosshair lines
+        showspikes: true,
+        spikecolor: 'rgba(255, 255, 255, 0.3)',
+        spikethickness: 1,
+        spikedash: 'dot',
+        spikemode: 'across'
       }
     }
 
@@ -494,7 +510,13 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       color: '#9CA3AF',
       range: priceScale === 'Log' 
         ? [Math.log10(yMinChart), Math.log10(yMaxChart)]
-        : [yMinChart, yMaxChart]
+        : [yMinChart, yMaxChart],
+      // Thinner crosshair lines for Y-axis too
+      showspikes: true,
+      spikecolor: 'rgba(255, 255, 255, 0.3)',
+      spikethickness: 1,
+      spikedash: 'dot',
+      spikemode: 'across'
     }
 
     // Add log-specific Y-axis configuration
@@ -593,8 +615,14 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
               height: height,
               width: 1400,
               scale: 2
-            }
+            },
+            // Improve zoom performance
+            responsive: true,
+            doubleClick: 'reset+autosize',
+            scrollZoom: true,
+            editable: false
           }}
+          useResizeHandler={true}
         />
       </div>
 
