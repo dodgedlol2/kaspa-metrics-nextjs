@@ -407,45 +407,36 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
     let xTickValues: any[] = []
     let yTickValues: number[] = []
 
-    // X-AXIS CONFIGURATION - SCIENTIFIC PRECISION FOR LOG SCALE (PROPER D3.js)
+    // X-AXIS CONFIGURATION - SCIENTIFIC PRECISION (PROPER D3.js LOGARITHMIC APPROACH)
     if (timeScale === 'Log') {
-      // For log time scale - generate SCIENTIFIC logarithmic ticks (like Plotly)
-      const xMin = Math.max(1, xExtent[0])
-      const xMax = xExtent[1]
-      
-      console.log('X-axis range:', xMin, 'to', xMax) // Debug log
-      
-      // Generate FULL scientific log ticks for time (days from genesis)
-      const logMin = Math.floor(Math.log10(xMin))
-      const logMax = Math.ceil(Math.log10(xMax))
-      
-      xTickValues = [] // Clear the array first
-      
-      for (let i = logMin; i <= logMax; i++) {
-        const base = Math.pow(10, i)
-        
-        // Major ticks: 1, 10, 100, 1000...
-        if (base >= xMin * 0.5 && base <= xMax * 2) {
-          xTickValues.push(base)
-        }
-        
-        // ALL intermediate ticks: 2, 3, 4, 5, 6, 7, 8, 9 (SCIENTIFIC PRECISION)
-        for (const mult of [2, 3, 4, 5, 6, 7, 8, 9]) {
-          const val = mult * base
-          if (val >= xMin * 0.5 && val <= xMax * 2) {
-            xTickValues.push(val)
-          }
-        }
-      }
-      xTickValues = Array.from(new Set(xTickValues)).sort((a, b) => a - b) // Remove duplicates and sort
-      
-      console.log('X-axis tick values:', xTickValues.length, xTickValues.slice(0, 15)) // Debug log
+      // For log time scale - use D3's built-in logarithmic tick generation
+      const logTicks = xScale.ticks() // D3's default log tick generation
+      console.log('D3 generated X ticks:', logTicks.length, logTicks.slice(0, 15))
       
       xAxis = d3.axisBottom(xScale)
-        .tickValues(xTickValues)
-        .tickFormat((d: any) => d3.format(".0f")(d))
+        .tickFormat((d: any) => {
+          // Custom logic to show scientific precision labels
+          const logValue = Math.log10(d)
+          const remainder = Math.abs(logValue - Math.round(logValue))
+          
+          // Show all major values and many intermediate values for scientific precision
+          if (remainder < 0.01 || // Powers of 10: 100, 1000...
+              Math.abs(logValue - Math.log10(2 * Math.pow(10, Math.floor(logValue)))) < 0.01 || // 2x: 200, 2000...
+              Math.abs(logValue - Math.log10(3 * Math.pow(10, Math.floor(logValue)))) < 0.01 || // 3x: 300, 3000...
+              Math.abs(logValue - Math.log10(4 * Math.pow(10, Math.floor(logValue)))) < 0.01 || // 4x: 400, 4000...
+              Math.abs(logValue - Math.log10(5 * Math.pow(10, Math.floor(logValue)))) < 0.01 || // 5x: 500, 5000...
+              Math.abs(logValue - Math.log10(6 * Math.pow(10, Math.floor(logValue)))) < 0.01 || // 6x: 600, 6000...
+              Math.abs(logValue - Math.log10(7 * Math.pow(10, Math.floor(logValue)))) < 0.01 || // 7x: 700, 7000...
+              Math.abs(logValue - Math.log10(8 * Math.pow(10, Math.floor(logValue)))) < 0.01 || // 8x: 800, 8000...
+              Math.abs(logValue - Math.log10(9 * Math.pow(10, Math.floor(logValue)))) < 0.01) { // 9x: 900, 9000...
+            return d3.format(".0f")(d)
+          }
+          return "" // Hide other labels but keep tick marks
+        })
         .tickSize(6)
         .tickSizeOuter(0)
+      
+      xTickValues = logTicks // Use D3's generated ticks for grid lines
     } else {
       // Linear time scale - use D3's time ticks
       const timeInterval = d3.timeMonth.every(2)
@@ -468,19 +459,31 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       }
     }
 
-    // Y-AXIS CONFIGURATION - SCIENTIFIC PRECISION (PROPER D3.js IMPLEMENTATION)
+    // Y-AXIS CONFIGURATION - SCIENTIFIC PRECISION (PROPER D3.js LOGARITHMIC APPROACH)
     if (priceScale === 'Log') {
-      // Use EXACT generate_log_ticks function from Plotly - FULL SCIENTIFIC PRECISION
-      const { all } = generateLogTicks(yMinChart, yMaxChart)
-      yTickValues = all  // Use ALL ticks for maximum scientific precision
-      
-      console.log('Y-axis tick values:', yTickValues.length, yTickValues.slice(0, 10)) // Debug log
+      // For log scales, D3 automatically generates scientific ticks but filters labels
+      // Use the scale's built-in tick generation with custom formatting
+      const logTicks = yScale.ticks() // D3's default log tick generation
+      console.log('D3 generated Y ticks:', logTicks.length, logTicks.slice(0, 10))
       
       yAxis = d3.axisLeft(yScale)
-        .tickValues(yTickValues)
-        .tickFormat((d: any) => formatCurrency(d))
+        .tickFormat((d: any, i: number) => {
+          // Custom logic to show more labels (like Plotly scientific precision)
+          const logValue = Math.log10(d)
+          const remainder = Math.abs(logValue - Math.round(logValue))
+          
+          // Show major ticks (powers of 10) and key intermediate values
+          if (remainder < 0.01 || // Powers of 10: 0.001, 0.01, 0.1, 1, 10...
+              Math.abs(logValue - Math.log10(2 * Math.pow(10, Math.floor(logValue)))) < 0.01 || // 2x values: 0.002, 0.02, 0.2, 2...
+              Math.abs(logValue - Math.log10(5 * Math.pow(10, Math.floor(logValue)))) < 0.01) { // 5x values: 0.005, 0.05, 0.5, 5...
+            return formatCurrency(d)
+          }
+          return "" // Hide other labels but keep tick marks
+        })
         .tickSize(6)
-        .tickSizeOuter(0)  // Remove outer ticks for cleaner look
+        .tickSizeOuter(0)
+      
+      yTickValues = logTicks // Use D3's generated ticks for grid lines
     } else {
       // Linear scale - generate nice round numbers
       const yMax = yMaxChart
