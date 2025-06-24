@@ -251,8 +251,10 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         .domain([Math.max(1, xExtent[0] * 0.9), xExtent[1] * 1.1])
         .range([0, width])
     } else {
+      // For linear time scale, use date extent
+      const dateExtent = d3.extent(chartData, d => d.date) as [Date, Date]
       xScale = d3.scaleTime()
-        .domain(xExtent as [Date, Date])
+        .domain(dateExtent)
         .range([0, width])
     }
 
