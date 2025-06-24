@@ -440,9 +440,10 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         activecolor: "#5B6CFF"
       },
       // Improve crosshair and selection performance
-      spikedistance: 20,
-      hoverdistance: 100,
-      selectdirection: 'diagonal'
+      spikedistance: -1,
+      hoverdistance: -1,
+      selectdirection: 'diagonal',
+      dragmode: 'zoom'
     }
 
     // Configure X-axis based on time scale
@@ -472,12 +473,13 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
           gridcolor: 'rgba(255, 255, 255, 0.05)',
           gridwidth: 0.5
         },
-        // Very thin full crosshair lines
+        // Ultra-thin full crosshair lines with spikesnap
         showspikes: true,
-        spikecolor: 'rgba(255, 255, 255, 0.15)',
+        spikecolor: 'rgba(255, 255, 255, 0.1)',
         spikethickness: 0.5,
-        spikedash: 'dash',
-        spikemode: 'across'
+        spikedash: 'solid',
+        spikemode: 'across',
+        spikesnap: 'cursor'
       }
     } else {
       // Linear time scale - use date format with data range
@@ -498,12 +500,13 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         hoverformat: '%B %d, %Y',
         range: [minDate.toISOString(), maxDate.toISOString()],
         autorange: false, // Disable autorange to use our custom range
-        // Very thin full crosshair lines
+        // Ultra-thin full crosshair lines with spikesnap
         showspikes: true,
-        spikecolor: 'rgba(255, 255, 255, 0.15)',
+        spikecolor: 'rgba(255, 255, 255, 0.1)',
         spikethickness: 0.5,
-        spikedash: 'dash',
-        spikemode: 'across'
+        spikedash: 'solid',
+        spikemode: 'across',
+        spikesnap: 'cursor'
       }
     }
 
@@ -517,12 +520,13 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       range: priceScale === 'Log' 
         ? [Math.log10(yMinChart), Math.log10(yMaxChart)]
         : [yMinChart, yMaxChart],
-      // Full horizontal crosshair line
+      // Full horizontal crosshair line with spikesnap
       showspikes: true,
-      spikecolor: 'rgba(255, 255, 255, 0.15)',
+      spikecolor: 'rgba(255, 255, 255, 0.1)',
       spikethickness: 0.5,
-      spikedash: 'dash',
-      spikemode: 'across'
+      spikedash: 'solid',
+      spikemode: 'across',
+      spikesnap: 'cursor'
     }
 
     // Add log-specific Y-axis configuration
@@ -622,13 +626,26 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
               width: 1400,
               scale: 2
             },
-            // Improve zoom performance
+            // Improve zoom performance and fix double-click reset
             responsive: true,
-            doubleClick: 'reset+autosize',
+            doubleClick: false, // Disable double-click autorange to prevent log scale zoom out
             scrollZoom: true,
-            editable: false
+            editable: false,
+            // Better performance settings
+            queueLength: 0,
+            fillFrame: false,
+            frameMargins: 0
           }}
           useResizeHandler={true}
+          onDoubleClick={() => {
+            // Custom double-click handler to properly reset both scales
+            const resetLayout = {
+              ...plotlyLayout,
+              'xaxis.autorange': true,
+              'yaxis.autorange': true
+            }
+            return false // Prevent default
+          }}
         />
       </div>
 
