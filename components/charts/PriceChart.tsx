@@ -268,36 +268,69 @@ function generateLogTicks(dataMin: number, dataMax: number) {
   const logMin = Math.floor(Math.log10(dataMin))
   const logMax = Math.ceil(Math.log10(dataMax))
   
-  const majorTicks: number[] = []
-  const intermediateTicks: number[] = [] // For 2 and 5
-  const minorTicks: number[] = []
+  const allTicks: number[] = []
   
-  for (let i = logMin; i <= logMax + 1; i++) {
+  // Generate ticks for each order of magnitude
+  for (let i = logMin - 1; i <= logMax + 1; i++) {
     const base = Math.pow(10, i)
     
-    // Major tick at 1 * 10^i
-    if (dataMin <= base && base <= dataMax) {
-      majorTicks.push(base)
-    }
-    
-    // Intermediate ticks at 2 and 5 * 10^i
-    for (const factor of [2, 5]) {
-      const intermediateVal = factor * base
-      if (dataMin <= intermediateVal && intermediateVal <= dataMax) {
-        intermediateTicks.push(intermediateVal)
-      }
-    }
-    
-    // Minor ticks at 3, 4, 6, 7, 8, 9 * 10^i
-    for (const j of [3, 4, 6, 7, 8, 9]) {
-      const minorVal = j * base
-      if (dataMin <= minorVal && minorVal <= dataMax) {
-        minorTicks.push(minorVal)
+    // Generate all tick values: 1, 2, 3, 4, 5, 6, 7, 8, 9 * 10^i
+    for (const factor of [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
+      const tickValue = factor * base
+      if (tickValue >= dataMin * 0.5 && tickValue <= dataMax * 2) {
+        allTicks.push(tickValue)
       }
     }
   }
   
-  return { majorTicks, intermediateTicks, minorTicks }
+  // Sort and remove duplicates
+  return [...new Set(allTicks)].sort((a, b) => a - b)
+}
+
+// Generate specific Y-axis ticks for price (matching your images)
+function generatePriceLogTicks(dataMin: number, dataMax: number) {
+  const ticks: number[] = []
+  
+  // Add price-specific tick values
+  const priceValues = [
+    0.0001, 0.0002, 0.0003, 0.0005,
+    0.001, 0.002, 0.003, 0.005,
+    0.01, 0.02, 0.03, 0.05,
+    0.1, 0.2, 0.3, 0.5,
+    1, 2, 3, 5,
+    10, 20, 30, 50,
+    100, 200, 300, 500
+  ]
+  
+  // Filter ticks within range
+  for (const value of priceValues) {
+    if (value >= dataMin * 0.3 && value <= dataMax * 3) {
+      ticks.push(value)
+    }
+  }
+  
+  return ticks
+}
+
+// Generate specific X-axis ticks for days (matching your images)
+function generateDaysLogTicks(dataMin: number, dataMax: number) {
+  const ticks: number[] = []
+  
+  // Add day-specific tick values
+  const dayValues = [
+    100, 200, 300, 400, 500, 600, 700, 800, 900,
+    1000, 1200, 1400, 1600, 1800,
+    2000, 2500, 3000
+  ]
+  
+  // Filter ticks within range
+  for (const value of dayValues) {
+    if (value >= dataMin * 0.8 && value <= dataMax * 1.2) {
+      ticks.push(value)
+    }
+  }
+  
+  return ticks
 }
 
 export default function PriceChart({ data, height = 400 }: PriceChartProps) {
