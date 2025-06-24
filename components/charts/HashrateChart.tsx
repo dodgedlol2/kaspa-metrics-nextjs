@@ -407,38 +407,45 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
     let xTickValues: any[] = []
     let yTickValues: number[] = []
 
-    // X-AXIS CONFIGURATION - SCIENTIFIC PRECISION FOR LOG SCALE
+    // X-AXIS CONFIGURATION - SCIENTIFIC PRECISION FOR LOG SCALE (PROPER D3.js)
     if (timeScale === 'Log') {
       // For log time scale - generate SCIENTIFIC logarithmic ticks (like Plotly)
       const xMin = Math.max(1, xExtent[0])
       const xMax = xExtent[1]
       
+      console.log('X-axis range:', xMin, 'to', xMax) // Debug log
+      
       // Generate FULL scientific log ticks for time (days from genesis)
       const logMin = Math.floor(Math.log10(xMin))
       const logMax = Math.ceil(Math.log10(xMax))
+      
+      xTickValues = [] // Clear the array first
       
       for (let i = logMin; i <= logMax; i++) {
         const base = Math.pow(10, i)
         
         // Major ticks: 1, 10, 100, 1000...
-        if (base >= xMin * 0.8 && base <= xMax * 1.2) {
+        if (base >= xMin * 0.5 && base <= xMax * 2) {
           xTickValues.push(base)
         }
         
         // ALL intermediate ticks: 2, 3, 4, 5, 6, 7, 8, 9 (SCIENTIFIC PRECISION)
         for (const mult of [2, 3, 4, 5, 6, 7, 8, 9]) {
           const val = mult * base
-          if (val >= xMin * 0.8 && val <= xMax * 1.2) {
+          if (val >= xMin * 0.5 && val <= xMax * 2) {
             xTickValues.push(val)
           }
         }
       }
-      xTickValues.sort((a, b) => a - b)
+      xTickValues = Array.from(new Set(xTickValues)).sort((a, b) => a - b) // Remove duplicates and sort
+      
+      console.log('X-axis tick values:', xTickValues.length, xTickValues.slice(0, 15)) // Debug log
       
       xAxis = d3.axisBottom(xScale)
         .tickValues(xTickValues)
         .tickFormat((d: any) => d3.format(".0f")(d))
         .tickSize(6)
+        .tickSizeOuter(0)
     } else {
       // Linear time scale - use D3's time ticks
       const timeInterval = d3.timeMonth.every(2)
@@ -461,16 +468,19 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       }
     }
 
-    // Y-AXIS CONFIGURATION - SCIENTIFIC PRECISION
+    // Y-AXIS CONFIGURATION - SCIENTIFIC PRECISION (PROPER D3.js IMPLEMENTATION)
     if (priceScale === 'Log') {
       // Use EXACT generate_log_ticks function from Plotly - FULL SCIENTIFIC PRECISION
       const { all } = generateLogTicks(yMinChart, yMaxChart)
       yTickValues = all  // Use ALL ticks for maximum scientific precision
       
+      console.log('Y-axis tick values:', yTickValues.length, yTickValues.slice(0, 10)) // Debug log
+      
       yAxis = d3.axisLeft(yScale)
         .tickValues(yTickValues)
         .tickFormat((d: any) => formatCurrency(d))
         .tickSize(6)
+        .tickSizeOuter(0)  // Remove outer ticks for cleaner look
     } else {
       // Linear scale - generate nice round numbers
       const yMax = yMaxChart
@@ -480,6 +490,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
                    (range / Math.pow(10, Math.floor(Math.log10(range))) > 5 ? 1 : 
                     range / Math.pow(10, Math.floor(Math.log10(range))) > 2 ? 0.5 : 0.2)
       
+      yTickValues = []
       for (let val = Math.ceil(yMin / step) * step; val <= yMax; val += step) {
         yTickValues.push(val)
       }
@@ -488,6 +499,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         .tickValues(yTickValues)
         .tickFormat((d: any) => formatCurrency(d))
         .tickSize(6)
+        .tickSizeOuter(0)
     }
 
     // ADD GRID LINES FIRST (behind everything)
