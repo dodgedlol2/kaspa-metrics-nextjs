@@ -45,6 +45,6 @@
   "devDependencies": {
     "eslint": "^8",
     "eslint-config-next": "14.0.4",
-    "@types/plotly.js": "^2.12.29"
+    "@types/react-plotly.js": "^2.6.3"
   }
 }
