@@ -554,12 +554,8 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       range: priceScale === 'Log' 
         ? [Math.log10(yMinChart), Math.log10(yMaxChart)]
         : [yMinChart, yMaxChart],
-      // Full horizontal crosshair line
-      showspikes: true,
-      spikecolor: 'rgba(255, 255, 255, 0.15)',
-      spikethickness: 0.5,
-      spikedash: 'dash',
-      spikemode: 'across'
+      // Remove horizontal crosshair line
+      showspikes: false
     }
 
     // Add log-specific Y-axis configuration
