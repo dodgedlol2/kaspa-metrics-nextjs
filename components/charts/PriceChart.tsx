@@ -453,7 +453,9 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         align: 'left',
         namelength: -1,
         xanchor: 'right',  // This anchors the tooltip to the right edge, making it appear to the left of cursor
-        yanchor: 'middle'  // Centers vertically relative to the cursor
+        yanchor: 'middle', // Centers vertically relative to the cursor
+        x: -10,            // Move 10 pixels to the left
+        y: 0               // No vertical offset
       },
       legend: {
         orientation: "h",
