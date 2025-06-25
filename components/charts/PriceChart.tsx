@@ -167,24 +167,29 @@ function generateLogTicks(dataMin: number, dataMax: number) {
 export default function PriceChart({ data, height = 600 }: PriceChartProps) {
   const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
   const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear')
-  const [timePeriod, setTimePeriod] = useState<'1W' | '1M' | '3M' | '6M' | '1Y' | 'All' | 'All2'>('All')
+  const [timePeriod, setTimePeriod] = useState<'1W' | '1M' | '3M' | '6M' | '1Y' | 'All' | 'Full'>('All')
   const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
 
-  // Function to handle double-click reset to "All" view
+  // Function to handle double-click reset to full view
   const handleDoubleClickReset = () => {
-    // Always force a refresh by toggling between All states
-    if (timePeriod === 'All' || timePeriod === 'All2') {
-      // Force refresh by switching to the other "All" state
-      setTimePeriod(timePeriod === 'All' ? 'All2' : 'All')
+    console.log('Double click detected, current period:', timePeriod) // Debug log
+    
+    // Always force a refresh by toggling between All and Full states
+    if (timePeriod === 'All') {
+      console.log('Switching to Full') // Debug log
+      setTimePeriod('Full')
+    } else if (timePeriod === 'Full') {
+      console.log('Switching to All') // Debug log  
+      setTimePeriod('All')
     } else {
-      // If not on All/All2, just switch to "All"
+      console.log('Switching to All from', timePeriod) // Debug log
       setTimePeriod('All')
     }
   }
 
   // Filter data based on time period
   const filteredData = useMemo(() => {
-    if (timePeriod === 'All' || timePeriod === 'All2' || data.length === 0) return data
+    if (timePeriod === 'All' || timePeriod === 'Full' || data.length === 0) return data
     
     const now = Date.now()
     const days = {
@@ -621,7 +626,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
                 }
               }}
               className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                timePeriod === period || (period === 'All' && timePeriod === 'All2')
+                timePeriod === period || (period === 'All' && timePeriod === 'Full')
                   ? 'bg-blue-500 text-white'
                   : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
               }`}
@@ -639,6 +644,10 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
           layout={plotlyLayout}
           style={{ width: '100%', height: '100%' }}
           onDoubleClick={handleDoubleClickReset}
+          onRelayout={(eventData) => {
+            // Alternative: listen for plotly relayout events
+            console.log('Plotly relayout event:', eventData)
+          }}
           config={{
             displayModeBar: true,
             displaylogo: false,
@@ -682,7 +691,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         
         <div>
           <span className="text-gray-400">Time Range:</span>
-          <span className="text-white ml-2 font-semibold">{timePeriod === 'All2' ? 'All' : timePeriod}</span>
+          <span className="text-white ml-2 font-semibold">{timePeriod === 'Full' ? 'All' : timePeriod}</span>
         </div>
       </div>
 
