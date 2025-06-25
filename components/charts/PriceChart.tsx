@@ -661,7 +661,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
             },
             // Improve zoom performance with ScatterGL
             responsive: true,
-            doubleClick: false, // Disable Plotly's default double-click behavior
+            doubleClick: 'autosize', // Use Plotly's native double-click with autosize instead of reset
             scrollZoom: true,
             editable: false
           }}
