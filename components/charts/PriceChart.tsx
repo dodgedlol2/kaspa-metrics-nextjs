@@ -172,12 +172,10 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
 
   // Function to handle double-click reset to "All" view
   const handleDoubleClickReset = () => {
-    if (timePeriod === 'All') {
-      // Switch to All2 to force refresh
-      setTimePeriod('All2')
-    } else if (timePeriod === 'All2') {
-      // Switch to All to force refresh
-      setTimePeriod('All')
+    // Always force a refresh by toggling between All states
+    if (timePeriod === 'All' || timePeriod === 'All2') {
+      // Force refresh by switching to the other "All" state
+      setTimePeriod(timePeriod === 'All' ? 'All2' : 'All')
     } else {
       // If not on All/All2, just switch to "All"
       setTimePeriod('All')
@@ -614,7 +612,14 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
           {(['1W', '1M', '3M', '6M', '1Y', 'All'] as const).map((period) => (
             <button
               key={period}
-              onClick={() => setTimePeriod(period)}
+              onClick={() => {
+                // When clicking "All", always set to "All" (not "All2")
+                if (period === 'All') {
+                  setTimePeriod('All')
+                } else {
+                  setTimePeriod(period)
+                }
+              }}
               className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
                 timePeriod === period || (period === 'All' && timePeriod === 'All2')
                   ? 'bg-blue-500 text-white'
