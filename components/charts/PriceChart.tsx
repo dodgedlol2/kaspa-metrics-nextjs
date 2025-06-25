@@ -102,7 +102,7 @@ function calculate1YL(data: KaspaMetric[]) {
   )
   
   return {
-    price: oylPoint.price,
+    price: oylPoint.value,
     date: new Date(oylPoint.timestamp),
     timestamp: oylPoint.timestamp,
     daysFromGenesis: getDaysFromGenesis(oylPoint.timestamp)
