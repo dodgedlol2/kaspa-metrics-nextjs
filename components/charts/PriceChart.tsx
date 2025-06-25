@@ -102,7 +102,7 @@ function calculate1YL(data: KaspaMetric[]) {
   )
   
   return {
-    price: oylPoint.value,
+    price: oylPoint.price,
     date: new Date(oylPoint.timestamp),
     timestamp: oylPoint.timestamp,
     daysFromGenesis: getDaysFromGenesis(oylPoint.timestamp)
@@ -169,6 +169,18 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
   const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear')
   const [timePeriod, setTimePeriod] = useState<'1W' | '1M' | '3M' | '6M' | '1Y' | 'All'>('All')
   const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
+
+  // Function to handle double-click reset to "All" view
+  const handleDoubleClickReset = () => {
+    if (timePeriod === 'All') {
+      // If already on "All", force a refresh by temporarily switching
+      setTimePeriod('1Y')
+      setTimeout(() => setTimePeriod('All'), 50)
+    } else {
+      // If not on "All", just switch to "All"
+      setTimePeriod('All')
+    }
+  }
 
   // Filter data based on time period
   const filteredData = useMemo(() => {
@@ -619,6 +631,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
           data={plotlyData}
           layout={plotlyLayout}
           style={{ width: '100%', height: '100%' }}
+          onDoubleClick={handleDoubleClickReset}
           config={{
             displayModeBar: true,
             displaylogo: false,
@@ -632,7 +645,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
             },
             // Improve zoom performance with ScatterGL
             responsive: true,
-            doubleClick: 'reset+autosize',
+            doubleClick: false, // Disable Plotly's default double-click behavior
             scrollZoom: true,
             editable: false
           }}
