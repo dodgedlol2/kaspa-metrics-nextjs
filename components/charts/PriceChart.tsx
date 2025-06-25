@@ -281,7 +281,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         type: 'scatter',
         name: 'baseline',
         line: { color: 'rgba(0,0,0,0)', width: 0 },
-        showlegend: false,
+        showlegend: true,
         hoverinfo: 'skip',
       })
     }
@@ -370,7 +370,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         text: [`ATH ${formatCurrency(athData.price)}`],
         textposition: 'top left',
         textfont: { color: '#ffffff', size: 11 },
-        showlegend: false,
+        showlegend: true,
         hovertemplate: `<b>All-Time High</b><br>Price: ${formatCurrency(athData.price)}<br>Date: ${athData.date.toLocaleDateString()}<extra></extra>`,
       })
     }
@@ -474,8 +474,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         color: "#9CA3AF",
         activecolor: "#5B6CFF"
       },
-      // Improve crosshair and selection performance
-      spikedistance: 20,
+      // Remove crosshair and selection performance settings
       hoverdistance: 100,
       selectdirection: 'diagonal'
     }
@@ -507,12 +506,8 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
           gridcolor: 'rgba(255, 255, 255, 0.05)',
           gridwidth: 0.5
         },
-        // Very thin full crosshair lines
-        showspikes: true,
-        spikecolor: 'rgba(255, 255, 255, 0.15)',
-        spikethickness: 0.5,
-        spikedash: 'dash',
-        spikemode: 'across'
+        // Remove crosshair lines
+        showspikes: false,
       }
     } else {
       // Linear time scale - use date format with data range
@@ -533,12 +528,8 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         hoverformat: '%B %d, %Y',
         range: [minDate.toISOString(), maxDate.toISOString()],
         autorange: false, // Disable autorange to use our custom range
-        // Very thin full crosshair lines
-        showspikes: true,
-        spikecolor: 'rgba(255, 255, 255, 0.15)',
-        spikethickness: 0.5,
-        spikedash: 'dash',
-        spikemode: 'across'
+        // Remove crosshair lines
+        showspikes: false,
       }
     }
 
