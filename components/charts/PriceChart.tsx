@@ -483,9 +483,11 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       const minDays = Math.min(...daysFromGenesisValues)
       const maxDays = Math.max(...daysFromGenesisValues)
       
-      // No padding - fit exactly to data range
+      // Add small padding in log space (5% on each side)
       const logMin = Math.log10(Math.max(1, minDays))
       const logMax = Math.log10(maxDays)
+      const logRange = logMax - logMin
+      const padding = logRange * 0.02 // 2% padding on each side
       
       layout.xaxis = {
         title: { text: 'Days Since Genesis (Log Scale)' },
@@ -496,7 +498,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         linecolor: '#3A3C4A',
         zerolinecolor: '#3A3C4A',
         color: '#9CA3AF',
-        range: [logMin, logMax],
+        range: [logMin - padding, logMax + padding],
         autorange: false, // Disable autorange to use our custom range
         minor: {
           ticklen: 6,
@@ -516,6 +518,10 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       const minDate = new Date(Math.min(...dates.map(d => d.getTime())))
       const maxDate = new Date(Math.max(...dates.map(d => d.getTime())))
       
+      // Add small time padding (1 day on each side)
+      const paddedMinDate = new Date(minDate.getTime() - (24 * 60 * 60 * 1000))
+      const paddedMaxDate = new Date(maxDate.getTime() + (24 * 60 * 60 * 1000))
+      
       layout.xaxis = {
         title: { text: 'Date' },
         type: 'date',
@@ -527,7 +533,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         color: '#9CA3AF',
         tickformat: '%b %Y',
         hoverformat: '%B %d, %Y',
-        range: [minDate.toISOString(), maxDate.toISOString()],
+        range: [paddedMinDate.toISOString(), paddedMaxDate.toISOString()],
         autorange: false, // Disable autorange to use our custom range
         // Very thin full crosshair lines
         showspikes: true,
