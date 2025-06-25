@@ -201,18 +201,19 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
     return data.filter(point => point.timestamp >= cutoffTime)
   }, [data, timePeriod])
 
-  // Calculate power law regression
+  // Calculate power law regression - always from complete dataset when both scales are log
   const powerLawData = useMemo(() => {
-    if (showPowerLaw === 'Hide' || filteredData.length < 10) return null
+    if (showPowerLaw === 'Hide' || data.length < 10) return null
     
     try {
-      const { a, b, r2 } = fitPowerLaw(filteredData)
+      // Always use ALL data for power law calculation, only when both scales are log
+      const { a, b, r2 } = fitPowerLaw(data)
       return { a, b, r2 }
     } catch (error) {
       console.error('Power law calculation failed:', error)
       return null
     }
-  }, [filteredData, showPowerLaw])
+  }, [data, showPowerLaw])
 
   // Calculate ATH and 1YL points
   const athData = useMemo(() => calculateATH(filteredData), [filteredData])
@@ -316,23 +317,33 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       })),
     })
 
-    // Add power law if enabled using ScatterGL
+    // Add power law if enabled - display on all scale combinations
     if (powerLawData) {
-      const xFit = filteredData.map(d => getDaysFromGenesis(d.timestamp))
-      const yFit = xFit.map(x => powerLawData.a * Math.pow(x, powerLawData.b))
+      // Use ALL data for power law calculation, but only show the portion that fits the current view
+      const allDaysFromGenesis = data.map(d => getDaysFromGenesis(d.timestamp))
+      const yFit = allDaysFromGenesis.map(x => powerLawData.a * Math.pow(x, powerLawData.b))
+      
+      // Filter to match the current time period view
+      const filteredIndices = data.map((d, index) => ({...d, originalIndex: index}))
+        .filter(d => filteredData.some(fd => fd.timestamp === d.timestamp))
+        .map(d => d.originalIndex)
+      
+      const viewXFit = filteredIndices.map(i => allDaysFromGenesis[i])
+      const viewYFit = filteredIndices.map(i => yFit[i])
       
       let fitX: (number | Date)[]
       if (timeScale === 'Log') {
-        fitX = xFit
+        fitX = viewXFit
       } else {
-        fitX = filteredData.map(d => new Date(d.timestamp))
+        // For linear time scale, use actual dates
+        fitX = filteredIndices.map(i => new Date(data[i].timestamp))
       }
 
       traces.push({
         x: fitX,
-        y: yFit,
+        y: viewYFit,
         mode: 'lines',
-        type: 'scatter', // Changed from scattergl to scatter for consistency
+        type: 'scatter',
         name: 'Power Law',
         line: { 
           color: '#ff8c00', 
@@ -341,9 +352,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         },
         connectgaps: true,
         showlegend: true,
-        hovertemplate: timeScale === 'Linear'
-          ? '<b>%{fullData.name}</b><br>Fit: $%{y:.4f}<extra></extra>'
-          : '<b>%{fullData.name}</b><br>Fit: $%{y:.4f}<extra></extra>',
+        hovertemplate: '<b>%{fullData.name}</b><br>Fit: $%{y:.4f}<extra></extra>',
       })
     }
 
