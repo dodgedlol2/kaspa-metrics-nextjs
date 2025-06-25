@@ -368,7 +368,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
           line: { color: '#5B6CFF', width: 3 }
         },
         text: [`ATH ${formatCurrency(athData.price)}`],
-        textposition: 'top right',
+        textposition: 'top left',
         textfont: { color: '#ffffff', size: 11 },
         showlegend: false,
         hovertemplate: `<b>All-Time High</b><br>Price: ${formatCurrency(athData.price)}<br>Date: ${athData.date.toLocaleDateString()}<extra></extra>`,
@@ -396,7 +396,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
           line: { color: '#ef4444', width: 3 }
         },
         text: [`1YL ${formatCurrency(oylData.price)}`],
-        textposition: 'bottom right',
+        textposition: 'bottom left',
         textfont: { color: '#ffffff', size: 11 },
         showlegend: false,
         hovertemplate: `<b>One Year Low</b><br>Price: ${formatCurrency(oylData.price)}<br>Date: ${oylData.date.toLocaleDateString()}<extra></extra>`,
