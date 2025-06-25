@@ -362,6 +362,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         mode: 'markers+text',
         type: 'scatter', // Use regular scatter for markers
         name: 'ATH',
+        legendgroup: 'markers',
         marker: {
           color: '#ffffff',
           size: 12,
@@ -390,6 +391,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         mode: 'markers+text',
         type: 'scatter', // Use regular scatter for markers
         name: '1YL',
+        legendgroup: 'markers',
         marker: {
           color: '#ffffff',
           size: 12,
