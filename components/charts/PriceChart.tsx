@@ -167,24 +167,26 @@ function generateLogTicks(dataMin: number, dataMax: number) {
 export default function PriceChart({ data, height = 600 }: PriceChartProps) {
   const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
   const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear')
-  const [timePeriod, setTimePeriod] = useState<'1W' | '1M' | '3M' | '6M' | '1Y' | 'All'>('All')
+  const [timePeriod, setTimePeriod] = useState<'1W' | '1M' | '3M' | '6M' | '1Y' | 'All' | 'All2'>('All')
   const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
 
   // Function to handle double-click reset to "All" view
   const handleDoubleClickReset = () => {
     if (timePeriod === 'All') {
-      // If already on "All", force a refresh by temporarily switching
-      setTimePeriod('1Y')
-      setTimeout(() => setTimePeriod('All'), 50)
+      // Switch to All2 to force refresh
+      setTimePeriod('All2')
+    } else if (timePeriod === 'All2') {
+      // Switch to All to force refresh
+      setTimePeriod('All')
     } else {
-      // If not on "All", just switch to "All"
+      // If not on All/All2, just switch to "All"
       setTimePeriod('All')
     }
   }
 
   // Filter data based on time period
   const filteredData = useMemo(() => {
-    if (timePeriod === 'All' || data.length === 0) return data
+    if (timePeriod === 'All' || timePeriod === 'All2' || data.length === 0) return data
     
     const now = Date.now()
     const days = {
@@ -614,7 +616,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
               key={period}
               onClick={() => setTimePeriod(period)}
               className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                timePeriod === period
+                timePeriod === period || (period === 'All' && timePeriod === 'All2')
                   ? 'bg-blue-500 text-white'
                   : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
               }`}
@@ -675,7 +677,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         
         <div>
           <span className="text-gray-400">Time Range:</span>
-          <span className="text-white ml-2 font-semibold">{timePeriod}</span>
+          <span className="text-white ml-2 font-semibold">{timePeriod === 'All2' ? 'All' : timePeriod}</span>
         </div>
       </div>
 
