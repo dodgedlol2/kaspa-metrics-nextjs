@@ -286,19 +286,25 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       })
     }
 
-    // Main price trace using ScatterGL for better performance
+    // Main price trace using regular scatter for gradient support
     traces.push({
       x: xValues,
       y: yValues,
       mode: 'lines',
-      type: 'scattergl', // Using ScatterGL for better performance
+      type: 'scatter', // Changed from scattergl to scatter for gradient support
       name: 'Kaspa Price',
       line: { 
         color: '#5B6CFF', 
         width: 2 
       },
       fill: priceScale === 'Log' ? 'tonexty' : 'tozeroy',
-      fillcolor: 'rgba(91, 108, 255, 0.2)', // ScatterGL doesn't support gradients, use solid color
+      fillgradient: {
+        type: "vertical",
+        colorscale: [
+          [0, "rgba(13, 13, 26, 0.01)"],  // Top: transparent
+          [1, "rgba(91, 108, 255, 0.6)"]   // Bottom: full opacity
+        ]
+      },
       connectgaps: true,
       hovertemplate: timeScale === 'Linear' 
         ? '<b>%{fullData.name}</b><br>Price: $%{y:.4f}<extra></extra>'
@@ -326,7 +332,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         x: fitX,
         y: yFit,
         mode: 'lines',
-        type: 'scattergl', // Using ScatterGL for power law line
+        type: 'scatter', // Changed from scattergl to scatter for consistency
         name: 'Power Law',
         line: { 
           color: '#ff8c00', 
@@ -659,7 +665,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
               width: 1400,
               scale: 2
             },
-            // Improve zoom performance with ScatterGL
+            // Improve performance
             responsive: true,
             doubleClick: 'autosize', // Use Plotly's native double-click with autosize instead of reset
             scrollZoom: true,
