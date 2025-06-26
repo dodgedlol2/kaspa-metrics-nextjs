@@ -284,7 +284,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         color: '#5B6CFF', 
         width: 2 
       },
-      fill: 'tozeroy', // Changed to always fill to zero instead of conditional fill
+      fill: 'tozeroy', // Always fill to zero for beautiful gradient effect
       fillgradient: {
         type: "vertical",
         colorscale: [
