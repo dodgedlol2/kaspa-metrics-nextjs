@@ -455,7 +455,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       plot_bgcolor: 'rgba(0,0,0,0)',
       paper_bgcolor: 'rgba(0,0,0,0)',
       font: { color: '#9CA3AF', family: 'Inter' },
-      hovermode: timeScale === 'Log' ? 'closest' : 'x unified',
+      hovermode: 'x unified',
       showlegend: true,
       margin: { l: 50, r: 20, t: 20, b: 50 },
       hoverlabel: {
