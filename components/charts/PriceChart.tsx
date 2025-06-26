@@ -370,12 +370,12 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         y: [athData.price],
         mode: 'markers+text',
         type: 'scatter', // Use regular scatter for markers
-        name: 'ATH',
+        name: 'ATH & 1-YL',
         legendgroup: 'markers',
         marker: {
           color: '#ffffff',
-          size: 12,
-          line: { color: '#5B6CFF', width: 3 }
+          size: 8,
+          line: { color: '#5B6CFF', width: 2 }
         },
         text: [`ATH ${formatCurrency(athData.price)}`],
         textposition: 'top left',
@@ -399,17 +399,17 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         y: [oylData.price],
         mode: 'markers+text',
         type: 'scatter', // Use regular scatter for markers
-        name: '1YL',
+        name: '1-YL',
         legendgroup: 'markers',
         marker: {
           color: '#ffffff',
-          size: 12,
-          line: { color: '#ef4444', width: 3 }
+          size: 8,
+          line: { color: '#5B6CFF', width: 2 }
         },
         text: [`1YL ${formatCurrency(oylData.price)}`],
         textposition: 'bottom left',
         textfont: { color: '#ffffff', size: 11 },
-        showlegend: false,
+        showlegend: true,
         hovertemplate: `<b>One Year Low</b><br>Price: ${formatCurrency(oylData.price)}<br>Date: ${oylData.date.toLocaleDateString()}<extra></extra>`,
       })
     }
