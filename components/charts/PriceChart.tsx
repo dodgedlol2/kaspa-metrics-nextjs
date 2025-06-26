@@ -479,12 +479,6 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         borderwidth: 0,
         font: { size: 11 }
       },
-      modebar: {
-        orientation: "h",
-        bgcolor: "rgba(0,0,0,0)",
-        color: "#9CA3AF",
-        activecolor: "#5B6CFF"
-      },
       // Remove crosshair and selection performance settings
       hoverdistance: 100,
       selectdirection: 'diagonal'
@@ -657,16 +651,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
             console.log('Plotly relayout event:', eventData)
           }}
           config={{
-            displayModeBar: true,
-            displaylogo: false,
-            modeBarButtonsToRemove: ['lasso2d', 'select2d'],
-            toImageButtonOptions: {
-              format: 'png',
-              filename: `kaspa_price_analysis_${new Date().toISOString().slice(0, 10)}`,
-              height: height,
-              width: 1400,
-              scale: 2
-            },
+            displayModeBar: false,
             // Improve performance
             responsive: true,
             doubleClick: 'autosize', // Use Plotly's native double-click with autosize instead of reset
