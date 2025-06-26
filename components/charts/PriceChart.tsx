@@ -309,7 +309,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       connectgaps: true,
       hovertemplate: timeScale === 'Linear' 
         ? '<b>%{fullData.name}</b><br>Price: $%{y:.4f}<extra></extra>'
-        : '%{text}<br><b>%{fullData.name}</b><br>Price: $%{y:.4f}<extra></extra>',
+        : 'Days since genesis: %{x}<br>%{text}<br><b>%{fullData.name}</b><br>Price: $%{y:.4f}<extra></extra>',
       text: filteredData.map(d => new Date(d.timestamp).toLocaleDateString('en-US', { 
         year: 'numeric', 
         month: 'long', 
