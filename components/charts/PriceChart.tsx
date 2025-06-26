@@ -273,18 +273,33 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       yMaxChart = yMaxData * (athInView ? 1.15 : 1.05)
     }
 
+    // For log scale: add invisible baseline using regular scatter (hidden from legend)
+    // This creates the proper gradient fill from the chart's visible minimum instead of zero
+    if (priceScale === 'Log') {
+      traces.push({
+        x: xValues,
+        y: Array(xValues.length).fill(yMinChart),
+        mode: 'lines',
+        type: 'scatter',
+        name: 'baseline',
+        line: { color: 'rgba(0,0,0,0)', width: 0 },
+        showlegend: false, // Hide from legend but keep functionality
+        hoverinfo: 'skip',
+      })
+    }
+
     // Main price trace using regular scatter for gradient support
     traces.push({
       x: xValues,
       y: yValues,
       mode: 'lines',
-      type: 'scatter', // Changed from scattergl to scatter for gradient support
+      type: 'scatter',
       name: 'Kaspa Price',
       line: { 
         color: '#5B6CFF', 
         width: 2 
       },
-      fill: 'tozeroy', // Always fill to zero for beautiful gradient effect
+      fill: priceScale === 'Log' ? 'tonexty' : 'tozeroy', // Use baseline for log, zero for linear
       fillgradient: {
         type: "vertical",
         colorscale: [
