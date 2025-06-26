@@ -282,7 +282,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         type: 'scatter',
         name: 'baseline',
         line: { color: 'rgba(0,0,0,0)', width: 0 },
-        showlegend: true,
+        showlegend: false, // Hide from legend
         hoverinfo: 'skip',
       })
     }
