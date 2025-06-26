@@ -273,8 +273,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       yMaxChart = yMaxData * (athInView ? 1.15 : 1.05)
     }
 
-    // For log scale: add invisible baseline using regular scatter (hidden from legend)
-    // This creates the proper gradient fill from the chart's visible minimum instead of zero
+    // For log scale: add invisible baseline using regular scatter
     if (priceScale === 'Log') {
       traces.push({
         x: xValues,
@@ -283,7 +282,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         type: 'scatter',
         name: 'baseline',
         line: { color: 'rgba(0,0,0,0)', width: 0 },
-        showlegend: false, // Hide from legend but keep functionality
+        showlegend: true,
         hoverinfo: 'skip',
       })
     }
@@ -293,13 +292,13 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       x: xValues,
       y: yValues,
       mode: 'lines',
-      type: 'scatter',
+      type: 'scatter', // Changed from scattergl to scatter for gradient support
       name: 'Kaspa Price',
       line: { 
         color: '#5B6CFF', 
         width: 2 
       },
-      fill: priceScale === 'Log' ? 'tonexty' : 'tozeroy', // Use baseline for log, zero for linear
+      fill: priceScale === 'Log' ? 'tonexty' : 'tozeroy',
       fillgradient: {
         type: "vertical",
         colorscale: [
@@ -498,6 +497,10 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       const minDays = Math.min(...daysFromGenesisValues)
       const maxDays = Math.max(...daysFromGenesisValues)
       
+      // No padding - fit exactly to data range
+      const logMin = Math.log10(Math.max(1, minDays))
+      const logMax = Math.log10(maxDays)
+      
       layout.xaxis = {
         title: { text: 'Days Since Genesis (Log Scale)' },
         type: 'log',
@@ -507,7 +510,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         linecolor: '#3A3C4A',
         zerolinecolor: '#3A3C4A',
         color: '#9CA3AF',
-        range: [minDays, maxDays], // Use actual data values instead of log values
+        range: [logMin, logMax],
         autorange: false, // Disable autorange to use our custom range
         minor: {
           ticklen: 6,
