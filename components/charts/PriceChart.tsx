@@ -483,10 +483,6 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       const minDays = Math.min(...daysFromGenesisValues)
       const maxDays = Math.max(...daysFromGenesisValues)
       
-      // No padding - fit exactly to data range
-      const logMin = Math.log10(Math.max(1, minDays))
-      const logMax = Math.log10(maxDays)
-      
       layout.xaxis = {
         title: { text: 'Days Since Genesis (Log Scale)' },
         type: 'log',
@@ -496,7 +492,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         linecolor: '#3A3C4A',
         zerolinecolor: '#3A3C4A',
         color: '#9CA3AF',
-        range: [logMin, logMax],
+        range: [minDays, maxDays], // Use actual data values instead of log values
         autorange: false, // Disable autorange to use our custom range
         minor: {
           ticklen: 6,
