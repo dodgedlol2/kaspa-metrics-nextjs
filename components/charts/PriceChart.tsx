@@ -409,7 +409,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         text: [`1YL ${formatCurrency(oylData.price)}`],
         textposition: 'bottom left',
         textfont: { color: '#ffffff', size: 11 },
-        showlegend: true,
+        showlegend: false,
         hovertemplate: `<b>One Year Low</b><br>Price: ${formatCurrency(oylData.price)}<br>Date: ${oylData.date.toLocaleDateString()}<extra></extra>`,
       })
     }
