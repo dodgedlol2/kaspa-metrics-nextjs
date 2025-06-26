@@ -273,20 +273,6 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       yMaxChart = yMaxData * (athInView ? 1.15 : 1.05)
     }
 
-    // For log scale: add invisible baseline using regular scatter
-    if (priceScale === 'Log') {
-      traces.push({
-        x: xValues,
-        y: Array(xValues.length).fill(yMinChart),
-        mode: 'lines',
-        type: 'scatter',
-        name: 'baseline',
-        line: { color: 'rgba(0,0,0,0)', width: 0 },
-        showlegend: true,
-        hoverinfo: 'skip',
-      })
-    }
-
     // Main price trace using regular scatter for gradient support
     traces.push({
       x: xValues,
@@ -298,7 +284,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         color: '#5B6CFF', 
         width: 2 
       },
-      fill: priceScale === 'Log' ? 'tonexty' : 'tozeroy',
+      fill: 'tozeroy', // Changed to always fill to zero instead of conditional fill
       fillgradient: {
         type: "vertical",
         colorscale: [
