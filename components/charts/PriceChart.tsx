@@ -666,10 +666,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       </div>
 
       {/* Chart Container */}
-      <div 
-        style={{ height: `${height}px` }} 
-        className="w-full bg-white/[0.01] rounded-2xl border border-white/[0.05] p-4"
-      >
+      <div style={{ height: `${height}px` }} className="w-full">
         <Plot
           data={plotlyData}
           layout={plotlyLayout}
