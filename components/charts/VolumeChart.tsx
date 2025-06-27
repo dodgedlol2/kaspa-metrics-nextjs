@@ -11,6 +11,104 @@ interface VolumeChartProps {
   height?: number
 }
 
+// Kaspa genesis date - November 7, 2021
+const GENESIS_DATE = new Date('2021-11-07T00:00:00.000Z').getTime()
+
+// Calculate days from genesis for a timestamp
+function getDaysFromGenesis(timestamp: number): number {
+  return Math.max(1, Math.floor((timestamp - GENESIS_DATE) / (24 * 60 * 60 * 1000)) + 1)
+}
+
+// Enhanced power law regression function
+function fitPowerLaw(data: KaspaMetric[]) {
+  const validData = data.filter(point => point.value > 0)
+  
+  if (validData.length < 2) {
+    throw new Error("Not enough valid data points for power law fitting")
+  }
+  
+  // Always use days from genesis for power law calculation
+  const logX = validData.map(point => {
+    const daysFromGenesis = getDaysFromGenesis(point.timestamp)
+    return Math.log(Math.max(1, daysFromGenesis))
+  })
+  const logY = validData.map(point => Math.log(point.value))
+  
+  // Linear regression on log-transformed data
+  const n = logX.length
+  const sumX = logX.reduce((a, b) => a + b, 0)
+  const sumY = logY.reduce((a, b) => a + b, 0)
+  const sumXY = logX.reduce((sum, x, i) => sum + x * logY[i], 0)
+  const sumX2 = logX.reduce((sum, x) => sum + x * x, 0)
+  const sumY2 = logY.reduce((sum, y) => sum + y * y, 0)
+  
+  // Calculate slope and intercept
+  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
+  const intercept = (sumY - slope * sumX) / n
+  
+  // Calculate correlation coefficient and R²
+  const meanX = sumX / n
+  const meanY = sumY / n
+  const ssXY = sumXY - n * meanX * meanY
+  const ssXX = sumX2 - n * meanX * meanX
+  const ssYY = sumY2 - n * meanY * meanY
+  const rValue = ssXY / Math.sqrt(ssXX * ssYY)
+  const r2 = rValue * rValue
+  
+  // Convert back to power law coefficients: y = a * x^b
+  const a = Math.exp(intercept)
+  const b = slope
+  
+  return { a, b, r2 }
+}
+
+// Calculate ATH (All-Time High) data
+function calculateATH(data: KaspaMetric[]) {
+  if (data.length === 0) return null
+  
+  const athPoint = data.reduce((max, point) => 
+    point.value > max.value ? point : max
+  )
+  
+  return {
+    volume: athPoint.value,
+    date: new Date(athPoint.timestamp),
+    timestamp: athPoint.timestamp,
+    daysFromGenesis: getDaysFromGenesis(athPoint.timestamp)
+  }
+}
+
+// Calculate 1YL (One Year Low) data
+function calculate1YL(data: KaspaMetric[]) {
+  if (data.length === 0) return null
+  
+  const oneYearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000)
+  const recentData = data.filter(point => point.timestamp >= oneYearAgo)
+  
+  if (recentData.length === 0) {
+    const minPoint = data.reduce((min, point) => 
+      point.value < min.value ? point : min
+    )
+    return {
+      volume: minPoint.value,
+      date: new Date(minPoint.timestamp),
+      timestamp: minPoint.timestamp,
+      daysFromGenesis: getDaysFromGenesis(minPoint.timestamp)
+    }
+  }
+  
+  const oylPoint = recentData.reduce((min, point) => 
+    point.value < min.value ? point : min
+  )
+  
+  return {
+    volume: oylPoint.value,
+    date: new Date(oylPoint.timestamp),
+    timestamp: oylPoint.timestamp,
+    daysFromGenesis: getDaysFromGenesis(oylPoint.timestamp)
+  }
+}
+
 // Enhanced currency formatting for volume
 function formatVolume(value: number): string {
   if (value >= 1000000000) {
@@ -62,19 +160,24 @@ function generateLogTicks(dataMin: number, dataMax: number) {
 }
 
 export default function VolumeChart({ data, height = 600 }: VolumeChartProps) {
-  const [volumeScale, setVolumeScale] = useState<'Linear' | 'Log'>('Linear')
+  const [volumeScale, setVolumeScale] = useState<'Linear' | 'Log'>('Log')
   const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear')
   const [timePeriod, setTimePeriod] = useState<'1W' | '1M' | '3M' | '6M' | '1Y' | '2Y' | '3Y' | '5Y' | 'All' | 'Full'>('All')
+  const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
 
   // Function to handle double-click reset to full view
   const handleDoubleClickReset = () => {
     console.log('Double click detected, current period:', timePeriod)
     
+    // Always force a refresh by toggling between All and Full states
     if (timePeriod === 'All') {
+      console.log('Switching to Full')
       setTimePeriod('Full')
     } else if (timePeriod === 'Full') {
+      console.log('Switching to All')  
       setTimePeriod('All')
     } else {
+      console.log('Switching to All from', timePeriod)
       setTimePeriod('All')
     }
   }
@@ -94,24 +197,23 @@ export default function VolumeChart({ data, height = 600 }: VolumeChartProps) {
     return data.filter(point => point.timestamp >= cutoffTime)
   }, [data, timePeriod])
 
-  // Calculate volume statistics
-  const volumeStats = useMemo(() => {
-    if (filteredData.length === 0) return null
+  // Calculate power law regression - always from complete dataset when both scales are log
+  const powerLawData = useMemo(() => {
+    if (showPowerLaw === 'Hide' || data.length < 10) return null
     
-    const volumes = filteredData.map(d => d.value)
-    const maxVolume = Math.max(...volumes)
-    const minVolume = Math.min(...volumes)
-    const avgVolume = volumes.reduce((a, b) => a + b, 0) / volumes.length
-    
-    const maxPoint = filteredData.find(d => d.value === maxVolume)
-    const minPoint = filteredData.find(d => d.value === minVolume)
-    
-    return {
-      max: { value: maxVolume, date: maxPoint ? new Date(maxPoint.timestamp) : new Date() },
-      min: { value: minVolume, date: minPoint ? new Date(minPoint.timestamp) : new Date() },
-      avg: avgVolume
+    try {
+      // Always use ALL data for power law calculation
+      const { a, b, r2 } = fitPowerLaw(data)
+      return { a, b, r2 }
+    } catch (error) {
+      console.error('Power law calculation failed:', error)
+      return null
     }
-  }, [filteredData])
+  }, [data, showPowerLaw])
+
+  // Calculate ATH and 1YL points
+  const athData = useMemo(() => calculateATH(filteredData), [filteredData])
+  const oylData = useMemo(() => calculate1YL(filteredData), [filteredData])
 
   // Prepare Plotly data
   const plotlyData = useMemo(() => {
@@ -122,12 +224,12 @@ export default function VolumeChart({ data, height = 600 }: VolumeChartProps) {
     // Determine X values based on time scale
     let xValues: (number | Date)[]
     if (timeScale === 'Log') {
-      // For log time scale, use days from a reference date
-      const referenceDate = new Date('2021-11-07').getTime() // Kaspa genesis
-      xValues = filteredData.map(d => Math.max(1, Math.floor((d.timestamp - referenceDate) / (24 * 60 * 60 * 1000)) + 1))
+      xValues = filteredData.map(d => getDaysFromGenesis(d.timestamp))
     } else {
+      // For linear time scale, ensure we have proper Date objects
       xValues = filteredData.map(d => {
         const date = new Date(d.timestamp)
+        // Validate the date
         if (isNaN(date.getTime())) {
           console.warn('Invalid timestamp:', d.timestamp)
           return new Date()
@@ -138,34 +240,69 @@ export default function VolumeChart({ data, height = 600 }: VolumeChartProps) {
 
     const yValues = filteredData.map(d => d.value)
 
+    // Debug logging for linear time scale
+    if (timeScale === 'Linear' && filteredData.length > 0) {
+      console.log('Linear time scale data:', {
+        dataLength: filteredData.length,
+        firstTimestamp: filteredData[0].timestamp,
+        firstDate: new Date(filteredData[0].timestamp),
+        lastTimestamp: filteredData[filteredData.length - 1].timestamp,
+        lastDate: new Date(filteredData[filteredData.length - 1].timestamp),
+        sampleXValues: xValues.slice(0, 3),
+        sampleYValues: yValues.slice(0, 3)
+      })
+    }
+
     // Calculate Y-axis range
     const yMinData = Math.min(...yValues)
     const yMaxData = Math.max(...yValues)
     
+    const athInView = athData !== null
+    
     let yMinChart: number, yMaxChart: number
     
     if (volumeScale === 'Log') {
-      yMinChart = yMinData * 0.5
-      yMaxChart = yMaxData * 2
+      yMinChart = yMinData * 0.8
+      yMaxChart = yMaxData * (athInView ? 1.50 : 1.05)
     } else {
       yMinChart = 0
-      yMaxChart = yMaxData * 1.1
+      yMaxChart = yMaxData * (athInView ? 1.15 : 1.05)
     }
 
-    // Main volume trace - using bar chart for volume visualization
+    // For log scale: add invisible baseline using regular scatter
+    if (volumeScale === 'Log') {
+      traces.push({
+        x: xValues,
+        y: Array(xValues.length).fill(yMinChart),
+        mode: 'lines',
+        type: 'scatter',
+        name: 'baseline',
+        line: { color: 'rgba(0,0,0,0)', width: 0 },
+        showlegend: false, // Hide from legend
+        hoverinfo: 'skip',
+      })
+    }
+
+    // Main volume trace using regular scatter for gradient support
     traces.push({
       x: xValues,
       y: yValues,
-      type: 'bar',
+      mode: 'lines',
+      type: 'scatter', // Changed from scattergl to scatter for gradient support
       name: 'Kaspa Volume',
-      marker: {
-        color: '#5B6CFF',
-        opacity: 0.8,
-        line: {
-          color: '#4338CA',
-          width: 0.5
-        }
+      line: { 
+        color: '#5B6CFF', 
+        width: 2 
       },
+      fill: volumeScale === 'Log' ? 'tonexty' : 'tozeroy',
+      fillgradient: {
+        type: "vertical",
+        colorscale: [
+          [0, "rgba(13, 13, 26, 0.01)"],  // Top: transparent
+          [1, "rgba(91, 108, 255, 0.6)"]   // Bottom: full opacity
+        ]
+      },
+      connectgaps: true,
       hovertemplate: timeScale === 'Linear' 
         ? '<b>%{fullData.name}</b><br>Volume: %{y}<extra></extra>'
         : '%{text}<br><b>%{fullData.name}</b><br>Volume: %{y}<extra></extra>',
@@ -177,58 +314,105 @@ export default function VolumeChart({ data, height = 600 }: VolumeChartProps) {
       })),
     })
 
-    // Add volume statistics markers
-    if (volumeStats) {
-      // Max volume marker
-      const maxX = timeScale === 'Log' 
-        ? Math.max(1, Math.floor((volumeStats.max.date.getTime() - new Date('2021-11-07').getTime()) / (24 * 60 * 60 * 1000)) + 1)
-        : volumeStats.max.date
+    // Add power law if enabled - display on all scale combinations
+    if (powerLawData) {
+      // Use ALL data for power law calculation, but only show the portion that fits the current view
+      const allDaysFromGenesis = data.map(d => getDaysFromGenesis(d.timestamp))
+      const yFit = allDaysFromGenesis.map(x => powerLawData.a * Math.pow(x, powerLawData.b))
+      
+      // Filter to match the current time period view
+      const filteredIndices = data.map((d, index) => ({...d, originalIndex: index}))
+        .filter(d => filteredData.some(fd => fd.timestamp === d.timestamp))
+        .map(d => d.originalIndex)
+      
+      const viewXFit = filteredIndices.map(i => allDaysFromGenesis[i])
+      const viewYFit = filteredIndices.map(i => yFit[i])
+      
+      let fitX: (number | Date)[]
+      if (timeScale === 'Log') {
+        fitX = viewXFit
+      } else {
+        // For linear time scale, use actual dates
+        fitX = filteredIndices.map(i => new Date(data[i].timestamp))
+      }
+
+      traces.push({
+        x: fitX,
+        y: viewYFit,
+        mode: 'lines',
+        type: 'scatter',
+        name: 'Power Law',
+        line: { 
+          color: '#ff8c00', 
+          width: 2,
+          dash: 'solid'
+        },
+        connectgaps: true,
+        showlegend: true,
+        hovertemplate: '<b>%{fullData.name}</b><br>Fit: %{y}<extra></extra>',
+      })
+    }
+
+    // Add High marker using regular scatter (markers work better with scatter type)
+    if (athData) {
+      let athX: number | Date
+      if (timeScale === 'Log') {
+        athX = athData.daysFromGenesis
+      } else {
+        athX = athData.date
+      }
       
       traces.push({
-        x: [maxX],
-        y: [volumeStats.max.value],
+        x: [athX],
+        y: [athData.volume],
         mode: 'markers+text',
-        type: 'scatter',
-        name: 'Volume Stats',
+        type: 'scatter', // Use regular scatter for markers
+        name: 'High & Low',
+        legendgroup: 'markers',
         marker: {
-          color: '#10B981',
+          color: '#ffffff',
           size: 8,
-          line: { color: '#059669', width: 2 }
+          line: { color: '#5B6CFF', width: 2 }
         },
-        text: [`High ${formatVolume(volumeStats.max.value)}`],
-        textposition: 'top center',
+        text: [`High ${formatVolume(athData.volume)}`],
+        textposition: 'top left',
         textfont: { color: '#ffffff', size: 11 },
         showlegend: true,
-        hovertemplate: `<b>Highest Volume</b><br>Volume: ${formatVolume(volumeStats.max.value)}<br>Date: ${volumeStats.max.date.toLocaleDateString()}<extra></extra>`,
+        hovertemplate: `<b>High</b><br>Volume: ${formatVolume(athData.volume)}<br>Date: ${athData.date.toLocaleDateString()}<extra></extra>`,
       })
+    }
 
-      // Min volume marker
-      const minX = timeScale === 'Log' 
-        ? Math.max(1, Math.floor((volumeStats.min.date.getTime() - new Date('2021-11-07').getTime()) / (24 * 60 * 60 * 1000)) + 1)
-        : volumeStats.min.date
+    // Add Low marker using regular scatter
+    if (oylData) {
+      let oylX: number | Date
+      if (timeScale === 'Log') {
+        oylX = oylData.daysFromGenesis
+      } else {
+        oylX = oylData.date
+      }
       
       traces.push({
-        x: [minX],
-        y: [volumeStats.min.value],
+        x: [oylX],
+        y: [oylData.volume],
         mode: 'markers+text',
-        type: 'scatter',
+        type: 'scatter', // Use regular scatter for markers
         name: 'Low',
-        legendgroup: 'stats',
+        legendgroup: 'markers',
         marker: {
-          color: '#EF4444',
+          color: '#ffffff',
           size: 8,
-          line: { color: '#DC2626', width: 2 }
+          line: { color: '#5B6CFF', width: 2 }
         },
-        text: [`Low ${formatVolume(volumeStats.min.value)}`],
-        textposition: 'bottom center',
+        text: [`Low ${formatVolume(oylData.volume)}`],
+        textposition: 'bottom left',
         textfont: { color: '#ffffff', size: 11 },
         showlegend: false,
-        hovertemplate: `<b>Lowest Volume</b><br>Volume: ${formatVolume(volumeStats.min.value)}<br>Date: ${volumeStats.min.date.toLocaleDateString()}<extra></extra>`,
+        hovertemplate: `<b>Low</b><br>Volume: ${formatVolume(oylData.volume)}<br>Date: ${oylData.date.toLocaleDateString()}<extra></extra>`,
       })
     }
 
     return traces
-  }, [filteredData, timeScale, volumeScale, volumeStats])
+  }, [filteredData, timeScale, volumeScale, powerLawData, athData, oylData])
 
   // Plotly layout
   const plotlyLayout = useMemo(() => {
@@ -237,15 +421,16 @@ export default function VolumeChart({ data, height = 600 }: VolumeChartProps) {
     const yValues = filteredData.map(d => d.value)
     const yMinData = Math.min(...yValues)
     const yMaxData = Math.max(...yValues)
+    const athInView = athData !== null
     
     let yMinChart: number, yMaxChart: number
     
     if (volumeScale === 'Log') {
-      yMinChart = yMinData * 0.5
-      yMaxChart = yMaxData * 2
+      yMinChart = yMinData * 0.8
+      yMaxChart = yMaxData * (athInView ? 1.50 : 1.05)
     } else {
       yMinChart = 0
-      yMaxChart = yMaxData * 1.1
+      yMaxChart = yMaxData * (athInView ? 1.15 : 1.05)
     }
 
     // Generate custom ticks for Y-axis if log scale
@@ -275,10 +460,10 @@ export default function VolumeChart({ data, height = 600 }: VolumeChartProps) {
         font: { color: '#e2e8f0', size: 11 },
         align: 'left',
         namelength: -1,
-        xanchor: 'right',
-        yanchor: 'middle',
-        x: -10,
-        y: 0
+        xanchor: 'right',  // This anchors the tooltip to the right edge, making it appear to the left of cursor
+        yanchor: 'middle', // Centers vertically relative to the cursor
+        x: -10,            // Move 10 pixels to the left
+        y: 0               // No vertical offset
       },
       legend: {
         orientation: "h",
@@ -291,6 +476,7 @@ export default function VolumeChart({ data, height = 600 }: VolumeChartProps) {
         borderwidth: 0,
         font: { size: 11 }
       },
+      // Remove crosshair and selection performance settings
       hoverdistance: 100,
       selectdirection: 'diagonal'
     }
@@ -298,11 +484,11 @@ export default function VolumeChart({ data, height = 600 }: VolumeChartProps) {
     // Configure X-axis based on time scale
     if (timeScale === 'Log') {
       // For log time scale, calculate the actual data range
-      const referenceDate = new Date('2021-11-07').getTime()
-      const daysValues = filteredData.map(d => Math.max(1, Math.floor((d.timestamp - referenceDate) / (24 * 60 * 60 * 1000)) + 1))
-      const minDays = Math.min(...daysValues)
-      const maxDays = Math.max(...daysValues)
+      const daysFromGenesisValues = filteredData.map(d => getDaysFromGenesis(d.timestamp))
+      const minDays = Math.min(...daysFromGenesisValues)
+      const maxDays = Math.max(...daysFromGenesisValues)
       
+      // No padding - fit exactly to data range
       const logMin = Math.log10(Math.max(1, minDays))
       const logMax = Math.log10(maxDays)
       
@@ -316,16 +502,17 @@ export default function VolumeChart({ data, height = 600 }: VolumeChartProps) {
         zerolinecolor: '#3A3C4A',
         color: '#9CA3AF',
         range: [logMin, logMax],
-        autorange: false,
+        autorange: false, // Disable autorange to use our custom range
         minor: {
           ticklen: 6,
           gridcolor: 'rgba(255, 255, 255, 0.05)',
           gridwidth: 0.5
         },
+        // Remove crosshair lines
         showspikes: false,
       }
     } else {
-      // Linear time scale
+      // Linear time scale - use date format with data range
       const dates = filteredData.map(d => new Date(d.timestamp))
       const minDate = new Date(Math.min(...dates.map(d => d.getTime())))
       const maxDate = new Date(Math.max(...dates.map(d => d.getTime())))
@@ -342,7 +529,8 @@ export default function VolumeChart({ data, height = 600 }: VolumeChartProps) {
         tickformat: '%b %Y',
         hoverformat: '%B %d, %Y',
         range: [minDate.toISOString(), maxDate.toISOString()],
-        autorange: false,
+        autorange: false, // Disable autorange to use our custom range
+        // Remove crosshair lines
         showspikes: false,
       }
     }
@@ -357,6 +545,7 @@ export default function VolumeChart({ data, height = 600 }: VolumeChartProps) {
       range: volumeScale === 'Log' 
         ? [Math.log10(yMinChart), Math.log10(yMaxChart)]
         : [yMinChart, yMaxChart],
+      // Remove horizontal crosshair line
       showspikes: false
     }
 
@@ -375,7 +564,7 @@ export default function VolumeChart({ data, height = 600 }: VolumeChartProps) {
     }
 
     return layout
-  }, [filteredData, timeScale, volumeScale, height])
+  }, [filteredData, timeScale, volumeScale, athData, height])
 
   return (
     <div className="space-y-6">
@@ -405,7 +594,7 @@ export default function VolumeChart({ data, height = 600 }: VolumeChartProps) {
                   }`}
                 >
                   <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M19,3H5C3.89,3 3,3.9 3,5V19C3,20.1 3.89,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M19,19H5V5H19V19M7,10H9V16H7V10M11,7H13V16H11V7M15,13H17V16H15V13Z"/>
+                    <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
                   </svg>
                   <div className="flex-1">
                     <div className={`font-medium text-xs ${volumeScale === 'Linear' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
@@ -491,6 +680,64 @@ export default function VolumeChart({ data, height = 600 }: VolumeChartProps) {
                     </div>
                     <div className="text-[10px] text-[#9CA3AF] mt-0.5">
                       Days from genesis, log-scaled
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Power Law Control */}
+          <div className="relative group">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
+              </svg>
+              <span className="text-[#A0A0B8] text-xs">Power Law:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{showPowerLaw}</span>
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                <div 
+                  onClick={() => setShowPowerLaw('Hide')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    showPowerLaw === 'Hide' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,2C13.1,2 14,2.9 14,4C14,5.1 13.1,6 12,6C10.9,6 10,5.1 10,4C10,2.9 10.9,2 12,2M21,9V7L15,1H5C3.89,1 3,1.89 3,3V21A2,2 0 0,0 5,23H19A2,2 0 0,0 21,21V9H21M19,19H5V3H13V9H19V19Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${showPowerLaw === 'Hide' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Hide Power Law
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Display only the volume data
+                    </div>
+                  </div>
+                </div>
+                <div 
+                  onClick={() => setShowPowerLaw('Show')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    showPowerLaw === 'Show' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${showPowerLaw === 'Show' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Show Power Law
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Display regression trend line
                     </div>
                   </div>
                 </div>
