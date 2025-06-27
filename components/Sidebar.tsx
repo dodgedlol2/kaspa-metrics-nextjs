@@ -181,21 +181,6 @@ export default function Sidebar() {
 
   return (
     <div className="w-64 bg-[#0F0F1A]/80 backdrop-blur-xl border-r border-[#2D2D45]/30 h-full overflow-y-auto">
-      {/* Header */}
-      <div className="p-6 border-b border-[#2D2D45]/30">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-[#5B6CFF] to-[#8B5CF6] rounded-lg flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12,2L13.09,8.26L22,9L17,14L18.18,21L12,17.77L5.82,21L7,14L2,9L8.91,8.26L12,2Z"/>
-            </svg>
-          </div>
-          <div>
-            <h1 className="text-white font-semibold text-lg">Kaspa</h1>
-            <p className="text-[#A0A0B8] text-xs">Analytics</p>
-          </div>
-        </div>
-      </div>
-
       {/* Navigation */}
       <div className="p-4">
         <nav className="space-y-1">
