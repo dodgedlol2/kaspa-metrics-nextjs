@@ -571,91 +571,117 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
   }, [filteredData, timeScale, priceScale, athData, height])
 
   return (
-    <div className="space-y-6">
-      {/* Interactive Controls */}
-      <div className="flex flex-wrap gap-4 items-center justify-between">
+    <div className="space-y-8">
+      {/* Modern Control Panel */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between">
+        
+        {/* Left Side - Scale Controls */}
         <div className="flex flex-wrap gap-4">
-          {/* Price Scale Control */}
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-300">Price Scale:</label>
-            <select
-              value={priceScale}
-              onChange={(e) => setPriceScale(e.target.value as 'Linear' | 'Log')}
-              className="bg-slate-700 border border-slate-600 rounded px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="Linear">Linear</option>
-              <option value="Log">Log</option>
-            </select>
+          {/* Price Scale Toggle */}
+          <div className="flex items-center space-x-3">
+            <label className="text-sm font-medium text-gray-300">Price Scale</label>
+            <div className="flex bg-white/5 border border-white/10 rounded-xl p-1">
+              {(['Linear', 'Log'] as const).map((scale) => (
+                <button
+                  key={scale}
+                  onClick={() => setPriceScale(scale)}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    priceScale === scale
+                      ? 'bg-kaspa-blue text-white shadow-lg shadow-kaspa-blue/25'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  {scale}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Time Scale Control */}
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-300">Time Scale:</label>
-            <select
-              value={timeScale}
-              onChange={(e) => setTimeScale(e.target.value as 'Linear' | 'Log')}
-              className="bg-slate-700 border border-slate-600 rounded px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="Linear">Linear</option>
-              <option value="Log">Log</option>
-            </select>
+          {/* Time Scale Toggle */}
+          <div className="flex items-center space-x-3">
+            <label className="text-sm font-medium text-gray-300">Time Scale</label>
+            <div className="flex bg-white/5 border border-white/10 rounded-xl p-1">
+              {(['Linear', 'Log'] as const).map((scale) => (
+                <button
+                  key={scale}
+                  onClick={() => setTimeScale(scale)}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    timeScale === scale
+                      ? 'bg-kaspa-blue text-white shadow-lg shadow-kaspa-blue/25'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  {scale}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Power Law Control */}
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-300">Power Law:</label>
-            <select
-              value={showPowerLaw}
-              onChange={(e) => setShowPowerLaw(e.target.value as 'Hide' | 'Show')}
-              className="bg-slate-700 border border-slate-600 rounded px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="Hide">Hide</option>
-              <option value="Show">Show</option>
-            </select>
+          {/* Power Law Toggle */}
+          <div className="flex items-center space-x-3">
+            <label className="text-sm font-medium text-gray-300">Power Law</label>
+            <div className="flex bg-white/5 border border-white/10 rounded-xl p-1">
+              {(['Hide', 'Show'] as const).map((option) => (
+                <button
+                  key={option}
+                  onClick={() => setShowPowerLaw(option)}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    showPowerLaw === option
+                      ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/25'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Time Period Buttons */}
-        <div className="flex space-x-1">
-          {(['1W', '1M', '3M', '6M', '1Y', 'All'] as const).map((period) => (
-            <button
-              key={period}
-              onClick={() => {
-                // When clicking "All", always set to "All" (not "All2")
-                if (period === 'All') {
-                  setTimePeriod('All')
-                } else {
-                  setTimePeriod(period)
-                }
-              }}
-              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                timePeriod === period || (period === 'All' && timePeriod === 'Full')
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
-              }`}
-            >
-              {period}
-            </button>
-          ))}
+        {/* Right Side - Time Period Pills */}
+        <div className="flex items-center space-x-2">
+          <span className="text-sm font-medium text-gray-300 mr-2">Period</span>
+          <div className="flex bg-white/5 border border-white/10 rounded-xl p-1">
+            {(['1W', '1M', '3M', '6M', '1Y', 'All'] as const).map((period) => (
+              <button
+                key={period}
+                onClick={() => {
+                  if (period === 'All') {
+                    setTimePeriod('All')
+                  } else {
+                    setTimePeriod(period)
+                  }
+                }}
+                className={`px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 min-w-[44px] ${
+                  timePeriod === period || (period === 'All' && timePeriod === 'Full')
+                    ? 'bg-white text-kaspa-dark shadow-lg'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {period}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Plotly Chart */}
-      <div style={{ height: `${height}px` }} className="w-full">
+      {/* Chart Container */}
+      <div 
+        style={{ height: `${height}px` }} 
+        className="w-full bg-white/[0.01] rounded-2xl border border-white/[0.05] p-4"
+      >
         <Plot
           data={plotlyData}
           layout={plotlyLayout}
           style={{ width: '100%', height: '100%' }}
           onDoubleClick={handleDoubleClickReset}
           onRelayout={(eventData) => {
-            // Alternative: listen for plotly relayout events
             console.log('Plotly relayout event:', eventData)
           }}
           config={{
             displayModeBar: false,
-            // Improve performance
             responsive: true,
-            doubleClick: 'autosize', // Use Plotly's native double-click with autosize instead of reset
+            doubleClick: 'autosize',
             scrollZoom: true,
             editable: false
           }}
@@ -663,50 +689,48 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         />
       </div>
 
-      {/* Chart Info */}
-      <div className="flex flex-wrap gap-6 text-sm">
-        <div>
-          <span className="text-gray-400">Data Points:</span>
-          <span className="text-white ml-2 font-semibold">{filteredData.length.toLocaleString()}</span>
+      {/* Modern Stats Panel */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="bg-white/[0.02] border border-white/[0.08] rounded-xl p-4">
+          <div className="text-gray-400 text-xs font-medium uppercase tracking-wide mb-1">Data Points</div>
+          <div className="text-white text-xl font-bold">{filteredData.length.toLocaleString()}</div>
         </div>
         
         {powerLawData && (
           <>
-            <div>
-              <span className="text-gray-400">Power Law R²:</span>
-              <span className="text-white ml-2 font-semibold">{powerLawData.r2.toFixed(4)}</span>
+            <div className="bg-white/[0.02] border border-white/[0.08] rounded-xl p-4">
+              <div className="text-gray-400 text-xs font-medium uppercase tracking-wide mb-1">R² Correlation</div>
+              <div className="text-orange-400 text-xl font-bold">{powerLawData.r2.toFixed(4)}</div>
             </div>
-            <div>
-              <span className="text-gray-400">Power Law Slope:</span>
-              <span className="text-white ml-2 font-semibold">{powerLawData.b.toFixed(4)}</span>
+            <div className="bg-white/[0.02] border border-white/[0.08] rounded-xl p-4">
+              <div className="text-gray-400 text-xs font-medium uppercase tracking-wide mb-1">Power Law Slope</div>
+              <div className="text-orange-400 text-xl font-bold">{powerLawData.b.toFixed(4)}</div>
             </div>
           </>
         )}
         
-        <div>
-          <span className="text-gray-400">Time Range:</span>
-          <span className="text-white ml-2 font-semibold">{timePeriod === 'Full' ? 'All' : timePeriod}</span>
+        <div className="bg-white/[0.02] border border-white/[0.08] rounded-xl p-4">
+          <div className="text-gray-400 text-xs font-medium uppercase tracking-wide mb-1">Time Range</div>
+          <div className="text-white text-xl font-bold">{timePeriod === 'Full' ? 'All' : timePeriod}</div>
         </div>
+
+        {athData && (
+          <div className="bg-white/[0.02] border border-white/[0.08] rounded-xl p-4">
+            <div className="text-gray-400 text-xs font-medium uppercase tracking-wide mb-1">All-Time High</div>
+            <div className="text-kaspa-blue text-xl font-bold">{formatCurrency(athData.price)}</div>
+            <div className="text-gray-500 text-xs mt-1">{athData.date.toLocaleDateString()}</div>
+          </div>
+        )}
       </div>
 
-      {/* ATH and 1YL Info */}
-      {(athData || oylData) && (
-        <div className="flex flex-wrap gap-6 text-sm">
-          {athData && (
-            <div>
-              <span className="text-blue-400">All-Time High:</span>
-              <span className="text-white ml-2 font-semibold">{formatCurrency(athData.price)}</span>
-              <span className="text-gray-500 ml-2">({athData.date.toLocaleDateString()})</span>
-            </div>
-          )}
-          
-          {oylData && (
-            <div>
-              <span className="text-red-400">One Year Low:</span>
-              <span className="text-white ml-2 font-semibold">{formatCurrency(oylData.price)}</span>
-              <span className="text-gray-500 ml-2">({oylData.date.toLocaleDateString()})</span>
-            </div>
-          )}
+      {/* Additional Stats Row */}
+      {oylData && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="bg-white/[0.02] border border-white/[0.08] rounded-xl p-4">
+            <div className="text-gray-400 text-xs font-medium uppercase tracking-wide mb-1">One Year Low</div>
+            <div className="text-red-400 text-xl font-bold">{formatCurrency(oylData.price)}</div>
+            <div className="text-gray-500 text-xs mt-1">{oylData.date.toLocaleDateString()}</div>
+          </div>
         </div>
       )}
     </div>
