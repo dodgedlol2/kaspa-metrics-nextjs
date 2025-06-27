@@ -744,7 +744,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
 
         {/* Time Period Buttons */}
         <div className="flex space-x-1 items-center">
-          {(['1W', '1M', '3M', '6M', '1Y'] as const).map((period) => (
+          {(['1M', '3M', '6M', '1Y'] as const).map((period) => (
             <button
               key={period}
               onClick={() => setTimePeriod(period)}
@@ -762,7 +762,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
           <div className="relative group">
             <button 
               className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-                timePeriod === 'All' || timePeriod === 'Full'
+                timePeriod === 'All' || timePeriod === 'Full' || timePeriod === '1W'
                   ? 'bg-[#5B6CFF] text-white border border-[#5B6CFF]'
                   : 'bg-[#1A1A2E] text-[#A0A0B8] border border-[#2D2D45] hover:bg-[#161629] hover:border-[#5B6CFF]/50'
               }`}
@@ -774,6 +774,23 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
             </button>
             <div className="absolute top-full mt-1 right-0 w-32 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
               <div className="p-1.5">
+                <div 
+                  onClick={() => setTimePeriod('1W')}
+                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                    timePeriod === '1W'
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
+                  </svg>
+                  <span className={`text-xs font-medium ${
+                    timePeriod === '1W' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                  }`}>
+                    1 Week
+                  </span>
+                </div>
                 <div 
                   onClick={() => setTimePeriod('All')}
                   className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
