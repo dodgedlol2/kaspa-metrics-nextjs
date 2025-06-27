@@ -29,7 +29,7 @@ export default async function PricePage() {
               ${metrics?.price ? Number(metrics.price).toFixed(4) : '0.0000'}
             </div>
             <div className="text-green-400 text-sm font-medium">
-              {metrics?.price_change_24h ? `${metrics.price_change_24h > 0 ? '+' : ''}${metrics.price_change_24h.toFixed(2)}%` : '+0.00%'} 24h
+              {metrics?.priceChange24h ? `${metrics.priceChange24h > 0 ? '+' : ''}${metrics.priceChange24h.toFixed(2)}%` : '+0.00%'} 24h
             </div>
           </div>
         </div>
