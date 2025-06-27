@@ -584,23 +584,19 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/95 border border-[#2D2D45] rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-sm">
+            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
               <div className="p-1.5">
                 <div 
                   onClick={() => setPriceScale('Linear')}
                   className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
                     priceScale === 'Linear' 
-                      ? 'bg-[#5B6CFF]/20 border border-[#5B6CFF]/30' 
+                      ? 'bg-[#5B6CFF]/20' 
                       : 'hover:bg-[#1A1A2E]/80'
                   }`}
                 >
-                  <div className={`w-6 h-6 rounded-md flex items-center justify-center ${
-                    priceScale === 'Linear' ? 'bg-[#5B6CFF] text-white' : 'bg-[#2D2D45]'
-                  }`}>
-                    <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
-                    </svg>
-                  </div>
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
+                  </svg>
                   <div className="flex-1">
                     <div className={`font-medium text-xs ${priceScale === 'Linear' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
                       Linear Scale
@@ -614,17 +610,13 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
                   onClick={() => setPriceScale('Log')}
                   className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
                     priceScale === 'Log' 
-                      ? 'bg-[#5B6CFF]/20 border border-[#5B6CFF]/30' 
+                      ? 'bg-[#5B6CFF]/20' 
                       : 'hover:bg-[#1A1A2E]/80'
                   }`}
                 >
-                  <div className={`w-6 h-6 rounded-md flex items-center justify-center ${
-                    priceScale === 'Log' ? 'bg-[#5B6CFF] text-white' : 'bg-[#2D2D45]'
-                  }`}>
-                    <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M19,19H5V5H19V19M7,10H9V16H7V10M11,7H13V16H11V7M15,13H17V16H15V13Z"/>
-                    </svg>
-                  </div>
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M19,19H5V5H19V19M7,10H9V16H7V10M11,7H13V16H11V7M15,13H17V16H15V13Z"/>
+                  </svg>
                   <div className="flex-1">
                     <div className={`font-medium text-xs ${priceScale === 'Log' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
                       Logarithmic Scale
@@ -647,23 +639,19 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/95 border border-[#2D2D45] rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-sm">
+            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
               <div className="p-1.5">
                 <div 
                   onClick={() => setTimeScale('Linear')}
                   className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
                     timeScale === 'Linear' 
-                      ? 'bg-[#5B6CFF]/20 border border-[#5B6CFF]/30' 
+                      ? 'bg-[#5B6CFF]/20' 
                       : 'hover:bg-[#1A1A2E]/80'
                   }`}
                 >
-                  <div className={`w-6 h-6 rounded-md flex items-center justify-center ${
-                    timeScale === 'Linear' ? 'bg-[#5B6CFF] text-white' : 'bg-[#2D2D45]'
-                  }`}>
-                    <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M19,3H5C3.9,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
-                    </svg>
-                  </div>
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,3H5C3.9,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
+                  </svg>
                   <div className="flex-1">
                     <div className={`font-medium text-xs ${timeScale === 'Linear' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
                       Linear Time
@@ -677,17 +665,13 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
                   onClick={() => setTimeScale('Log')}
                   className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
                     timeScale === 'Log' 
-                      ? 'bg-[#5B6CFF]/20 border border-[#5B6CFF]/30' 
+                      ? 'bg-[#5B6CFF]/20' 
                       : 'hover:bg-[#1A1A2E]/80'
                   }`}
                 >
-                  <div className={`w-6 h-6 rounded-md flex items-center justify-center ${
-                    timeScale === 'Log' ? 'bg-[#5B6CFF] text-white' : 'bg-[#2D2D45]'
-                  }`}>
-                    <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12,20A7,7 0 0,1 5,13A7,7 0 0,1 12,6A7,7 0 0,1 19,13A7,7 0 0,1 12,20M19.03,7.39L20.45,5.97C20,5.46 19.55,5 19.04,4.56L17.62,6C16.07,4.74 14.12,4 12,4A9,9 0 0,0 3,13A9,9 0 0,0 12,22C17,22 21,17.97 21,13C21,10.88 20.26,8.93 19.03,7.39M11,14H13V8H11M15,1H9V3H15V1Z"/>
-                    </svg>
-                  </div>
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,20A7,7 0 0,1 5,13A7,7 0 0,1 12,6A7,7 0 0,1 19,13A7,7 0 0,1 12,20M19.03,7.39L20.45,5.97C20,5.46 19.55,5 19.04,4.56L17.62,6C16.07,4.74 14.12,4 12,4A9,9 0 0,0 3,13A9,9 0 0,0 12,22C17,22 21,17.97 21,13C21,10.88 20.26,8.93 19.03,7.39M11,14H13V8H11M15,1H9V3H15V1Z"/>
+                  </svg>
                   <div className="flex-1">
                     <div className={`font-medium text-xs ${timeScale === 'Log' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
                       Logarithmic Time
@@ -710,23 +694,19 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/95 border border-[#2D2D45] rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-sm">
+            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
               <div className="p-1.5">
                 <div 
                   onClick={() => setShowPowerLaw('Hide')}
                   className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
                     showPowerLaw === 'Hide' 
-                      ? 'bg-[#5B6CFF]/20 border border-[#5B6CFF]/30' 
+                      ? 'bg-[#5B6CFF]/20' 
                       : 'hover:bg-[#1A1A2E]/80'
                   }`}
                 >
-                  <div className={`w-6 h-6 rounded-md flex items-center justify-center ${
-                    showPowerLaw === 'Hide' ? 'bg-[#5B6CFF] text-white' : 'bg-[#2D2D45]'
-                  }`}>
-                    <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12,2C13.1,2 14,2.9 14,4C14,5.1 13.1,6 12,6C10.9,6 10,5.1 10,4C10,2.9 10.9,2 12,2M21,9V7L15,1H5C3.89,1 3,1.89 3,3V21A2,2 0 0,0 5,23H19A2,2 0 0,0 21,21V9H21M19,19H5V3H13V9H19V19Z"/>
-                    </svg>
-                  </div>
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,2C13.1,2 14,2.9 14,4C14,5.1 13.1,6 12,6C10.9,6 10,5.1 10,4C10,2.9 10.9,2 12,2M21,9V7L15,1H5C3.89,1 3,1.89 3,3V21A2,2 0 0,0 5,23H19A2,2 0 0,0 21,21V9H21M19,19H5V3H13V9H19V19Z"/>
+                  </svg>
                   <div className="flex-1">
                     <div className={`font-medium text-xs ${showPowerLaw === 'Hide' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
                       Hide Power Law
@@ -740,17 +720,13 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
                   onClick={() => setShowPowerLaw('Show')}
                   className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
                     showPowerLaw === 'Show' 
-                      ? 'bg-[#5B6CFF]/20 border border-[#5B6CFF]/30' 
+                      ? 'bg-[#5B6CFF]/20' 
                       : 'hover:bg-[#1A1A2E]/80'
                   }`}
                 >
-                  <div className={`w-6 h-6 rounded-md flex items-center justify-center ${
-                    showPowerLaw === 'Show' ? 'bg-[#5B6CFF] text-white' : 'bg-[#2D2D45]'
-                  }`}>
-                    <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
-                    </svg>
-                  </div>
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
+                  </svg>
                   <div className="flex-1">
                     <div className={`font-medium text-xs ${showPowerLaw === 'Show' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
                       Show Power Law
