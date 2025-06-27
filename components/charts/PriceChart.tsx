@@ -877,31 +877,12 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         </div>
       </div>
 
-      {/* Plotly Chart with Grainy Background */}
-      <div 
-        style={{ height: `${height}px` }} 
-        className="w-full relative overflow-hidden rounded-lg"
-      >
-        {/* Grainy texture background */}
-        <div 
-          className="absolute inset-0 opacity-30"
-          style={{
-            backgroundImage: `
-              radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.8) 0.5px, transparent 0.5px),
-              radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.6) 0.5px, transparent 0.5px),
-              radial-gradient(circle at 25% 75%, rgba(255, 255, 255, 0.4) 0.5px, transparent 0.5px),
-              radial-gradient(circle at 75% 25%, rgba(255, 255, 255, 0.5) 0.5px, transparent 0.5px),
-              radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.3) 0.5px, transparent 0.5px)
-            `,
-            backgroundSize: '16px 16px, 24px 24px, 20px 20px, 28px 28px, 32px 32px',
-            backgroundPosition: '0 0, 8px 8px, 4px 4px, 12px 12px, 16px 16px'
-          }}
-        />
-        
+      {/* Plotly Chart */}
+      <div style={{ height: `${height}px` }} className="w-full">
         <Plot
           data={plotlyData}
           layout={plotlyLayout}
-          style={{ width: '100%', height: '100%', position: 'relative', zIndex: 1 }}
+          style={{ width: '100%', height: '100%' }}
           onDoubleClick={handleDoubleClickReset}
           onRelayout={(eventData) => {
             // Alternative: listen for plotly relayout events
