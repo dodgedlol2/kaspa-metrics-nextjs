@@ -900,52 +900,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         />
       </div>
 
-      {/* Chart Info */}
-      <div className="flex flex-wrap gap-6 text-sm">
-        <div>
-          <span className="text-gray-400">Data Points:</span>
-          <span className="text-white ml-2 font-semibold">{filteredData.length.toLocaleString()}</span>
-        </div>
-        
-        {powerLawData && (
-          <>
-            <div>
-              <span className="text-gray-400">Power Law R²:</span>
-              <span className="text-white ml-2 font-semibold">{powerLawData.r2.toFixed(4)}</span>
-            </div>
-            <div>
-              <span className="text-gray-400">Power Law Slope:</span>
-              <span className="text-white ml-2 font-semibold">{powerLawData.b.toFixed(4)}</span>
-            </div>
-          </>
-        )}
-        
-        <div>
-          <span className="text-gray-400">Time Range:</span>
-          <span className="text-white ml-2 font-semibold">{timePeriod === 'Full' ? 'All' : timePeriod}</span>
-        </div>
-      </div>
 
-      {/* High and Low Info */}
-      {(athData || oylData) && (
-        <div className="flex flex-wrap gap-6 text-sm">
-          {athData && (
-            <div>
-              <span className="text-blue-400">High:</span>
-              <span className="text-white ml-2 font-semibold">{formatCurrency(athData.price)}</span>
-              <span className="text-gray-500 ml-2">({athData.date.toLocaleDateString()})</span>
-            </div>
-          )}
-          
-          {oylData && (
-            <div>
-              <span className="text-red-400">Low:</span>
-              <span className="text-white ml-2 font-semibold">{formatCurrency(oylData.price)}</span>
-              <span className="text-gray-500 ml-2">({oylData.date.toLocaleDateString()})</span>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   )
 }
