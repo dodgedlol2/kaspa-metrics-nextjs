@@ -584,18 +584,52 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            <div className="absolute top-full mt-1 left-0 w-full bg-slate-800/95 border border-slate-600/50 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 backdrop-blur-sm">
-              <div 
-                onClick={() => setPriceScale('Linear')}
-                className={`px-4 py-2 text-sm cursor-pointer transition-colors rounded-t-lg ${priceScale === 'Linear' ? 'text-blue-400 bg-blue-500/10' : 'text-white hover:bg-slate-700/50'}`}
-              >
-                Linear
-              </div>
-              <div 
-                onClick={() => setPriceScale('Log')}
-                className={`px-4 py-2 text-sm cursor-pointer transition-colors rounded-b-lg ${priceScale === 'Log' ? 'text-blue-400 bg-blue-500/10' : 'text-white hover:bg-slate-700/50'}`}
-              >
-                Logarithmic
+            <div className="absolute top-full mt-2 left-0 w-72 bg-slate-900/95 border border-slate-700/50 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-sm">
+              <div className="p-2">
+                <div 
+                  onClick={() => setPriceScale('Linear')}
+                  className={`flex items-start space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-150 ${
+                    priceScale === 'Linear' 
+                      ? 'bg-blue-500/20 border border-blue-500/30' 
+                      : 'hover:bg-slate-800/60'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
+                    priceScale === 'Linear' ? 'bg-blue-500 text-white' : 'bg-slate-700 text-gray-300'
+                  }`}>
+                    📈
+                  </div>
+                  <div className="flex-1">
+                    <div className={`font-medium text-sm ${priceScale === 'Linear' ? 'text-blue-300' : 'text-white'}`}>
+                      Linear Scale
+                    </div>
+                    <div className="text-xs text-gray-400 mt-0.5">
+                      Equal spacing between price intervals
+                    </div>
+                  </div>
+                </div>
+                <div 
+                  onClick={() => setPriceScale('Log')}
+                  className={`flex items-start space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-150 ${
+                    priceScale === 'Log' 
+                      ? 'bg-blue-500/20 border border-blue-500/30' 
+                      : 'hover:bg-slate-800/60'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
+                    priceScale === 'Log' ? 'bg-blue-500 text-white' : 'bg-slate-700 text-gray-300'
+                  }`}>
+                    📊
+                  </div>
+                  <div className="flex-1">
+                    <div className={`font-medium text-sm ${priceScale === 'Log' ? 'text-blue-300' : 'text-white'}`}>
+                      Logarithmic Scale
+                    </div>
+                    <div className="text-xs text-gray-400 mt-0.5">
+                      Better for analyzing percentage changes
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -609,18 +643,52 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            <div className="absolute top-full mt-1 left-0 w-full bg-slate-800/95 border border-slate-600/50 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 backdrop-blur-sm">
-              <div 
-                onClick={() => setTimeScale('Linear')}
-                className={`px-4 py-2 text-sm cursor-pointer transition-colors rounded-t-lg ${timeScale === 'Linear' ? 'text-blue-400 bg-blue-500/10' : 'text-white hover:bg-slate-700/50'}`}
-              >
-                Linear
-              </div>
-              <div 
-                onClick={() => setTimeScale('Log')}
-                className={`px-4 py-2 text-sm cursor-pointer transition-colors rounded-b-lg ${timeScale === 'Log' ? 'text-blue-400 bg-blue-500/10' : 'text-white hover:bg-slate-700/50'}`}
-              >
-                Logarithmic
+            <div className="absolute top-full mt-2 left-0 w-72 bg-slate-900/95 border border-slate-700/50 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-sm">
+              <div className="p-2">
+                <div 
+                  onClick={() => setTimeScale('Linear')}
+                  className={`flex items-start space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-150 ${
+                    timeScale === 'Linear' 
+                      ? 'bg-blue-500/20 border border-blue-500/30' 
+                      : 'hover:bg-slate-800/60'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
+                    timeScale === 'Linear' ? 'bg-blue-500 text-white' : 'bg-slate-700 text-gray-300'
+                  }`}>
+                    📅
+                  </div>
+                  <div className="flex-1">
+                    <div className={`font-medium text-sm ${timeScale === 'Linear' ? 'text-blue-300' : 'text-white'}`}>
+                      Linear Time
+                    </div>
+                    <div className="text-xs text-gray-400 mt-0.5">
+                      Standard calendar-based time axis
+                    </div>
+                  </div>
+                </div>
+                <div 
+                  onClick={() => setTimeScale('Log')}
+                  className={`flex items-start space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-150 ${
+                    timeScale === 'Log' 
+                      ? 'bg-blue-500/20 border border-blue-500/30' 
+                      : 'hover:bg-slate-800/60'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
+                    timeScale === 'Log' ? 'bg-blue-500 text-white' : 'bg-slate-700 text-gray-300'
+                  }`}>
+                    ⏱️
+                  </div>
+                  <div className="flex-1">
+                    <div className={`font-medium text-sm ${timeScale === 'Log' ? 'text-blue-300' : 'text-white'}`}>
+                      Logarithmic Time
+                    </div>
+                    <div className="text-xs text-gray-400 mt-0.5">
+                      Days from genesis, log-scaled
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -634,18 +702,52 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            <div className="absolute top-full mt-1 left-0 w-full bg-slate-800/95 border border-slate-600/50 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 backdrop-blur-sm">
-              <div 
-                onClick={() => setShowPowerLaw('Hide')}
-                className={`px-4 py-2 text-sm cursor-pointer transition-colors rounded-t-lg ${showPowerLaw === 'Hide' ? 'text-blue-400 bg-blue-500/10' : 'text-white hover:bg-slate-700/50'}`}
-              >
-                Hide
-              </div>
-              <div 
-                onClick={() => setShowPowerLaw('Show')}
-                className={`px-4 py-2 text-sm cursor-pointer transition-colors rounded-b-lg ${showPowerLaw === 'Show' ? 'text-blue-400 bg-blue-500/10' : 'text-white hover:bg-slate-700/50'}`}
-              >
-                Show
+            <div className="absolute top-full mt-2 left-0 w-72 bg-slate-900/95 border border-slate-700/50 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-sm">
+              <div className="p-2">
+                <div 
+                  onClick={() => setShowPowerLaw('Hide')}
+                  className={`flex items-start space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-150 ${
+                    showPowerLaw === 'Hide' 
+                      ? 'bg-blue-500/20 border border-blue-500/30' 
+                      : 'hover:bg-slate-800/60'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
+                    showPowerLaw === 'Hide' ? 'bg-blue-500 text-white' : 'bg-slate-700 text-gray-300'
+                  }`}>
+                    🚫
+                  </div>
+                  <div className="flex-1">
+                    <div className={`font-medium text-sm ${showPowerLaw === 'Hide' ? 'text-blue-300' : 'text-white'}`}>
+                      Hide Power Law
+                    </div>
+                    <div className="text-xs text-gray-400 mt-0.5">
+                      Display only the price data
+                    </div>
+                  </div>
+                </div>
+                <div 
+                  onClick={() => setShowPowerLaw('Show')}
+                  className={`flex items-start space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-150 ${
+                    showPowerLaw === 'Show' 
+                      ? 'bg-blue-500/20 border border-blue-500/30' 
+                      : 'hover:bg-slate-800/60'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
+                    showPowerLaw === 'Show' ? 'bg-blue-500 text-white' : 'bg-slate-700 text-gray-300'
+                  }`}>
+                    📐
+                  </div>
+                  <div className="flex-1">
+                    <div className={`font-medium text-sm ${showPowerLaw === 'Show' ? 'text-blue-300' : 'text-white'}`}>
+                      Show Power Law
+                    </div>
+                    <div className="text-xs text-gray-400 mt-0.5">
+                      Display regression trend line
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
