@@ -167,7 +167,7 @@ function generateLogTicks(dataMin: number, dataMax: number) {
 export default function PriceChart({ data, height = 600 }: PriceChartProps) {
   const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
   const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear')
-  const [timePeriod, setTimePeriod] = useState<'1W' | '1M' | '3M' | '6M' | '1Y' | 'All' | 'Full'>('All')
+  const [timePeriod, setTimePeriod] = useState<'1W' | '1M' | '3M' | '6M' | '1Y' | '2Y' | '3Y' | '5Y' | 'All' | 'Full'>('All')
   const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
 
   // Function to handle double-click reset to full view
