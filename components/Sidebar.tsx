@@ -89,6 +89,52 @@ const navigation = [
     ]
   },
   {
+    name: 'Power Law Analysis',
+    icon: (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M17.8,20C17.4,21.2 16.3,22 15,22H5C3.3,22 2,20.7 2,19V9C2,7.3 3.3,6 5,6H6V4C6,2.9 6.9,2 8,2H16C17.1,2 18,2.9 18,4V18.8L17.8,20M8,4V6H15C16.7,6 18,7.3 18,9V16.9L18.1,16.9L20.1,11.2L21.7,11.7L19.7,17.4C19.9,17.6 20,17.8 20,18V20C20,20.6 19.6,21 19,21S18,20.6 18,20V18.8L17.8,20M16,18V9C16,8.4 15.6,8 15,8H5C4.4,8 4,8.4 4,9V19C4,19.6 4.4,20 5,20H15C15.4,20 15.7,19.8 15.9,19.4L16,18Z"/>
+      </svg>
+    ),
+    children: [
+      { 
+        name: 'Price vs Hashrate', 
+        href: '/powerlaw/price-hashrate', 
+        icon: (
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
+          </svg>
+        )
+      },
+      { 
+        name: 'Power Law Residual', 
+        href: '/powerlaw/residual', 
+        icon: (
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M3,11H5V13H3V11M11,5H13V19H11V5M7,9H9V15H7V9M15,3H17V17H15V3M19,7H21V13H19V7"/>
+          </svg>
+        )
+      },
+      { 
+        name: 'Price vs Volume', 
+        href: '/powerlaw/price-volume', 
+        icon: (
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
+          </svg>
+        )
+      },
+      { 
+        name: 'Hashrate vs Volume', 
+        href: '/powerlaw/hashrate-volume', 
+        icon: (
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.27,4.73L19.27,9.73C19.65,10.11 19.65,10.74 19.27,11.12L14.27,16.12C13.89,16.5 13.26,16.5 12.88,16.12C12.5,15.74 12.5,15.11 12.88,14.73L16.16,11.45H8.91L12.19,14.73C12.57,15.11 12.57,15.74 12.19,16.12C11.81,16.5 11.18,16.5 10.8,16.12L5.8,11.12C5.42,10.74 5.42,10.11 5.8,9.73L10.8,4.73C11.18,4.35 11.81,4.35 12.19,4.73C12.57,5.11 12.57,5.74 12.19,6.12L8.91,9.4H16.16L12.88,6.12C12.5,5.74 12.5,5.11 12.88,4.73C13.26,4.35 13.89,4.35 14.27,4.73Z"/>
+          </svg>
+        )
+      },
+    ]
+  },
+  {
     name: 'Network',
     icon: (
       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -164,10 +210,49 @@ const navigation = [
     ]
   }
 ]
+  {
+    name: 'Premium Features',
+    icon: (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M5,16L3,14L5,12V13H12V15H5V16M19,8L21,10L19,12V11H12V9H19V8M12,2L15.09,8.26L22,9L17,14L18.18,21L12,17.77L5.82,21L7,14L2,9L8.91,8.26L12,2Z"/>
+      </svg>
+    ),
+    premium: true,
+    children: [
+      { 
+        name: 'Alerts', 
+        href: '/premium/alerts', 
+        icon: (
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M21,19V20H3V19L5,17V11C5,7.9 7.03,5.17 10,4.29C10,4.19 10,4.1 10,4A2,2 0 0,1 12,2A2,2 0 0,1 14,4C14,4.1 14,4.19 14,4.29C16.97,5.17 19,7.9 19,11V17L21,19M14,21A2,2 0 0,1 12,23A2,2 0 0,1 10,21"/>
+          </svg>
+        )
+      },
+      { 
+        name: 'API Access', 
+        href: '/premium/api', 
+        icon: (
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8.5,8.5L11,11L8.5,13.5L9.91,14.91L14.41,10.41L15.83,9L14.41,7.59L9.91,3.09L8.5,4.5L11,7H2V9H11L8.5,11.5V8.5M22,7V9H15V7H22M22,15V17H15V15H22Z"/>
+          </svg>
+        )
+      },
+      { 
+        name: 'Export Data', 
+        href: '/premium/export', 
+        icon: (
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M9,10V12H7V10H9M13,10V12H11V10H13M17,10V12H15V10H17M19,3A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5C3.89,21 3,20.1 3,19V5A2,2 0 0,1 5,3H19M19,19V8H5V19H19M19,6V5H5V6H19Z"/>
+          </svg>
+        )
+      },
+    ]
+  }
+]
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const [expandedSections, setExpandedSections] = useState<string[]>(['Market Data'])
+  const [expandedSections, setExpandedSections] = useState<string[]>(['Market Data', 'Power Law Analysis'])
 
   const toggleSection = (sectionName: string) => {
     setExpandedSections(prev => 
