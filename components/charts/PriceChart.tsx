@@ -576,42 +576,78 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       <div className="flex flex-wrap gap-4 items-center justify-between">
         <div className="flex flex-wrap gap-4">
           {/* Price Scale Control */}
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-300">Price Scale:</label>
-            <select
-              value={priceScale}
-              onChange={(e) => setPriceScale(e.target.value as 'Linear' | 'Log')}
-              className="bg-slate-700 border border-slate-600 rounded px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="Linear">Linear</option>
-              <option value="Log">Log</option>
-            </select>
+          <div className="relative group">
+            <button className="flex items-center space-x-2 bg-slate-800/80 border border-slate-600/50 rounded-lg px-4 py-2 text-sm text-white hover:bg-slate-700/80 transition-all duration-200 hover:border-blue-500/50">
+              <span className="text-gray-300">Price Scale:</span>
+              <span className="font-medium">{priceScale}</span>
+              <svg className="w-4 h-4 text-gray-400 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-full bg-slate-800/95 border border-slate-600/50 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 backdrop-blur-sm">
+              <div 
+                onClick={() => setPriceScale('Linear')}
+                className={`px-4 py-2 text-sm cursor-pointer transition-colors rounded-t-lg ${priceScale === 'Linear' ? 'text-blue-400 bg-blue-500/10' : 'text-white hover:bg-slate-700/50'}`}
+              >
+                Linear
+              </div>
+              <div 
+                onClick={() => setPriceScale('Log')}
+                className={`px-4 py-2 text-sm cursor-pointer transition-colors rounded-b-lg ${priceScale === 'Log' ? 'text-blue-400 bg-blue-500/10' : 'text-white hover:bg-slate-700/50'}`}
+              >
+                Logarithmic
+              </div>
+            </div>
           </div>
 
           {/* Time Scale Control */}
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-300">Time Scale:</label>
-            <select
-              value={timeScale}
-              onChange={(e) => setTimeScale(e.target.value as 'Linear' | 'Log')}
-              className="bg-slate-700 border border-slate-600 rounded px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="Linear">Linear</option>
-              <option value="Log">Log</option>
-            </select>
+          <div className="relative group">
+            <button className="flex items-center space-x-2 bg-slate-800/80 border border-slate-600/50 rounded-lg px-4 py-2 text-sm text-white hover:bg-slate-700/80 transition-all duration-200 hover:border-blue-500/50">
+              <span className="text-gray-300">Time Scale:</span>
+              <span className="font-medium">{timeScale}</span>
+              <svg className="w-4 h-4 text-gray-400 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-full bg-slate-800/95 border border-slate-600/50 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 backdrop-blur-sm">
+              <div 
+                onClick={() => setTimeScale('Linear')}
+                className={`px-4 py-2 text-sm cursor-pointer transition-colors rounded-t-lg ${timeScale === 'Linear' ? 'text-blue-400 bg-blue-500/10' : 'text-white hover:bg-slate-700/50'}`}
+              >
+                Linear
+              </div>
+              <div 
+                onClick={() => setTimeScale('Log')}
+                className={`px-4 py-2 text-sm cursor-pointer transition-colors rounded-b-lg ${timeScale === 'Log' ? 'text-blue-400 bg-blue-500/10' : 'text-white hover:bg-slate-700/50'}`}
+              >
+                Logarithmic
+              </div>
+            </div>
           </div>
 
           {/* Power Law Control */}
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-300">Power Law:</label>
-            <select
-              value={showPowerLaw}
-              onChange={(e) => setShowPowerLaw(e.target.value as 'Hide' | 'Show')}
-              className="bg-slate-700 border border-slate-600 rounded px-3 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="Hide">Hide</option>
-              <option value="Show">Show</option>
-            </select>
+          <div className="relative group">
+            <button className="flex items-center space-x-2 bg-slate-800/80 border border-slate-600/50 rounded-lg px-4 py-2 text-sm text-white hover:bg-slate-700/80 transition-all duration-200 hover:border-blue-500/50">
+              <span className="text-gray-300">Power Law:</span>
+              <span className="font-medium">{showPowerLaw}</span>
+              <svg className="w-4 h-4 text-gray-400 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-full bg-slate-800/95 border border-slate-600/50 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 backdrop-blur-sm">
+              <div 
+                onClick={() => setShowPowerLaw('Hide')}
+                className={`px-4 py-2 text-sm cursor-pointer transition-colors rounded-t-lg ${showPowerLaw === 'Hide' ? 'text-blue-400 bg-blue-500/10' : 'text-white hover:bg-slate-700/50'}`}
+              >
+                Hide
+              </div>
+              <div 
+                onClick={() => setShowPowerLaw('Show')}
+                className={`px-4 py-2 text-sm cursor-pointer transition-colors rounded-b-lg ${showPowerLaw === 'Show' ? 'text-blue-400 bg-blue-500/10' : 'text-white hover:bg-slate-700/50'}`}
+              >
+                Show
+              </div>
+            </div>
           </div>
         </div>
 
