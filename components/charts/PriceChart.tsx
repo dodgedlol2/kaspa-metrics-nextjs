@@ -358,7 +358,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       })
     }
 
-    // Add ATH marker using regular scatter (markers work better with scatter type)
+    // Add High marker using regular scatter (markers work better with scatter type)
     if (athData) {
       let athX: number | Date
       if (timeScale === 'Log') {
@@ -372,22 +372,22 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         y: [athData.price],
         mode: 'markers+text',
         type: 'scatter', // Use regular scatter for markers
-        name: 'ATH & 1-YL',
+        name: 'High & Low',
         legendgroup: 'markers',
         marker: {
           color: '#ffffff',
           size: 8,
           line: { color: '#5B6CFF', width: 2 }
         },
-        text: [`ATH ${formatCurrency(athData.price)}`],
+        text: [`High ${formatCurrency(athData.price)}`],
         textposition: 'top left',
         textfont: { color: '#ffffff', size: 11 },
         showlegend: true,
-        hovertemplate: `<b>All-Time High</b><br>Price: ${formatCurrency(athData.price)}<br>Date: ${athData.date.toLocaleDateString()}<extra></extra>`,
+        hovertemplate: `<b>High</b><br>Price: ${formatCurrency(athData.price)}<br>Date: ${athData.date.toLocaleDateString()}<extra></extra>`,
       })
     }
 
-    // Add 1YL marker using regular scatter
+    // Add Low marker using regular scatter
     if (oylData) {
       let oylX: number | Date
       if (timeScale === 'Log') {
@@ -401,18 +401,18 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         y: [oylData.price],
         mode: 'markers+text',
         type: 'scatter', // Use regular scatter for markers
-        name: '1-YL',
+        name: 'Low',
         legendgroup: 'markers',
         marker: {
           color: '#ffffff',
           size: 8,
           line: { color: '#5B6CFF', width: 2 }
         },
-        text: [`1YL ${formatCurrency(oylData.price)}`],
+        text: [`Low ${formatCurrency(oylData.price)}`],
         textposition: 'bottom left',
         textfont: { color: '#ffffff', size: 11 },
         showlegend: false,
-        hovertemplate: `<b>One Year Low</b><br>Price: ${formatCurrency(oylData.price)}<br>Date: ${oylData.date.toLocaleDateString()}<extra></extra>`,
+        hovertemplate: `<b>Low</b><br>Price: ${formatCurrency(oylData.price)}<br>Date: ${oylData.date.toLocaleDateString()}<extra></extra>`,
       })
     }
 
@@ -877,12 +877,31 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         </div>
       </div>
 
-      {/* Plotly Chart */}
-      <div style={{ height: `${height}px` }} className="w-full">
+      {/* Plotly Chart with Grainy Background */}
+      <div 
+        style={{ height: `${height}px` }} 
+        className="w-full relative overflow-hidden rounded-lg"
+      >
+        {/* Grainy texture background */}
+        <div 
+          className="absolute inset-0 opacity-30"
+          style={{
+            backgroundImage: `
+              radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.8) 0.5px, transparent 0.5px),
+              radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.6) 0.5px, transparent 0.5px),
+              radial-gradient(circle at 25% 75%, rgba(255, 255, 255, 0.4) 0.5px, transparent 0.5px),
+              radial-gradient(circle at 75% 25%, rgba(255, 255, 255, 0.5) 0.5px, transparent 0.5px),
+              radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.3) 0.5px, transparent 0.5px)
+            `,
+            backgroundSize: '16px 16px, 24px 24px, 20px 20px, 28px 28px, 32px 32px',
+            backgroundPosition: '0 0, 8px 8px, 4px 4px, 12px 12px, 16px 16px'
+          }}
+        />
+        
         <Plot
           data={plotlyData}
           layout={plotlyLayout}
-          style={{ width: '100%', height: '100%' }}
+          style={{ width: '100%', height: '100%', position: 'relative', zIndex: 1 }}
           onDoubleClick={handleDoubleClickReset}
           onRelayout={(eventData) => {
             // Alternative: listen for plotly relayout events
@@ -926,12 +945,12 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
         </div>
       </div>
 
-      {/* ATH and 1YL Info */}
+      {/* High and Low Info */}
       {(athData || oylData) && (
         <div className="flex flex-wrap gap-6 text-sm">
           {athData && (
             <div>
-              <span className="text-blue-400">All-Time High:</span>
+              <span className="text-blue-400">High:</span>
               <span className="text-white ml-2 font-semibold">{formatCurrency(athData.price)}</span>
               <span className="text-gray-500 ml-2">({athData.date.toLocaleDateString()})</span>
             </div>
@@ -939,7 +958,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
           
           {oylData && (
             <div>
-              <span className="text-red-400">One Year Low:</span>
+              <span className="text-red-400">Low:</span>
               <span className="text-white ml-2 font-semibold">{formatCurrency(oylData.price)}</span>
               <span className="text-gray-500 ml-2">({oylData.date.toLocaleDateString()})</span>
             </div>
