@@ -784,68 +784,6 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-                      Hide Power Law
-                    </div>
-                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
-                      Display only the price data
-                    </div>
-                  </div>
-                </div>
-                <div 
-                  onClick={() => setShowPowerLaw('Show')}
-                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
-                    showPowerLaw === 'Show' 
-                      ? 'bg-[#5B6CFF]/20' 
-                      : 'hover:bg-[#1A1A2E]/80'
-                  }`}
-                >
-                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
-                  </svg>
-                  <div className="flex-1">
-                    <div className={`font-medium text-xs ${showPowerLaw === 'Show' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
-                      Show Power Law
-                    </div>
-                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
-                      Display regression trend line
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Time Period Buttons */}
-        <div className="flex space-x-1 items-center">
-          {(['1M', '3M', '6M', '1Y'] as const).map((period) => (
-            <button
-              key={period}
-              onClick={() => setTimePeriod(period)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-                timePeriod === period
-                  ? 'bg-[#5B6CFF] text-white border border-[#5B6CFF]'
-                  : 'bg-[#1A1A2E] text-[#A0A0B8] border border-[#2D2D45] hover:bg-[#161629] hover:border-[#5B6CFF]/50'
-              }`}
-            >
-              {period}
-            </button>
-          ))}
-          
-          {/* All Time Dropdown */}
-          <div className="relative group">
-            <button 
-              className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-                timePeriod === 'All' || timePeriod === 'Full' || timePeriod === '1W' || timePeriod === '2Y' || timePeriod === '3Y' || timePeriod === '5Y'
-                  ? 'bg-[#5B6CFF] text-white border border-[#5B6CFF]'
-                  : 'bg-[#1A1A2E] text-[#A0A0B8] border border-[#2D2D45] hover:bg-[#161629] hover:border-[#5B6CFF]/50'
-              }`}
-            >
-              <span>All</span>
-              <svg className="w-3 h-3 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
             <div className="absolute top-full mt-1 right-0 w-32 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
               <div className="p-1.5">
                 <div 
