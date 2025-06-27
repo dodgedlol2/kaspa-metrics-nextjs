@@ -575,15 +575,15 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
     <div className="space-y-6">
       {/* Interactive Controls */}
       <div className="flex flex-wrap gap-4 items-center justify-between">
-        <div className="flex flex-wrap gap-4">
+        <div className="flex flex-wrap gap-2">
           {/* Price Scale Control */}
           <div className="relative group">
-            <button className="flex items-center space-x-2 bg-[#1A1A2E] rounded-lg px-3 py-1.5 text-xs text-white hover:bg-[#161629] transition-all duration-200">
-              <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
               </svg>
-              <span className="text-[#A0A0B8]">Price Scale:</span>
-              <span className="font-medium text-[#FFFFFF]">{priceScale}</span>
+              <span className="text-[#A0A0B8] text-xs">Price Scale:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{priceScale}</span>
               <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -636,12 +636,12 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
 
           {/* Time Scale Control */}
           <div className="relative group">
-            <button className="flex items-center space-x-2 bg-[#1A1A2E] rounded-lg px-3 py-1.5 text-xs text-white hover:bg-[#161629] transition-all duration-200">
-              <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
               </svg>
-              <span className="text-[#A0A0B8]">Time Scale:</span>
-              <span className="font-medium text-[#FFFFFF]">{timeScale}</span>
+              <span className="text-[#A0A0B8] text-xs">Time Scale:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{timeScale}</span>
               <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -694,12 +694,12 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
 
           {/* Power Law Control */}
           <div className="relative group">
-            <button className="flex items-center space-x-2 bg-[#1A1A2E] rounded-lg px-3 py-1.5 text-xs text-white hover:bg-[#161629] transition-all duration-200">
-              <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
               </svg>
-              <span className="text-[#A0A0B8]">Power Law:</span>
-              <span className="font-medium text-[#FFFFFF]">{showPowerLaw}</span>
+              <span className="text-[#A0A0B8] text-xs">Power Law:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{showPowerLaw}</span>
               <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -719,6 +719,71 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
                   </svg>
                   <div className="flex-1">
                     <div className={`font-medium text-xs ${showPowerLaw === 'Hide' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Hide Power Law
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Display only the price data
+                    </div>
+                  </div>
+                </div>
+                <div 
+                  onClick={() => setShowPowerLaw('Show')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    showPowerLaw === 'Show' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${showPowerLaw === 'Show' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Show Power Law
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Display regression trend line
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Time Period Buttons */}
+        <div className="flex items-center gap-2">
+          {(['1M', '3M', '6M', '1Y'] as const).map((period) => (
+            <button
+              key={period}
+              onClick={() => setTimePeriod(period)}
+              className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                timePeriod === period
+                  ? 'bg-[#5B6CFF] text-white'
+                  : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
+              }`}
+            >
+              {period}
+            </button>
+          ))}
+          
+          {/* All Time Dropdown */}
+          <div className="relative group">
+            <button 
+              className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                timePeriod === 'All' || timePeriod === 'Full' || timePeriod === '1W' || timePeriod === '2Y' || timePeriod === '3Y' || timePeriod === '5Y'
+                  ? 'bg-[#5B6CFF] text-white'
+                  : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
+              }`}
+            >
+              <svg className="w-3 h-3 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+              </svg>
+              <span>All</span>
+              <svg className="w-3 h-3 text-current group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
                       Hide Power Law
                     </div>
                     <div className="text-[10px] text-[#9CA3AF] mt-0.5">
@@ -801,23 +866,6 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
                   </span>
                 </div>
                 <div 
-                  onClick={() => setTimePeriod('All')}
-                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                    timePeriod === 'All' || timePeriod === 'Full'
-                      ? 'bg-[#5B6CFF]/20' 
-                      : 'hover:bg-[#1A1A2E]/80'
-                  }`}
-                >
-                  <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
-                  </svg>
-                  <span className={`text-xs font-medium ${
-                    timePeriod === 'All' || timePeriod === 'Full' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                  }`}>
-                    All Time
-                  </span>
-                </div>
-                <div 
                   onClick={() => setTimePeriod('2Y' as any)}
                   className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
                     timePeriod === '2Y'
@@ -866,6 +914,23 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
                     timePeriod === '5Y' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
                   }`}>
                     5 Years
+                  </span>
+                </div>
+                <div 
+                  onClick={() => setTimePeriod('All')}
+                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                    timePeriod === 'All' || timePeriod === 'Full'
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+                  </svg>
+                  <span className={`text-xs font-medium ${
+                    timePeriod === 'All' || timePeriod === 'Full' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                  }`}>
+                    All Time
                   </span>
                 </div>
               </div>
