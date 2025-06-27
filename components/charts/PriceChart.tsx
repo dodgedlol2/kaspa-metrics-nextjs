@@ -454,7 +454,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       height: height,
       plot_bgcolor: 'rgba(0,0,0,0)',
       paper_bgcolor: 'rgba(0,0,0,0)',
-      font: { color: '#9CA3AF', family: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"' },
+      font: { color: '#9CA3AF', family: 'Inter, ui-sans-serif, system-ui, sans-serif' },
       hovermode: 'x unified',
       showlegend: true,
       margin: { l: 50, r: 20, t: 20, b: 50 },
