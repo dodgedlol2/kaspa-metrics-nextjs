@@ -309,7 +309,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       connectgaps: true,
       hovertemplate: timeScale === 'Linear' 
         ? '<b>%{fullData.name}</b><br>Price: $%{y:.4f}<extra></extra>'
-        : '<b>Days since genesis:</b> %{x}<br>%{text}<br><b>%{fullData.name}</b><br>Price: $%{y:.4f}<extra></extra>',
+        : '%{text}<br><b>%{fullData.name}</b><br>Price: $%{y:.4f}<extra></extra>',
       hoverinfo: 'none',
       text: filteredData.map(d => new Date(d.timestamp).toLocaleDateString('en-US', { 
         year: 'numeric', 
@@ -454,7 +454,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       height: height,
       plot_bgcolor: 'rgba(0,0,0,0)',
       paper_bgcolor: 'rgba(0,0,0,0)',
-      font: { color: '#9CA3AF', family: 'Inter' },
+      font: { color: '#9CA3AF', family: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"' },
       hovermode: 'x unified',
       showlegend: true,
       margin: { l: 50, r: 20, t: 20, b: 50 },
