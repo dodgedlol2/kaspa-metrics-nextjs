@@ -1,10 +1,4 @@
-{/* Right Side - Fused Time Period Controls */}
-        <div className="flex items-center space-x-2">
-          {/* Time Period Block */}
-          <div className="flex bg-[#1A1A2E] border border-[#2D2D45] rounded-xl overflow-hidden">
-            {(['1M', '3M', '6M', '1Y'] as const).map((period, index) => (
-              <button
-                key'use client'
+'use client'
 import React, { useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { KaspaMetric } from '@/lib/sheets'
@@ -580,11 +574,15 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
   return (
     <div className="space-y-6">
       {/* Interactive Controls */}
-      <div className="flex flex-wrap gap-4 items-center justify-between">
-        <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-6 items-center justify-between">
+        {/* Left Side - Fused Dropdown Controls */}
+        <div className="flex bg-[#1A1A2E] border border-[#2D2D45] rounded-xl overflow-hidden">
           {/* Price Scale Control */}
           <div className="relative group">
-            <button className="flex items-center space-x-2 bg-[#1A1A2E] border border-[#2D2D45] rounded-lg px-3 py-1.5 text-xs text-white hover:bg-[#161629] transition-all duration-200 hover:border-[#5B6CFF]/50">
+            <button className="flex items-center space-x-2 px-4 py-2.5 text-xs text-white hover:bg-[#161629] transition-all duration-200 border-r border-[#2D2D45] group-hover:border-[#5B6CFF]/30">
+              <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
+              </svg>
               <span className="text-[#A0A0B8]">Price Scale:</span>
               <span className="font-medium text-[#FFFFFF]">{priceScale}</span>
               <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -639,7 +637,10 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
 
           {/* Time Scale Control */}
           <div className="relative group">
-            <button className="flex items-center space-x-2 bg-[#1A1A2E] border border-[#2D2D45] rounded-lg px-3 py-1.5 text-xs text-white hover:bg-[#161629] transition-all duration-200 hover:border-[#5B6CFF]/50">
+            <button className="flex items-center space-x-2 px-4 py-2.5 text-xs text-white hover:bg-[#161629] transition-all duration-200 border-r border-[#2D2D45] group-hover:border-[#5B6CFF]/30">
+              <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12,20A7,7 0 0,1 5,13A7,7 0 0,1 12,6A7,7 0 0,1 19,13A7,7 0 0,1 12,20M19.03,7.39L20.45,5.97C20,5.46 19.55,5 19.04,4.56L17.62,6C16.07,4.74 14.12,4 12,4A9,9 0 0,0 3,13A9,9 0 0,0 12,22C17,22 21,17.97 21,13C21,10.88 20.26,8.93 19.03,7.39M11,14H13V8H11M15,1H9V3H15V1Z"/>
+              </svg>
               <span className="text-[#A0A0B8]">Time Scale:</span>
               <span className="font-medium text-[#FFFFFF]">{timeScale}</span>
               <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -657,7 +658,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
                   }`}
                 >
                   <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M19,3H5C3.9,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
+                    <path d="M19,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
                   </svg>
                   <div className="flex-1">
                     <div className={`font-medium text-xs ${timeScale === 'Linear' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
@@ -694,7 +695,10 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
 
           {/* Power Law Control */}
           <div className="relative group">
-            <button className="flex items-center space-x-2 bg-[#1A1A2E] border border-[#2D2D45] rounded-lg px-3 py-1.5 text-xs text-white hover:bg-[#161629] transition-all duration-200 hover:border-[#5B6CFF]/50">
+            <button className="flex items-center space-x-2 px-4 py-2.5 text-xs text-white hover:bg-[#161629] transition-all duration-200">
+              <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
+              </svg>
               <span className="text-[#A0A0B8]">Power Law:</span>
               <span className="font-medium text-[#FFFFFF]">{showPowerLaw}</span>
               <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
