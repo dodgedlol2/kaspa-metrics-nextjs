@@ -236,7 +236,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     hoverlabel: {
       bgcolor: 'rgba(15, 20, 25, 0.95)',
       bordercolor: 'rgba(91, 108, 255, 0.5)',
-      font: { color: '#e2e8f0', size: 11 },
+      font: { color: '#e2e8f0', size: 10 },
       align: 'left',
       namelength: -1,
       xanchor: 'right',  // This anchors the tooltip to the right edge, making it appear to the left of cursor
@@ -253,41 +253,45 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       bgcolor: 'rgba(0,0,0,0)',
       bordercolor: 'rgba(0,0,0,0)',
       borderwidth: 0,
-      font: { size: 11 }
+      font: { size: 10, color: '#9CA3AF' }
     },
     hoverdistance: 100,
     selectdirection: 'diagonal',
     yaxis: {
       title: { 
         text: 'Price (USD)', 
-        font: { size: 14, color: '#E5E7EB' }
+        font: { size: 12, color: '#9CA3AF' }
       },
       type: priceScale === 'Log' ? 'log' : 'linear',
       gridcolor: '#363650',
       gridwidth: 1,
       color: '#9CA3AF',
       showspikes: false,
-      tickfont: { size: 11 },
+      tickfont: { size: 10, color: '#9CA3AF' },
       autorange: false,
       range: priceScale === 'Log' ? 
         [Math.log10(Math.min(...analysisData.map(d => d.price)) * 0.8), Math.log10(Math.max(...analysisData.map(d => d.price)) * 1.2)] :
-        [Math.min(...analysisData.map(d => d.price)) * 0.9, Math.max(...analysisData.map(d => d.price)) * 1.1]
+        [Math.min(...analysisData.map(d => d.price)) * 0.9, Math.max(...analysisData.map(d => d.price)) * 1.1],
+      linecolor: '#363650',
+      zerolinecolor: '#363650'
     },
     xaxis: {
       title: { 
         text: 'Network Hashrate (PH/s)', 
-        font: { size: 14, color: '#E5E7EB' }
+        font: { size: 12, color: '#9CA3AF' }
       },
       type: hashrateScale === 'Log' ? 'log' : 'linear',
       gridcolor: '#363650',
       gridwidth: 1,
       color: '#9CA3AF',
       showspikes: false,
-      tickfont: { size: 11 },
+      tickfont: { size: 10, color: '#9CA3AF' },
       autorange: false,
       range: hashrateScale === 'Log' ? 
         [Math.log10(Math.min(...analysisData.map(d => d.hashrate)) * 0.9), Math.log10(Math.max(...analysisData.map(d => d.hashrate)) * 1.1)] :
-        [Math.min(...analysisData.map(d => d.hashrate)) * 0.95, Math.max(...analysisData.map(d => d.hashrate)) * 1.05]
+        [Math.min(...analysisData.map(d => d.hashrate)) * 0.95, Math.max(...analysisData.map(d => d.hashrate)) * 1.05],
+      linecolor: '#363650',
+      zerolinecolor: '#363650'
     }
   }
 
