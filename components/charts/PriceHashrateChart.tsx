@@ -54,6 +54,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
   const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
   const [hashrateScale, setHashrateScale] = useState<'Linear' | 'Log'>('Log')
   const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
+  const [timePeriod, setTimePeriod] = useState<'1M' | '3M' | '6M' | '1Y' | '2Y' | '3Y' | 'All'>('All')
   const [isHovering, setIsHovering] = useState(false)
 
   const analysisData = useMemo(() => {
@@ -90,10 +91,25 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     return merged.sort((a, b) => a.date.getTime() - b.date.getTime())
   }, [priceData, hashrateData])
 
+  // Filter data based on time period for display only
+  const filteredAnalysisData = useMemo(() => {
+    if (timePeriod === 'All' || analysisData.length === 0) return analysisData
+    
+    const now = Date.now()
+    const days = {
+      '1M': 30, '3M': 90, '6M': 180, 
+      '1Y': 365, '2Y': 730, '3Y': 1095
+    }
+    
+    const cutoffTime = now - days[timePeriod] * 24 * 60 * 60 * 1000
+    return analysisData.filter(point => point.date.getTime() >= cutoffTime)
+  }, [analysisData, timePeriod])
+
   const powerLawData = useMemo(() => {
     if (analysisData.length < 10) return null
 
     try {
+      // Always use ALL data for power law calculation (not filtered data)
       const priceHashrateData = analysisData.map(d => ({ x: d.hashrate, y: d.price }))
       const priceHashrateFit = fitPowerLaw(priceHashrateData)
       return { priceHashrate: priceHashrateFit }
@@ -104,19 +120,19 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
   }, [analysisData])
 
   const recentDataPoints = useMemo(() => {
-    if (analysisData.length < 10) return { recent: analysisData.slice(-10), older: analysisData.slice(0, -10) }
+    if (filteredAnalysisData.length < 10) return { recent: filteredAnalysisData.slice(-10), older: filteredAnalysisData.slice(0, -10) }
     
-    const recent10Days = analysisData.slice(-10)
-    const older = analysisData.slice(0, -10)
+    const recent10Days = filteredAnalysisData.slice(-10)
+    const older = filteredAnalysisData.slice(0, -10)
     
     return {
       recent: recent10Days,
       older: older
     }
-  }, [analysisData])
+  }, [filteredAnalysisData])
 
   const mainChartData = useMemo(() => {
-    if (analysisData.length === 0) return []
+    if (filteredAnalysisData.length === 0) return []
 
     const traces: any[] = []
 
@@ -132,7 +148,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
           color: '#5B6CFF',
           size: 6,
           opacity: 1.0,
-          line: { width: 0 }
+          line: { width: 1, color: 'rgba(255, 255, 255, 0.8)' }
         },
         hovertemplate: 'Hashrate: %{x:.1f} PH/s<br>Price: $%{y:.2f}<br>%{text}<extra></extra>',
         text: recentDataPoints.older.map(d => d.date.toISOString().split('T')[0]),
@@ -170,8 +186,10 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     // Power law trend line and support/resistance levels
     if (showPowerLaw === 'Show' && powerLawData?.priceHashrate) {
       const { a, b, r2 } = powerLawData.priceHashrate
-      const minHashrate = Math.min(...analysisData.map(d => d.hashrate))
-      const maxHashrate = Math.max(...analysisData.map(d => d.hashrate))
+      
+      // Use filtered data range for power law display
+      const minHashrate = Math.min(...filteredAnalysisData.map(d => d.hashrate))
+      const maxHashrate = Math.max(...filteredAnalysisData.map(d => d.hashrate))
       const xFit = []
       const yFit = []
       
@@ -225,7 +243,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     }
 
     return traces
-  }, [analysisData, recentDataPoints, showPowerLaw, powerLawData])
+  }, [filteredAnalysisData, recentDataPoints, showPowerLaw, powerLawData])
 
   const mainLayout: any = {
     height: 500,
@@ -272,8 +290,8 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       tickfont: { size: 10, color: '#9CA3AF' },
       autorange: false,
       range: priceScale === 'Log' ? 
-        [Math.log10(Math.min(...analysisData.map(d => d.price)) * 0.8), Math.log10(Math.max(...analysisData.map(d => d.price)) * 1.2)] :
-        [Math.min(...analysisData.map(d => d.price)) * 0.9, Math.max(...analysisData.map(d => d.price)) * 1.1],
+        [Math.log10(Math.min(...filteredAnalysisData.map(d => d.price)) * 0.8), Math.log10(Math.max(...filteredAnalysisData.map(d => d.price)) * 1.2)] :
+        [Math.min(...filteredAnalysisData.map(d => d.price)) * 0.9, Math.max(...filteredAnalysisData.map(d => d.price)) * 1.1],
       linecolor: '#363650',
       zerolinecolor: '#363650'
     },
@@ -290,20 +308,119 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       tickfont: { size: 10, color: '#9CA3AF' },
       autorange: false,
       range: hashrateScale === 'Log' ? 
-        [Math.log10(Math.min(...analysisData.map(d => d.hashrate)) * 0.9), Math.log10(Math.max(...analysisData.map(d => d.hashrate)) * 1.1)] :
-        [Math.min(...analysisData.map(d => d.hashrate)) * 0.95, Math.max(...analysisData.map(d => d.hashrate)) * 1.05],
+        [Math.log10(Math.min(...filteredAnalysisData.map(d => d.hashrate)) * 0.9), Math.log10(Math.max(...filteredAnalysisData.map(d => d.hashrate)) * 1.1)] :
+        [Math.min(...filteredAnalysisData.map(d => d.hashrate)) * 0.95, Math.max(...filteredAnalysisData.map(d => d.hashrate)) * 1.05],
       linecolor: '#363650',
       zerolinecolor: '#363650'
     }
   }
 
-  if (analysisData.length === 0) {
+  if (filteredAnalysisData.length === 0) {
     return (
       <div className={`bg-[#1A1A2E] rounded-xl p-6 ${className}`}>
         <div className="flex items-center justify-center h-80">
           <div className="text-center">
             <div className="text-red-400 text-lg font-medium mb-2">No Data Available</div>
             <div className="text-[#6B7280] text-sm">Unable to correlate price and hashrate data</div>
+          </div>
+        </div>
+
+        {/* Time Period Buttons */}
+        <div className="flex items-center gap-2">
+          {(['1M', '3M', '6M', '1Y'] as const).map((period) => (
+            <button
+              key={period}
+              onClick={() => setTimePeriod(period)}
+              className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                timePeriod === period
+                  ? 'bg-[#5B6CFF] text-white'
+                  : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
+              }`}
+            >
+              {period}
+            </button>
+          ))}
+          
+          {/* Max Time Dropdown */}
+          <div className="relative group">
+            <button 
+              className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                timePeriod === 'All' || timePeriod === '2Y' || timePeriod === '3Y'
+                  ? 'bg-[#5B6CFF] text-white'
+                  : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
+              }`}
+            >
+              <svg className={`w-3 h-3 ${
+                timePeriod === 'All' || timePeriod === '2Y' || timePeriod === '3Y'
+                  ? 'text-white' 
+                  : 'text-[#6366F1]'
+              }`} fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+              </svg>
+              <span>Max</span>
+              <svg className={`w-3 h-3 transition-colors ${
+                timePeriod === 'All' || timePeriod === '2Y' || timePeriod === '3Y'
+                  ? 'text-white group-hover:text-gray-200' 
+                  : 'text-current group-hover:text-[#5B6CFF]'
+              }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 right-0 w-32 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                <div 
+                  onClick={() => setTimePeriod('2Y')}
+                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                    timePeriod === '2Y'
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
+                  </svg>
+                  <span className={`text-xs font-medium ${
+                    timePeriod === '2Y' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                  }`}>
+                    2 Years
+                  </span>
+                </div>
+                <div 
+                  onClick={() => setTimePeriod('3Y')}
+                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                    timePeriod === '3Y'
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
+                  </svg>
+                  <span className={`text-xs font-medium ${
+                    timePeriod === '3Y' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                  }`}>
+                    3 Years
+                  </span>
+                </div>
+                <div 
+                  onClick={() => setTimePeriod('All')}
+                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                    timePeriod === 'All'
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+                  </svg>
+                  <span className={`text-xs font-medium ${
+                    timePeriod === 'All' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                  }`}>
+                    All Time
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -512,7 +629,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
             }
           }}
           useResizeHandler={true}
-          revision={analysisData.length}
+          revision={filteredAnalysisData.length}
         />
       </div>
     </div>
