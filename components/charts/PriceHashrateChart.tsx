@@ -148,7 +148,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
           color: '#5B6CFF',
           size: 6,
           opacity: 1.0,
-          line: { width: 1, color: 'rgba(255, 255, 255, 0.8)' }
+          line: { width: 0.5, color: 'rgba(200, 200, 200, 0.6)' }
         },
         hovertemplate: 'Hashrate: %{x:.1f} PH/s<br>Price: $%{y:.2f}<br>%{text}<extra></extra>',
         text: recentDataPoints.older.map(d => d.date.toISOString().split('T')[0]),
@@ -324,9 +324,15 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
             <div className="text-[#6B7280] text-sm">Unable to correlate price and hashrate data</div>
           </div>
         </div>
+      </div>
+    )
+  }
 
-        {/* Time Period Buttons */}
-        <div className="flex items-center gap-2">
+  return (
+    <div className={`space-y-6 ${className}`}>
+      <div className="flex flex-wrap gap-4 items-center justify-between">
+        <div className="flex flex-wrap gap-2">
+          {/* Time Period Buttons - moved to left side */}
           {(['1M', '3M', '6M', '1Y'] as const).map((period) => (
             <button
               key={period}
@@ -422,15 +428,8 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    )
-  }
 
-  return (
-    <div className={`space-y-6 ${className}`}>
-      <div className="flex flex-wrap gap-4 items-center justify-between">
-        <div className="flex flex-wrap gap-2">
+          {/* Price Scale Control */}
           <div className="relative group">
             <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
               <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
