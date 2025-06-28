@@ -124,7 +124,62 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
 
     const traces: any[] = []
 
-    // All data points with consistent styling
+    // Calculate colors based on distance from power law
+    let colors: string[] = []
+    
+    if (powerLawData?.priceHashrate) {
+      const { a, b } = powerLawData.priceHashrate
+      
+      // Calculate expected price for each hashrate point
+      const deviations = filteredAnalysisData.map(d => {
+        const expectedPrice = a * Math.pow(d.hashrate, b)
+        const actualPrice = d.price
+        const deviation = (actualPrice - expectedPrice) / expectedPrice // Percentage deviation
+        return deviation
+      })
+      
+      // Find min/max deviations for normalization
+      const minDev = Math.min(...deviations)
+      const maxDev = Math.max(...deviations)
+      const range = Math.max(Math.abs(minDev), Math.abs(maxDev))
+      
+      // Create color array based on deviation from power law
+      colors = deviations.map(deviation => {
+        const normalizedDev = deviation / range // -1 to 1
+        
+        if (normalizedDev > 0) {
+          // Above power law - brighter blues
+          const intensity = Math.min(normalizedDev, 1)
+          if (intensity > 0.5) {
+            return '#4C5BFF' // Hover state for high above
+          } else {
+            return '#5B6CFF' // Primary for moderate above
+          }
+        } else {
+          // Below power law - purple tones
+          const intensity = Math.min(Math.abs(normalizedDev), 1)
+          if (intensity > 0.5) {
+            return '#6366F1' // Primary alt for significantly below
+          } else {
+            return '#5B6CFF' // Primary for moderate below
+          }
+        }
+      })
+    } else {
+      // Fallback to left-to-right gradient if no power law
+      colors = filteredAnalysisData.map((_, index) => {
+        const progress = index / (filteredAnalysisData.length - 1)
+        if (progress < 0.33) {
+          return '#6366F1' // Primary Alt for early data
+        } else if (progress < 0.66) {
+          return '#5B6CFF' // Primary for middle data
+        } else {
+          return '#4C5BFF' // Hover state for recent data
+        }
+      })
+    }
+
+    // All data points with dynamic coloring
     traces.push({
       x: filteredAnalysisData.map(d => d.hashrate),
       y: filteredAnalysisData.map(d => d.price),
@@ -132,9 +187,9 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       type: 'scattergl',
       name: 'Price vs Hashrate',
       marker: {
-        color: '#5B6CFF',
+        color: colors,
         size: 6,
-        opacity: 1.0,
+        opacity: 0.8,
         line: { width: 0.5, color: 'rgba(80, 80, 80, 0.7)' }
       },
       hovertemplate: 'Hashrate: %{x:.1f} PH/s<br>Price: $%{y:.2f}<br>%{text}<extra></extra>',
