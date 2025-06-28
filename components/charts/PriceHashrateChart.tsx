@@ -119,69 +119,28 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     }
   }, [analysisData])
 
-  const recentDataPoints = useMemo(() => {
-    if (filteredAnalysisData.length < 10) return { recent: filteredAnalysisData.slice(-10), older: filteredAnalysisData.slice(0, -10) }
-    
-    const recent10Days = filteredAnalysisData.slice(-10)
-    const older = filteredAnalysisData.slice(0, -10)
-    
-    return {
-      recent: recent10Days,
-      older: older
-    }
-  }, [filteredAnalysisData])
-
   const mainChartData = useMemo(() => {
     if (filteredAnalysisData.length === 0) return []
 
     const traces: any[] = []
 
-    // Historical data (older than 10 days)
-    if (recentDataPoints.older.length > 0) {
-      traces.push({
-        x: recentDataPoints.older.map(d => d.hashrate),
-        y: recentDataPoints.older.map(d => d.price),
-        mode: 'markers',
-        type: 'scattergl',
-        name: 'Historical Data',
-        marker: {
-          color: '#5B6CFF',
-          size: 6,
-          opacity: 1.0,
-          line: { width: 0.5, color: 'rgba(80, 80, 80, 0.7)' }
-        },
-        hovertemplate: 'Hashrate: %{x:.1f} PH/s<br>Price: $%{y:.2f}<br>%{text}<extra></extra>',
-        text: recentDataPoints.older.map(d => d.date.toISOString().split('T')[0]),
-        hoverdistance: 5
-      })
-    }
-
-    // Last 10 days - with increasing size and brightness
-    if (recentDataPoints.recent.length > 0) {
-      const recentSizes = recentDataPoints.recent.map((_, index) => 6 + index * 2) // Start at 6, increase by 2 each day
-      const recentOpacities = recentDataPoints.recent.map((_, index) => {
-        const intensity = (index + 1) / recentDataPoints.recent.length
-        return 0.5 + intensity * 0.5 // From 0.5 to 1.0 opacity
-      })
-
-      traces.push({
-        x: recentDataPoints.recent.map(d => d.hashrate),
-        y: recentDataPoints.recent.map(d => d.price),
-        mode: 'markers',
-        type: 'scattergl',
-        name: 'Last 10 Days',
-        marker: {
-          color: '#5B6CFF',
-          size: recentSizes,
-          opacity: recentOpacities,
-          line: { width: 0 }, // Removed white lines
-          symbol: 'circle' // Removed star symbol
-        },
-        hovertemplate: 'Hashrate: %{x:.1f} PH/s<br>Price: $%{y:.2f}<br>%{text}<extra></extra>',
-        text: recentDataPoints.recent.map(d => d.date.toISOString().split('T')[0]),
-        hoverdistance: 5
-      })
-    }
+    // All data points with consistent styling
+    traces.push({
+      x: filteredAnalysisData.map(d => d.hashrate),
+      y: filteredAnalysisData.map(d => d.price),
+      mode: 'markers',
+      type: 'scattergl',
+      name: 'Price vs Hashrate',
+      marker: {
+        color: '#5B6CFF',
+        size: 6,
+        opacity: 1.0,
+        line: { width: 0.5, color: 'rgba(80, 80, 80, 0.7)' }
+      },
+      hovertemplate: 'Hashrate: %{x:.1f} PH/s<br>Price: $%{y:.2f}<br>%{text}<extra></extra>',
+      text: filteredAnalysisData.map(d => d.date.toISOString().split('T')[0]),
+      hoverdistance: 5
+    })
 
     // Power law trend line only
     if (showPowerLaw === 'Show' && powerLawData?.priceHashrate) {
@@ -213,7 +172,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     }
 
     return traces
-  }, [filteredAnalysisData, recentDataPoints, showPowerLaw, powerLawData])
+  }, [filteredAnalysisData, showPowerLaw, powerLawData])
 
   const mainLayout: any = {
     height: 500,
