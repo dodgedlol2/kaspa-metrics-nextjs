@@ -125,11 +125,19 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     }
   }, [analysisData])
 
-  // Get last 7 points with gradient colors (like Python version)
-  const last7Points = useMemo(() => {
-    const last7 = analysisData.slice(-7)
-    const colors = ['#00FFCC', '#40E0D0', '#80C0FF', '#A080FF', '#C040FF', '#E000FF', '#FF00FF']
-    return last7.map((point, index) => ({ ...point, color: colors[index] || '#FF00FF' }))
+  // Get recent data points with enhanced highlighting
+  const recentDataPoints = useMemo(() => {
+    if (analysisData.length < 30) return { recent: analysisData.slice(-7), older: analysisData.slice(0, -7) }
+    
+    const recent30Days = analysisData.slice(-30) // Last 30 days
+    const recent7Days = analysisData.slice(-7)   // Last 7 days
+    const older = analysisData.slice(0, -30)     // Older than 30 days
+    
+    return {
+      recent: recent7Days,
+      recent30: recent30Days.slice(0, -7), // 30 days minus the last 7
+      older: older
+    }
   }, [analysisData])
 
   // Prepare main chart data
@@ -138,38 +146,70 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
 
     const traces: any[] = []
 
-    // Main scatter plot points - using #00FFCC like your Streamlit version
-    traces.push({
-      x: analysisData.map(d => d.hashrate),
-      y: analysisData.map(d => d.price),
-      mode: 'markers',
-      type: 'scattergl',
-      name: 'Price vs Hashrate',
-      marker: {
-        color: '#00FFCC',
-        size: 8,
-        opacity: 0.7,
-        line: { width: 1, color: 'DarkSlateGrey' }
-      },
-      hovertemplate: '<b>Hashrate</b>: %{x:.2f} PH/s<br><b>Price</b>: $%{y:.4f}<br><b>Date</b>: %{text}<extra></extra>',
-      text: analysisData.map(d => d.date.toISOString().split('T')[0])
-    })
+  // Prepare main chart data
+  const mainChartData = useMemo(() => {
+    if (analysisData.length === 0) return []
 
-    // Last 7 points with gradient colors (teal to purple like Streamlit)
-    last7Points.forEach((point, index) => {
+    const traces: any[] = []
+
+    // Older data points (subtle gray)
+    if (recentDataPoints.older.length > 0) {
+      traces.push({
+        x: recentDataPoints.older.map(d => d.hashrate),
+        y: recentDataPoints.older.map(d => d.price),
+        mode: 'markers',
+        type: 'scattergl',
+        name: 'Historical Data',
+        marker: {
+          color: '#6B7280',
+          size: 4,
+          opacity: 0.4,
+          line: { width: 0 }
+        },
+        hovertemplate: '<b>Hashrate</b>: %{x:.2f} PH/s<br><b>Price</b>: $%{y:.4f}<br><b>Date</b>: %{text}<extra></extra>',
+        text: recentDataPoints.older.map(d => d.date.toISOString().split('T')[0])
+      })
+    }
+
+    // Recent 30 days (medium blue)
+    if (recentDataPoints.recent30 && recentDataPoints.recent30.length > 0) {
+      traces.push({
+        x: recentDataPoints.recent30.map(d => d.hashrate),
+        y: recentDataPoints.recent30.map(d => d.price),
+        mode: 'markers',
+        type: 'scattergl',
+        name: 'Last 30 Days',
+        marker: {
+          color: '#5B6CFF',
+          size: 6,
+          opacity: 0.7,
+          line: { width: 1, color: '#4C5EE8' }
+        },
+        hovertemplate: '<b>Hashrate</b>: %{x:.2f} PH/s<br><b>Price</b>: $%{y:.4f}<br><b>Date</b>: %{text}<extra></extra>',
+        text: recentDataPoints.recent30.map(d => d.date.toISOString().split('T')[0])
+      })
+    }
+
+    // Recent 7 days (bright gradient)
+    recentDataPoints.recent.forEach((point, index) => {
+      const intensity = (index + 1) / recentDataPoints.recent.length
+      const color = `rgba(91, 108, 255, ${0.6 + intensity * 0.4})` // Increasing opacity
+      const size = 8 + index * 2 // Increasing size
+      
       traces.push({
         x: [point.hashrate],
         y: [point.price],
         mode: 'markers',
         type: 'scattergl',
-        name: index === last7Points.length - 1 ? `Recent (${point.date.toISOString().split('T')[0]})` : null,
+        name: index === recentDataPoints.recent.length - 1 ? 'Latest Data' : null,
         marker: {
-          color: point.color,
-          size: 12,
-          opacity: 0.9,
-          line: { width: 1.5, color: 'DarkSlateGrey' }
+          color: color,
+          size: size,
+          opacity: 1,
+          line: { width: 2, color: '#FFFFFF' },
+          symbol: index === recentDataPoints.recent.length - 1 ? 'star' : 'circle'
         },
-        showlegend: false,
+        showlegend: index === recentDataPoints.recent.length - 1,
         hovertemplate: '<b>Hashrate</b>: %{x:.2f} PH/s<br><b>Price</b>: $%{y:.4f}<br><b>Date</b>: %{text}<extra></extra>',
         text: [point.date.toISOString().split('T')[0]]
       })
@@ -195,39 +235,41 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         y: yFit,
         mode: 'lines',
         type: 'scatter',
-        name: `Power-Law Fit (R²=${r2.toFixed(3)})`,
-        line: { color: '#FFA726', dash: 'dot', width: 2 }
+        name: `Power Law Trend (R²=${r2.toFixed(3)})`,
+        line: { color: '#F59E0B', width: 3, dash: 'solid' }
       })
 
-      // Deviation bands
+      // Confidence bands (refined)
       traces.push({
         x: xFit,
-        y: yFit.map(y => y * 0.4),
+        y: yFit.map(y => y * 0.5),
         mode: 'lines',
         type: 'scatter',
-        name: '-60% Deviation',
-        line: { color: 'rgba(255, 255, 255, 0.5)', dash: 'dot', width: 1 },
+        name: 'Support Level',
+        line: { color: 'rgba(245, 158, 11, 0.4)', width: 1, dash: 'dot' },
         hoverinfo: 'skip',
-        fill: null
+        fill: null,
+        showlegend: false
       })
 
       traces.push({
         x: xFit,
-        y: yFit.map(y => y * 2.2),
+        y: yFit.map(y => y * 2.0),
         mode: 'lines',
         type: 'scatter',
-        name: '+120% Deviation',
-        line: { color: 'rgba(255, 255, 255, 0.5)', dash: 'dot', width: 1 },
+        name: 'Resistance Level',
+        line: { color: 'rgba(245, 158, 11, 0.4)', width: 1, dash: 'dot' },
         hoverinfo: 'skip',
         fill: 'tonexty',
-        fillcolor: 'rgba(100, 100, 100, 0.2)'
+        fillcolor: 'rgba(245, 158, 11, 0.08)',
+        showlegend: false
       })
     }
 
     return traces
-  }, [analysisData, last7Points, showPowerLaw, powerLawData])
+  }, [analysisData, recentDataPoints, showPowerLaw, powerLawData])
 
-  // Chart layout - matching PriceChart style
+  // Chart layout - enhanced design
   const mainLayout: any = {
     height: 650,
     plot_bgcolor: 'rgba(0,0,0,0)',
@@ -235,17 +277,13 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     font: { color: '#9CA3AF', family: 'Inter, ui-sans-serif, system-ui, sans-serif' },
     hovermode: 'closest',
     showlegend: true,
-    margin: { l: 50, r: 20, t: 20, b: 50 },
+    margin: { l: 60, r: 30, t: 30, b: 60 },
     hoverlabel: {
-      bgcolor: 'rgba(15, 20, 25, 0.95)',
-      bordercolor: 'rgba(91, 108, 255, 0.5)',
-      font: { color: '#e2e8f0', size: 11 },
+      bgcolor: 'rgba(15, 15, 26, 0.95)',
+      bordercolor: 'rgba(91, 108, 255, 0.3)',
+      font: { color: '#e2e8f0', size: 12 },
       align: 'left',
-      namelength: -1,
-      xanchor: 'right',
-      yanchor: 'middle',
-      x: -10,
-      y: 0
+      namelength: -1
     },
     legend: {
       orientation: "h",
@@ -256,25 +294,45 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       bgcolor: 'rgba(0,0,0,0)',
       bordercolor: 'rgba(0,0,0,0)',
       borderwidth: 0,
-      font: { size: 11 }
+      font: { size: 12 }
     },
-    hoverdistance: 100,
-    selectdirection: 'diagonal',
     yaxis: {
-      title: { text: 'Price (USD)' },
+      title: { 
+        text: 'Price (USD)', 
+        font: { size: 14, color: '#E5E7EB' }
+      },
       type: priceScale === 'Log' ? 'log' : 'linear',
-      gridcolor: '#363650',
+      gridcolor: 'rgba(107, 114, 128, 0.15)',
       gridwidth: 1,
       color: '#9CA3AF',
-      showspikes: false
+      showspikes: false,
+      zeroline: false,
+      tickfont: { size: 11 },
+      minor: {
+        ticks: "outside",
+        ticklen: 3,
+        gridcolor: 'rgba(107, 114, 128, 0.08)',
+        gridwidth: 0.5
+      }
     },
     xaxis: {
-      title: { text: 'Hashrate (PH/s)' },
+      title: { 
+        text: 'Network Hashrate (PH/s)', 
+        font: { size: 14, color: '#E5E7EB' }
+      },
       type: hashrateScale === 'Log' ? 'log' : 'linear',
-      gridcolor: '#363650',
+      gridcolor: 'rgba(107, 114, 128, 0.15)',
       gridwidth: 1,
       color: '#9CA3AF',
-      showspikes: false
+      showspikes: false,
+      zeroline: false,
+      tickfont: { size: 11 },
+      minor: {
+        ticks: "outside",
+        ticklen: 3,
+        gridcolor: 'rgba(107, 114, 128, 0.08)',
+        gridwidth: 0.5
+      }
     }
   }
 
