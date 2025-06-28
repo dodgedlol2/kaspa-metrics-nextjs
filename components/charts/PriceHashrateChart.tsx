@@ -2,7 +2,6 @@
 import React, { useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 
-// Dynamically import Plotly to avoid SSR issues
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false })
 
 interface DataPoint {
@@ -16,30 +15,25 @@ interface PriceHashrateChartProps {
   className?: string
 }
 
-// Power law regression function
 function fitPowerLaw(data: Array<{x: number, y: number}>) {
   if (data.length < 2) {
     throw new Error("Not enough valid data points for power law fitting")
   }
   
-  // Log transform for linear regression
   const logData = data.map(point => ({
     x: Math.log(Math.max(0.0001, point.x)),
     y: Math.log(Math.max(0.0001, point.y))
   }))
   
-  // Linear regression on log-transformed data
   const n = logData.length
   const sumX = logData.reduce((sum, point) => sum + point.x, 0)
   const sumY = logData.reduce((sum, point) => sum + point.y, 0)
   const sumXY = logData.reduce((sum, point) => sum + point.x * point.y, 0)
   const sumX2 = logData.reduce((sum, point) => sum + point.x * point.x, 0)
   
-  // Calculate slope and intercept
   const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
   const intercept = (sumY - slope * sumX) / n
   
-  // Calculate R²
   const meanY = sumY / n
   const ssRes = logData.reduce((sum, point) => {
     const predicted = intercept + slope * point.x
@@ -50,7 +44,6 @@ function fitPowerLaw(data: Array<{x: number, y: number}>) {
   }, 0)
   const r2 = 1 - (ssRes / ssTot)
   
-  // Convert back to power law coefficients: y = a * x^b
   const a = Math.exp(intercept)
   const b = slope
   
@@ -62,7 +55,6 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
   const [hashrateScale, setHashrateScale] = useState<'Linear' | 'Log'>('Log')
   const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
 
-  // Merge and process data
   const analysisData = useMemo(() => {
     if (!priceData || !hashrateData || priceData.length === 0 || hashrateData.length === 0) {
       return []
@@ -74,7 +66,6 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       price: number
     }> = []
 
-    // Merge price and hashrate data by date
     priceData.forEach(pricePoint => {
       const priceDate = new Date(pricePoint.timestamp).toDateString()
       const correspondingHashrate = hashrateData.find(hashratePoint => {
@@ -84,7 +75,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
 
       if (correspondingHashrate && pricePoint.value > 0 && correspondingHashrate.value > 0) {
         const date = new Date(pricePoint.timestamp)
-        const hashrate = correspondingHashrate.value / 1e15 // Convert to PH/s
+        const hashrate = correspondingHashrate.value / 1e15
         const price = pricePoint.value
 
         merged.push({
@@ -98,7 +89,6 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     return merged.sort((a, b) => a.date.getTime() - b.date.getTime())
   }, [priceData, hashrateData])
 
-  // Calculate power law fits
   const powerLawData = useMemo(() => {
     if (analysisData.length < 10) return null
 
@@ -112,7 +102,6 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     }
   }, [analysisData])
 
-  // Get recent data points with enhanced highlighting
   const recentDataPoints = useMemo(() => {
     if (analysisData.length < 30) return { recent: analysisData.slice(-7), older: analysisData.slice(0, -7) }
     
@@ -127,13 +116,11 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     }
   }, [analysisData])
 
-  // Prepare main chart data
   const mainChartData = useMemo(() => {
     if (analysisData.length === 0) return []
 
     const traces: any[] = []
 
-    // Older data points (subtle gray)
     if (recentDataPoints.older.length > 0) {
       traces.push({
         x: recentDataPoints.older.map(d => d.hashrate),
@@ -152,7 +139,6 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       })
     }
 
-    // Recent 30 days (medium blue)
     if (recentDataPoints.recent30 && recentDataPoints.recent30.length > 0) {
       traces.push({
         x: recentDataPoints.recent30.map(d => d.hashrate),
@@ -171,7 +157,6 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       })
     }
 
-    // Recent 7 days (bright gradient)
     recentDataPoints.recent.forEach((point, index) => {
       const intensity = (index + 1) / recentDataPoints.recent.length
       const color = `rgba(91, 108, 255, ${0.6 + intensity * 0.4})`
@@ -196,7 +181,6 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       })
     })
 
-    // Power law fit line
     if (showPowerLaw === 'Show' && powerLawData?.priceHashrate) {
       const { a, b, r2 } = powerLawData.priceHashrate
       const minHashrate = Math.min(...analysisData.map(d => d.hashrate))
@@ -220,7 +204,6 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         line: { color: '#F59E0B', width: 3, dash: 'solid' }
       })
 
-      // Confidence bands
       traces.push({
         x: xFit,
         y: yFit.map(y => y * 0.5),
@@ -250,7 +233,6 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     return traces
   }, [analysisData, recentDataPoints, showPowerLaw, powerLawData])
 
-  // Chart layout
   const mainLayout: any = {
     height: 650,
     plot_bgcolor: 'rgba(0,0,0,0)',
@@ -290,13 +272,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       color: '#9CA3AF',
       showspikes: false,
       zeroline: false,
-      tickfont: { size: 11 },
-      minor: {
-        ticks: "outside",
-        ticklen: 3,
-        gridcolor: 'rgba(107, 114, 128, 0.08)',
-        gridwidth: 0.5
-      }
+      tickfont: { size: 11 }
     },
     xaxis: {
       title: { 
@@ -309,13 +285,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       color: '#9CA3AF',
       showspikes: false,
       zeroline: false,
-      tickfont: { size: 11 },
-      minor: {
-        ticks: "outside",
-        ticklen: 3,
-        gridcolor: 'rgba(107, 114, 128, 0.08)',
-        gridwidth: 0.5
-      }
+      tickfont: { size: 11 }
     }
   }
 
@@ -334,10 +304,8 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Interactive Controls */}
       <div className="flex flex-wrap gap-4 items-center justify-between">
         <div className="flex flex-wrap gap-2">
-          {/* Price Scale Control */}
           <div className="relative group">
             <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
               <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
@@ -395,7 +363,6 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
             </div>
           </div>
 
-          {/* Hashrate Scale Control */}
           <div className="relative group">
             <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
               <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
@@ -453,7 +420,6 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
             </div>
           </div>
 
-          {/* Power Law Control */}
           <div className="relative group">
             <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
               <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
@@ -513,7 +479,6 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         </div>
       </div>
 
-      {/* Plotly Chart */}
       <div style={{ height: '650px' }} className="w-full">
         <Plot
           data={mainChartData}
