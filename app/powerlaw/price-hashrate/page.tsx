@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import PriceHashrateChart from '@/components/charts/PriceHashrateChart'
-import { getPriceData, getHashrateData } from '@/lib/sheets'
 
 interface KaspaMetric {
   timestamp: number
@@ -27,10 +26,18 @@ export default function PriceHashratePage(): JSX.Element {
       setLoading(true)
       setError(null)
       
-      const [priceResult, hashrateResult] = await Promise.all([
-        getPriceData(),
-        getHashrateData()
+      // Fetch data from API endpoints instead of direct sheet functions
+      const [priceResponse, hashrateResponse] = await Promise.all([
+        fetch('/api/sheets/price'),
+        fetch('/api/sheets/hashrate')
       ])
+      
+      if (!priceResponse.ok || !hashrateResponse.ok) {
+        throw new Error('Failed to fetch data from API')
+      }
+      
+      const priceResult = await priceResponse.json()
+      const hashrateResult = await hashrateResponse.json()
       
       setPriceData(priceResult)
       setHashrateData(hashrateResult)
