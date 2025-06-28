@@ -85,29 +85,7 @@ export default function PriceHashratePage(): JSX.Element {
         </div>
 
         {/* Chart Section */}
-        {isLoggedIn ? (
-          <PriceHashrateChart className="mb-8" />
-        ) : (
-          <div className="bg-[#1A1A2E] rounded-xl p-8 text-center mb-8">
-            <div className="mb-6">
-              <div className="w-16 h-16 bg-[#5B6CFF]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-[#5B6CFF]" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M11,16.5L6.5,12L7.91,10.59L11,13.67L16.59,8.09L18,9.5L11,16.5Z"/>
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Login Required</h3>
-              <p className="text-[#A0A0B8] mb-6">
-                Sign in to access our power law analysis tools and start discovering mathematical patterns in Kaspa's market behavior.
-              </p>
-              <a
-                href="/login"
-                className="inline-flex items-center px-6 py-3 bg-[#5B6CFF] text-white font-medium rounded-lg hover:bg-[#4C5EE8] transition-colors"
-              >
-                Sign In to Continue
-              </a>
-            </div>
-          </div>
-        )}
+        <PriceHashrateChart className="mb-8" />
 
         {/* Educational Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
