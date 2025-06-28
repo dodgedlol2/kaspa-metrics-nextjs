@@ -496,7 +496,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
             }
           }}
           useResizeHandler={true}
-          revision={`${analysisData.length}-${priceScale}-${hashrateScale}-${showPowerLaw}`}
+          revision={analysisData.length}
         />
       </div>
     </div>
