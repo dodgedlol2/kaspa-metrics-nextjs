@@ -189,10 +189,12 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         mode: 'lines',
         type: 'scatter',
         name: 'Support Level',
-        line: { color: 'rgba(245, 158, 11, 0.4)', width: 1, dash: 'dot' },
+        line: { color: 'rgba(255, 255, 255, 0.6)', width: 1, dash: 'dot' },
         hoverinfo: 'skip',
         showlegend: true,
-        hoverdistance: -1
+        hoverdistance: -1,
+        fill: 'tozeroy',
+        fillcolor: 'rgba(255, 255, 255, 0.05)'
       })
 
       // Main power law trend
@@ -213,10 +215,10 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         mode: 'lines',
         type: 'scatter',
         name: 'Resistance Level',
-        line: { color: 'rgba(245, 158, 11, 0.4)', width: 1, dash: 'dot' },
+        line: { color: 'rgba(255, 255, 255, 0.6)', width: 1, dash: 'dot' },
         hoverinfo: 'skip',
         fill: 'tonexty',
-        fillcolor: 'rgba(245, 158, 11, 0.08)',
+        fillcolor: 'rgba(255, 255, 255, 0.05)',
         showlegend: true,
         hoverdistance: -1
       })
