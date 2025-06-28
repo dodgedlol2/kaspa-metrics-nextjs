@@ -330,14 +330,14 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
   }, [analysisData, last7Points, timeScale, showRatioFit, powerLawData])
 
   // Chart layouts
-  const mainLayout = {
+  const mainLayout: any = {
     plot_bgcolor: '#262730',
     paper_bgcolor: '#262730',
     font: { color: '#e0e0e0' },
     height: 500,
     margin: { l: 20, r: 20, t: 60, b: 100 },
     yaxis: {
-      title: 'Price (USD)',
+      title: { text: 'Price (USD)' },
       type: priceScale === 'Log' ? 'log' : 'linear',
       showgrid: true,
       gridwidth: 1,
@@ -346,7 +346,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       zerolinecolor: '#3A3C4A'
     },
     xaxis: {
-      title: 'Hashrate (PH/s)',
+      title: { text: 'Hashrate (PH/s)' },
       type: hashrateScale === 'Log' ? 'log' : 'linear',
       showgrid: true,
       gridwidth: 1,
@@ -365,14 +365,14 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     hovermode: 'closest'
   }
 
-  const ratioLayout = {
+  const ratioLayout: any = {
     plot_bgcolor: '#262730',
     paper_bgcolor: '#262730',
     font: { color: '#e0e0e0' },
     height: 250,
     margin: { l: 20, r: 20, t: 30, b: 50 },
     yaxis: {
-      title: 'Price/Hashrate Ratio (USD/PH/s)',
+      title: { text: 'Price/Hashrate Ratio (USD/PH/s)' },
       type: ratioScale === 'Log' ? 'log' : 'linear',
       showgrid: true,
       gridwidth: 1,
@@ -381,7 +381,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       zerolinecolor: '#3A3C4A'
     },
     xaxis: {
-      title: timeScale === 'Log' ? 'Days Since Genesis (Log Scale)' : 'Date',
+      title: { text: timeScale === 'Log' ? 'Days Since Genesis (Log Scale)' : 'Date' },
       type: timeScale === 'Log' ? 'log' : 'linear',
       showgrid: true,
       gridwidth: 1,
