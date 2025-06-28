@@ -131,7 +131,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         marker: {
           color: '#5B6CFF',
           size: 6,
-          opacity: 0.4,
+          opacity: 1.0,
           line: { width: 0 }
         },
         hovertemplate: 'Hashrate: %{x:.1f} PH/s<br>Price: $%{y:.2f}<br>%{text}<extra></extra>',
@@ -226,7 +226,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
   }, [analysisData, recentDataPoints, showPowerLaw, powerLawData])
 
   const mainLayout: any = {
-    height: 650,
+    height: 500,
     plot_bgcolor: 'rgba(0,0,0,0)',
     paper_bgcolor: 'rgba(0,0,0,0)',
     font: { color: '#9CA3AF', family: 'Inter, ui-sans-serif, system-ui, sans-serif' },
@@ -485,7 +485,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         </div>
       </div>
 
-      <div style={{ height: '650px' }} className="w-full">
+      <div style={{ height: '500px' }} className="w-full">
         <Plot
           data={mainChartData}
           layout={mainLayout}
