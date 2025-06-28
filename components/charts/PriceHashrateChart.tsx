@@ -104,15 +104,13 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
   }, [analysisData])
 
   const recentDataPoints = useMemo(() => {
-    if (analysisData.length < 30) return { recent: analysisData.slice(-7), older: analysisData.slice(0, -7) }
+    if (analysisData.length < 10) return { recent: analysisData.slice(-10), older: analysisData.slice(0, -10) }
     
-    const recent30Days = analysisData.slice(-30)
-    const recent7Days = analysisData.slice(-7)
-    const older = analysisData.slice(0, -30)
+    const recent10Days = analysisData.slice(-10)
+    const older = analysisData.slice(0, -10)
     
     return {
-      recent: recent7Days,
-      recent30: recent30Days.slice(0, -7),
+      recent: recent10Days,
       older: older
     }
   }, [analysisData])
@@ -122,7 +120,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
 
     const traces: any[] = []
 
-    // Historical data (older than 30 days)
+    // Historical data (older than 10 days)
     if (recentDataPoints.older.length > 0) {
       traces.push({
         x: recentDataPoints.older.map(d => d.hashrate),
@@ -131,7 +129,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         type: 'scattergl',
         name: 'Historical Data',
         marker: {
-          color: '#6B7280',
+          color: '#5B6CFF',
           size: 4,
           opacity: 0.4,
           line: { width: 0 }
@@ -142,32 +140,12 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       })
     }
 
-    // Last 30 days (excluding last 7)
-    if (recentDataPoints.recent30 && recentDataPoints.recent30.length > 0) {
-      traces.push({
-        x: recentDataPoints.recent30.map(d => d.hashrate),
-        y: recentDataPoints.recent30.map(d => d.price),
-        mode: 'markers',
-        type: 'scattergl',
-        name: 'Last 30 Days',
-        marker: {
-          color: '#5B6CFF',
-          size: 6,
-          opacity: 0.7,
-          line: { width: 1, color: '#4C5EE8' }
-        },
-        hovertemplate: '<b>Hashrate</b>: %{x:.2f} PH/s<br><b>Price</b>: $%{y:.4f}<br><b>Date</b>: %{text}<extra></extra>',
-        text: recentDataPoints.recent30.map(d => d.date.toISOString().split('T')[0]),
-        hoverdistance: 15
-      })
-    }
-
-    // Last 7 days - Combined into single trace to prevent flickering
+    // Last 10 days - with increasing size and brightness
     if (recentDataPoints.recent.length > 0) {
-      const recentSizes = recentDataPoints.recent.map((_, index) => 8 + index * 2)
-      const recentColors = recentDataPoints.recent.map((_, index) => {
+      const recentSizes = recentDataPoints.recent.map((_, index) => 6 + index * 2) // Start at 6, increase by 2 each day
+      const recentOpacities = recentDataPoints.recent.map((_, index) => {
         const intensity = (index + 1) / recentDataPoints.recent.length
-        return `rgba(91, 108, 255, ${0.6 + intensity * 0.4})`
+        return 0.5 + intensity * 0.5 // From 0.5 to 1.0 opacity
       })
       
       // Use star symbol for the latest point only
@@ -180,11 +158,11 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         y: recentDataPoints.recent.map(d => d.price),
         mode: 'markers',
         type: 'scattergl',
-        name: 'Last 7 Days',
+        name: 'Last 10 Days',
         marker: {
-          color: recentColors,
+          color: '#5B6CFF',
           size: recentSizes,
-          opacity: 1,
+          opacity: recentOpacities,
           line: { width: 2, color: '#FFFFFF' },
           symbol: symbols
         },
