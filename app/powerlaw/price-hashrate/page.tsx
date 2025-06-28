@@ -1,11 +1,45 @@
 'use client'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import PriceHashrateChart from '@/components/charts/PriceHashrateChart'
+import { getPriceData, getHashrateData } from '@/lib/sheets'
+
+interface KaspaMetric {
+  timestamp: number
+  value: number
+}
 
 export default function PriceHashratePage(): JSX.Element {
   const { data: session } = useSession()
   const isLoggedIn = !!session
+  
+  const [priceData, setPriceData] = useState<KaspaMetric[]>([])
+  const [hashrateData, setHashrateData] = useState<KaspaMetric[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const [priceResult, hashrateResult] = await Promise.all([
+        getPriceData(),
+        getHashrateData()
+      ])
+      
+      setPriceData(priceResult)
+      setHashrateData(hashrateResult)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load data')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#0F0F1A] p-6">
@@ -85,7 +119,38 @@ export default function PriceHashratePage(): JSX.Element {
         </div>
 
         {/* Chart Section */}
-        <PriceHashrateChart className="mb-8" />
+        {loading ? (
+          <div className="bg-[#1A1A2E] rounded-xl p-6 mb-8">
+            <div className="flex items-center justify-center h-80">
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 bg-[#5B6CFF] rounded-full animate-bounce"></div>
+                <div className="w-4 h-4 bg-[#5B6CFF] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-4 h-4 bg-[#5B6CFF] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              </div>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="bg-[#1A1A2E] rounded-xl p-6 mb-8">
+            <div className="flex items-center justify-center h-80">
+              <div className="text-center">
+                <div className="text-red-400 text-lg font-medium mb-2">Failed to load data</div>
+                <div className="text-[#6B7280] text-sm">{error}</div>
+                <button
+                  onClick={fetchData}
+                  className="mt-4 px-4 py-2 bg-[#5B6CFF] text-white rounded-lg hover:bg-[#4C5EE8] transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <PriceHashrateChart 
+            priceData={priceData} 
+            hashrateData={hashrateData} 
+            className="mb-8" 
+          />
+        )}
 
         {/* Educational Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
