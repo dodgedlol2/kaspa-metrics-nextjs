@@ -230,15 +230,19 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     plot_bgcolor: 'rgba(0,0,0,0)',
     paper_bgcolor: 'rgba(0,0,0,0)',
     font: { color: '#9CA3AF', family: 'Inter, ui-sans-serif, system-ui, sans-serif' },
-    hovermode: 'closest',
+    hovermode: 'x unified',
     showlegend: true,
     margin: { l: 60, r: 30, t: 30, b: 60 },
     hoverlabel: {
-      bgcolor: 'rgba(15, 15, 26, 0.95)',
-      bordercolor: 'rgba(91, 108, 255, 0.3)',
+      bgcolor: 'rgba(15, 20, 25, 0.95)',
+      bordercolor: 'rgba(91, 108, 255, 0.5)',
       font: { color: '#e2e8f0', size: 11 },
       align: 'left',
-      namelength: -1
+      namelength: -1,
+      xanchor: 'right',  // This anchors the tooltip to the right edge, making it appear to the left of cursor
+      yanchor: 'middle', // Centers vertically relative to the cursor
+      x: -10,            // Move 10 pixels to the left
+      y: 0               // No vertical offset
     },
     legend: {
       orientation: "h",
@@ -251,7 +255,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       borderwidth: 0,
       font: { size: 12 }
     },
-    hoverdistance: 5,
+    hoverdistance: 100,
     spikedistance: -1,
     yaxis: {
       title: { 
@@ -263,7 +267,6 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       gridwidth: 1,
       color: '#9CA3AF',
       showspikes: false,
-      zeroline: false,
       tickfont: { size: 11 }
     },
     xaxis: {
@@ -275,8 +278,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       gridcolor: 'rgba(107, 114, 128, 0.15)',
       gridwidth: 1,
       color: '#9CA3AF',
-      showspikes: false,
-      zeroline: false,
+      showspikes: false
       tickfont: { size: 11 }
     }
   }
