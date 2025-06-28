@@ -120,15 +120,13 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
   }, [analysisData])
 
   const recentDataPoints = useMemo(() => {
-    if (filteredAnalysisData.length < 3) return { recent: filteredAnalysisData.slice(-3), older: filteredAnalysisData.slice(0, -3) }
+    if (filteredAnalysisData.length < 10) return { recent: filteredAnalysisData.slice(-10), older: filteredAnalysisData.slice(0, -10) }
     
-    const recent3Days = filteredAnalysisData.slice(-3)
-    const older = filteredAnalysisData.slice(0, -3)
-    
-    console.log('Recent 3 days data:', recent3Days.map(d => ({ date: d.date.toISOString().split('T')[0], price: d.price, hashrate: d.hashrate })))
+    const recent10Days = filteredAnalysisData.slice(-10)
+    const older = filteredAnalysisData.slice(0, -10)
     
     return {
-      recent: recent3Days,
+      recent: recent10Days,
       older: older
     }
   }, [filteredAnalysisData])
@@ -138,7 +136,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
 
     const traces: any[] = []
 
-    // Historical data (older than 3 days)
+    // Historical data (older than 10 days)
     if (recentDataPoints.older.length > 0) {
       traces.push({
         x: recentDataPoints.older.map(d => d.hashrate),
@@ -150,7 +148,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
           color: '#5B6CFF',
           size: 6,
           opacity: 1.0,
-          line: { width: 0.5, color: 'rgba(0, 0, 0, 0.8)' }
+          line: { width: 0.5, color: 'rgba(200, 200, 200, 0.6)' }
         },
         hovertemplate: 'Hashrate: %{x:.1f} PH/s<br>Price: $%{y:.2f}<br>%{text}<extra></extra>',
         text: recentDataPoints.older.map(d => d.date.toISOString().split('T')[0]),
@@ -158,26 +156,12 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       })
     }
 
-    // Last 3 days - with gradient from blue to bluish pink
+    // Last 10 days - with increasing size and brightness
     if (recentDataPoints.recent.length > 0) {
       const recentSizes = recentDataPoints.recent.map((_, index) => 6 + index * 2) // Start at 6, increase by 2 each day
-      
-      // Color gradient from blue (#5B6CFF) to bluish pink (#9F5BFF)
-      const recentColors = recentDataPoints.recent.map((_, index) => {
-        if (recentDataPoints.recent.length === 1) {
-          return '#9F5BFF' // If only one point, use the final color
-        }
-        
-        const ratio = index / (recentDataPoints.recent.length - 1)
-        
-        // Interpolate from #5B6CFF (91, 108, 255) to #9F5BFF (159, 91, 255)
-        const r = Math.round(91 + (159 - 91) * ratio)    // 91 -> 159
-        const g = Math.round(108 + (91 - 108) * ratio)   // 108 -> 91  
-        const b = 255                                     // Keep blue constant at 255
-        
-        const color = `rgb(${r}, ${g}, ${b})`
-        console.log(`Day ${index + 1} color:`, color, `ratio: ${ratio}`)
-        return color
+      const recentOpacities = recentDataPoints.recent.map((_, index) => {
+        const intensity = (index + 1) / recentDataPoints.recent.length
+        return 0.5 + intensity * 0.5 // From 0.5 to 1.0 opacity
       })
 
       traces.push({
@@ -185,12 +169,13 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         y: recentDataPoints.recent.map(d => d.price),
         mode: 'markers',
         type: 'scattergl',
-        name: 'Last 3 Days',
+        name: 'Last 10 Days',
         marker: {
-          color: recentColors,
+          color: '#5B6CFF',
           size: recentSizes,
-          opacity: 1.0,
-          line: { width: 0 }
+          opacity: recentOpacities,
+          line: { width: 0 }, // Removed white lines
+          symbol: 'circle' // Removed star symbol
         },
         hovertemplate: 'Hashrate: %{x:.1f} PH/s<br>Price: $%{y:.2f}<br>%{text}<extra></extra>',
         text: recentDataPoints.recent.map(d => d.date.toISOString().split('T')[0]),
@@ -215,6 +200,21 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         yFit.push(y)
       }
 
+      // Support level (bottom of channel)
+      traces.push({
+        x: xFit,
+        y: yFit.map(y => y * 0.5),
+        mode: 'lines',
+        type: 'scatter',
+        name: 'Support Level',
+        line: { color: 'rgba(255, 255, 255, 0.6)', width: 1, dash: 'dot' },
+        hoverinfo: 'skip',
+        showlegend: true,
+        hoverdistance: -1,
+        fill: 'tozeroy',
+        fillcolor: 'rgba(255, 255, 255, 0.05)'
+      })
+
       // Main power law trend
       traces.push({
         x: xFit,
@@ -224,6 +224,21 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         name: `Power Law Trend (R²=${r2.toFixed(3)})`,
         line: { color: '#F59E0B', width: 3, dash: 'solid' },
         hoverinfo: 'skip'
+      })
+
+      // Resistance level (top of channel)
+      traces.push({
+        x: xFit,
+        y: yFit.map(y => y * 2.0),
+        mode: 'lines',
+        type: 'scatter',
+        name: 'Resistance Level',
+        line: { color: 'rgba(255, 255, 255, 0.6)', width: 1, dash: 'dot' },
+        hoverinfo: 'skip',
+        fill: 'tonexty',
+        fillcolor: 'rgba(255, 255, 255, 0.05)',
+        showlegend: true,
+        hoverdistance: -1
       })
     }
 
@@ -303,109 +318,10 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
   if (filteredAnalysisData.length === 0) {
     return (
       <div className={`bg-[#1A1A2E] rounded-xl p-6 ${className}`}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-center flex-1">
+        <div className="flex items-center justify-center h-80">
+          <div className="text-center">
             <div className="text-red-400 text-lg font-medium mb-2">No Data Available</div>
             <div className="text-[#6B7280] text-sm">Unable to correlate price and hashrate data</div>
-          </div>
-
-          {/* Time Period Buttons - positioned on the right */}
-          <div className="flex items-center gap-2">
-            {(['1M', '3M', '6M', '1Y'] as const).map((period) => (
-              <button
-                key={period}
-                onClick={() => setTimePeriod(period)}
-                className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                  timePeriod === period
-                    ? 'bg-[#5B6CFF] text-white'
-                    : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
-                }`}
-              >
-                {period}
-              </button>
-            ))}
-            
-            {/* Max Time Dropdown */}
-            <div className="relative group">
-              <button 
-                className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                  timePeriod === 'All' || timePeriod === '2Y' || timePeriod === '3Y'
-                    ? 'bg-[#5B6CFF] text-white'
-                    : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
-                }`}
-              >
-                <svg className={`w-3 h-3 ${
-                  timePeriod === 'All' || timePeriod === '2Y' || timePeriod === '3Y'
-                    ? 'text-white' 
-                    : 'text-[#6366F1]'
-                }`} fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
-                </svg>
-                <span>Max</span>
-                <svg className={`w-3 h-3 transition-colors ${
-                  timePeriod === 'All' || timePeriod === '2Y' || timePeriod === '3Y'
-                    ? 'text-white group-hover:text-gray-200' 
-                    : 'text-current group-hover:text-[#5B6CFF]'
-                }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              <div className="absolute top-full mt-1 right-0 w-32 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
-                <div className="p-1.5">
-                  <div 
-                    onClick={() => setTimePeriod('2Y')}
-                    className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                      timePeriod === '2Y'
-                        ? 'bg-[#5B6CFF]/20' 
-                        : 'hover:bg-[#1A1A2E]/80'
-                    }`}
-                  >
-                    <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M19,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
-                    </svg>
-                    <span className={`text-xs font-medium ${
-                      timePeriod === '2Y' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                    }`}>
-                      2 Years
-                    </span>
-                  </div>
-                  <div 
-                    onClick={() => setTimePeriod('3Y')}
-                    className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                      timePeriod === '3Y'
-                        ? 'bg-[#5B6CFF]/20' 
-                        : 'hover:bg-[#1A1A2E]/80'
-                    }`}
-                  >
-                    <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M19,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
-                    </svg>
-                    <span className={`text-xs font-medium ${
-                      timePeriod === '3Y' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                    }`}>
-                      3 Years
-                    </span>
-                  </div>
-                  <div 
-                    onClick={() => setTimePeriod('All')}
-                    className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                      timePeriod === 'All'
-                        ? 'bg-[#5B6CFF]/20' 
-                        : 'hover:bg-[#1A1A2E]/80'
-                    }`}
-                  >
-                    <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
-                    </svg>
-                    <span className={`text-xs font-medium ${
-                      timePeriod === 'All' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                    }`}>
-                      All Time
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -415,8 +331,104 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
   return (
     <div className={`space-y-6 ${className}`}>
       <div className="flex flex-wrap gap-4 items-center justify-between">
-        {/* Left side - Chart controls */}
         <div className="flex flex-wrap gap-2">
+          {/* Time Period Buttons - moved to left side */}
+          {(['1M', '3M', '6M', '1Y'] as const).map((period) => (
+            <button
+              key={period}
+              onClick={() => setTimePeriod(period)}
+              className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                timePeriod === period
+                  ? 'bg-[#5B6CFF] text-white'
+                  : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
+              }`}
+            >
+              {period}
+            </button>
+          ))}
+          
+          {/* Max Time Dropdown */}
+          <div className="relative group">
+            <button 
+              className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                timePeriod === 'All' || timePeriod === '2Y' || timePeriod === '3Y'
+                  ? 'bg-[#5B6CFF] text-white'
+                  : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
+              }`}
+            >
+              <svg className={`w-3 h-3 ${
+                timePeriod === 'All' || timePeriod === '2Y' || timePeriod === '3Y'
+                  ? 'text-white' 
+                  : 'text-[#6366F1]'
+              }`} fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+              </svg>
+              <span>Max</span>
+              <svg className={`w-3 h-3 transition-colors ${
+                timePeriod === 'All' || timePeriod === '2Y' || timePeriod === '3Y'
+                  ? 'text-white group-hover:text-gray-200' 
+                  : 'text-current group-hover:text-[#5B6CFF]'
+              }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 right-0 w-32 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                <div 
+                  onClick={() => setTimePeriod('2Y')}
+                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                    timePeriod === '2Y'
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
+                  </svg>
+                  <span className={`text-xs font-medium ${
+                    timePeriod === '2Y' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                  }`}>
+                    2 Years
+                  </span>
+                </div>
+                <div 
+                  onClick={() => setTimePeriod('3Y')}
+                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                    timePeriod === '3Y'
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
+                  </svg>
+                  <span className={`text-xs font-medium ${
+                    timePeriod === '3Y' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                  }`}>
+                    3 Years
+                  </span>
+                </div>
+                <div 
+                  onClick={() => setTimePeriod('All')}
+                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                    timePeriod === 'All'
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+                  </svg>
+                  <span className={`text-xs font-medium ${
+                    timePeriod === 'All' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                  }`}>
+                    All Time
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Price Scale Control */}
           <div className="relative group">
             <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
@@ -425,6 +437,63 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
               </svg>
               <span className="text-[#A0A0B8] text-xs">Price Scale:</span>
               <span className="font-medium text-[#FFFFFF] text-xs">{priceScale}</span>
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                <div 
+                  onClick={() => setPriceScale('Linear')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    priceScale === 'Linear' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${priceScale === 'Linear' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Linear Scale
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Equal spacing between price intervals
+                    </div>
+                  </div>
+                </div>
+                <div 
+                  onClick={() => setPriceScale('Log')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    priceScale === 'Log' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M19,19H5V5H19V19M7,10H9V16H7V10M11,7H13V16H11V7M15,13H17V16H15V13Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${priceScale === 'Log' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Logarithmic Scale
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Better for analyzing percentage changes
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative group">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14.27,4.73L19.27,9.73C19.65,10.11 19.65,10.74 19.27,11.12L14.27,16.12C13.89,16.5 13.26,16.5 12.88,16.12C12.5,15.74 12.5,15.11 12.88,14.73L16.16,11.45H8.91L12.19,14.73C12.57,15.11 12.57,15.74 12.19,16.12C11.81,16.5 11.18,16.5 10.8,16.12L5.8,11.12C5.42,10.74 5.42,10.11 5.8,9.73L10.8,4.73C11.18,4.35 11.81,4.35 12.19,4.73C12.57,5.11 12.57,5.74 12.19,6.12L8.91,9.4H16.16L12.88,6.12C12.5,5.74 12.5,5.11 12.88,4.73C13.26,4.35 13.89,4.35 14.27,4.73Z"/>
+              </svg>
+              <span className="text-[#A0A0B8] text-xs">Hashrate Scale:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{hashrateScale}</span>
               <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -532,105 +601,6 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
             </div>
           </div>
         </div>
-
-        {/* Right side - Time period buttons */}
-        <div className="flex items-center gap-2">
-          {(['1M', '3M', '6M', '1Y'] as const).map((period) => (
-            <button
-              key={period}
-              onClick={() => setTimePeriod(period)}
-              className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                timePeriod === period
-                  ? 'bg-[#5B6CFF] text-white'
-                  : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
-              }`}
-            >
-              {period}
-            </button>
-          ))}
-          
-          {/* Max Time Dropdown */}
-          <div className="relative group">
-            <button 
-              className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                timePeriod === 'All' || timePeriod === '2Y' || timePeriod === '3Y'
-                  ? 'bg-[#5B6CFF] text-white'
-                  : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
-              }`}
-            >
-              <svg className={`w-3 h-3 ${
-                timePeriod === 'All' || timePeriod === '2Y' || timePeriod === '3Y'
-                  ? 'text-white' 
-                  : 'text-[#6366F1]'
-              }`} fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
-              </svg>
-              <span>Max</span>
-              <svg className={`w-3 h-3 transition-colors ${
-                timePeriod === 'All' || timePeriod === '2Y' || timePeriod === '3Y'
-                  ? 'text-white group-hover:text-gray-200' 
-                  : 'text-current group-hover:text-[#5B6CFF]'
-              }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div className="absolute top-full mt-1 right-0 w-32 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
-              <div className="p-1.5">
-                <div 
-                  onClick={() => setTimePeriod('2Y')}
-                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                    timePeriod === '2Y'
-                      ? 'bg-[#5B6CFF]/20' 
-                      : 'hover:bg-[#1A1A2E]/80'
-                  }`}
-                >
-                  <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M19,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
-                  </svg>
-                  <span className={`text-xs font-medium ${
-                    timePeriod === '2Y' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                  }`}>
-                    2 Years
-                  </span>
-                </div>
-                <div 
-                  onClick={() => setTimePeriod('3Y')}
-                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                    timePeriod === '3Y'
-                      ? 'bg-[#5B6CFF]/20' 
-                      : 'hover:bg-[#1A1A2E]/80'
-                  }`}
-                >
-                  <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M19,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
-                  </svg>
-                  <span className={`text-xs font-medium ${
-                    timePeriod === '3Y' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                  }`}>
-                    3 Years
-                  </span>
-                </div>
-                <div 
-                  onClick={() => setTimePeriod('All')}
-                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                    timePeriod === 'All'
-                      ? 'bg-[#5B6CFF]/20' 
-                      : 'hover:bg-[#1A1A2E]/80'
-                  }`}
-                >
-                  <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
-                  </svg>
-                  <span className={`text-xs font-medium ${
-                    timePeriod === 'All' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                  }`}>
-                    All Time
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div style={{ height: '500px' }} className="w-full">
@@ -663,61 +633,4 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       </div>
     </div>
   )
-}5">
-                <div 
-                  onClick={() => setPriceScale('Linear')}
-                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
-                    priceScale === 'Linear' 
-                      ? 'bg-[#5B6CFF]/20' 
-                      : 'hover:bg-[#1A1A2E]/80'
-                  }`}
-                >
-                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
-                  </svg>
-                  <div className="flex-1">
-                    <div className={`font-medium text-xs ${priceScale === 'Linear' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
-                      Linear Scale
-                    </div>
-                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
-                      Equal spacing between price intervals
-                    </div>
-                  </div>
-                </div>
-                <div 
-                  onClick={() => setPriceScale('Log')}
-                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
-                    priceScale === 'Log' 
-                      ? 'bg-[#5B6CFF]/20' 
-                      : 'hover:bg-[#1A1A2E]/80'
-                  }`}
-                >
-                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M19,19H5V5H19V19M7,10H9V16H7V10M11,7H13V16H11V7M15,13H17V16H15V13Z"/>
-                  </svg>
-                  <div className="flex-1">
-                    <div className={`font-medium text-xs ${priceScale === 'Log' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
-                      Logarithmic Scale
-                    </div>
-                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
-                      Better for analyzing percentage changes
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="relative group">
-            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M14.27,4.73L19.27,9.73C19.65,10.11 19.65,10.74 19.27,11.12L14.27,16.12C13.89,16.5 13.26,16.5 12.88,16.12C12.5,15.74 12.5,15.11 12.88,14.73L16.16,11.45H8.91L12.19,14.73C12.57,15.11 12.57,15.74 12.19,16.12C11.81,16.5 11.18,16.5 10.8,16.12L5.8,11.12C5.42,10.74 5.42,10.11 5.8,9.73L10.8,4.73C11.18,4.35 11.81,4.35 12.19,4.73C12.57,5.11 12.57,5.74 12.19,6.12L8.91,9.4H16.16L12.88,6.12C12.5,5.74 12.5,5.11 12.88,4.73C13.26,4.35 13.89,4.35 14.27,4.73Z"/>
-              </svg>
-              <span className="text-[#A0A0B8] text-xs">Hashrate Scale:</span>
-              <span className="font-medium text-[#FFFFFF] text-xs">{hashrateScale}</span>
-              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
-              <div className="p-1.
+}
