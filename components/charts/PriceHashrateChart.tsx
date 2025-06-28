@@ -148,7 +148,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
           color: '#5B6CFF',
           size: 6,
           opacity: 1.0,
-          line: { width: 0.5, color: 'rgba(200, 200, 200, 0.6)' }
+          line: { width: 0.5, color: 'rgba(150, 150, 150, 0.6)' }
         },
         hovertemplate: 'Hashrate: %{x:.1f} PH/s<br>Price: $%{y:.2f}<br>%{text}<extra></extra>',
         text: recentDataPoints.older.map(d => d.date.toISOString().split('T')[0]),
@@ -183,7 +183,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       })
     }
 
-    // Power law trend line and support/resistance levels
+    // Power law trend line only
     if (showPowerLaw === 'Show' && powerLawData?.priceHashrate) {
       const { a, b, r2 } = powerLawData.priceHashrate
       
@@ -200,22 +200,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         yFit.push(y)
       }
 
-      // Support level (bottom of channel)
-      traces.push({
-        x: xFit,
-        y: yFit.map(y => y * 0.5),
-        mode: 'lines',
-        type: 'scatter',
-        name: 'Support Level',
-        line: { color: 'rgba(255, 255, 255, 0.6)', width: 1, dash: 'dot' },
-        hoverinfo: 'skip',
-        showlegend: true,
-        hoverdistance: -1,
-        fill: 'tozeroy',
-        fillcolor: 'rgba(255, 255, 255, 0.05)'
-      })
-
-      // Main power law trend
+      // Main power law trend only
       traces.push({
         x: xFit,
         y: yFit,
@@ -224,21 +209,6 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         name: `Power Law Trend (R²=${r2.toFixed(3)})`,
         line: { color: '#F59E0B', width: 3, dash: 'solid' },
         hoverinfo: 'skip'
-      })
-
-      // Resistance level (top of channel)
-      traces.push({
-        x: xFit,
-        y: yFit.map(y => y * 2.0),
-        mode: 'lines',
-        type: 'scatter',
-        name: 'Resistance Level',
-        line: { color: 'rgba(255, 255, 255, 0.6)', width: 1, dash: 'dot' },
-        hoverinfo: 'skip',
-        fill: 'tonexty',
-        fillcolor: 'rgba(255, 255, 255, 0.05)',
-        showlegend: true,
-        hoverdistance: -1
       })
     }
 
