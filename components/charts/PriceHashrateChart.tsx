@@ -120,13 +120,13 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
   }, [analysisData])
 
   const recentDataPoints = useMemo(() => {
-    if (filteredAnalysisData.length < 10) return { recent: filteredAnalysisData.slice(-10), older: filteredAnalysisData.slice(0, -10) }
+    if (filteredAnalysisData.length < 3) return { recent: filteredAnalysisData.slice(-3), older: filteredAnalysisData.slice(0, -3) }
     
-    const recent10Days = filteredAnalysisData.slice(-10)
-    const older = filteredAnalysisData.slice(0, -10)
+    const recent3Days = filteredAnalysisData.slice(-3)
+    const older = filteredAnalysisData.slice(0, -3)
     
     return {
-      recent: recent10Days,
+      recent: recent3Days,
       older: older
     }
   }, [filteredAnalysisData])
@@ -148,7 +148,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
           color: '#5B6CFF',
           size: 6,
           opacity: 1.0,
-          line: { width: 0.5, color: 'rgba(200, 200, 200, 0.6)' }
+          line: { width: 0.5, color: 'rgba(0, 0, 0, 0.8)' }
         },
         hovertemplate: 'Hashrate: %{x:.1f} PH/s<br>Price: $%{y:.2f}<br>%{text}<extra></extra>',
         text: recentDataPoints.older.map(d => d.date.toISOString().split('T')[0]),
@@ -200,21 +200,6 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         yFit.push(y)
       }
 
-      // Support level (bottom of channel)
-      traces.push({
-        x: xFit,
-        y: yFit.map(y => y * 0.5),
-        mode: 'lines',
-        type: 'scatter',
-        name: 'Support Level',
-        line: { color: 'rgba(255, 255, 255, 0.6)', width: 1, dash: 'dot' },
-        hoverinfo: 'skip',
-        showlegend: true,
-        hoverdistance: -1,
-        fill: 'tozeroy',
-        fillcolor: 'rgba(255, 255, 255, 0.05)'
-      })
-
       // Main power law trend
       traces.push({
         x: xFit,
@@ -224,21 +209,6 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         name: `Power Law Trend (R²=${r2.toFixed(3)})`,
         line: { color: '#F59E0B', width: 3, dash: 'solid' },
         hoverinfo: 'skip'
-      })
-
-      // Resistance level (top of channel)
-      traces.push({
-        x: xFit,
-        y: yFit.map(y => y * 2.0),
-        mode: 'lines',
-        type: 'scatter',
-        name: 'Resistance Level',
-        line: { color: 'rgba(255, 255, 255, 0.6)', width: 1, dash: 'dot' },
-        hoverinfo: 'skip',
-        fill: 'tonexty',
-        fillcolor: 'rgba(255, 255, 255, 0.05)',
-        showlegend: true,
-        hoverdistance: -1
       })
     }
 
@@ -324,6 +294,88 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
             <div className="text-[#6B7280] text-sm">Unable to correlate price and hashrate data</div>
           </div>
         </div>
+
+        {/* Max Time Dropdown - positioned on the right */}
+        <div className="relative group">
+          <button 
+            className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+              timePeriod === 'All' || timePeriod === '2Y' || timePeriod === '3Y'
+                ? 'bg-[#5B6CFF] text-white'
+                : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
+            }`}
+          >
+            <svg className={`w-3 h-3 ${
+              timePeriod === 'All' || timePeriod === '2Y' || timePeriod === '3Y'
+                ? 'text-white' 
+                : 'text-[#6366F1]'
+            }`} fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+            </svg>
+            <span>Max</span>
+            <svg className={`w-3 h-3 transition-colors ${
+              timePeriod === 'All' || timePeriod === '2Y' || timePeriod === '3Y'
+                ? 'text-white group-hover:text-gray-200' 
+                : 'text-current group-hover:text-[#5B6CFF]'
+            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <div className="absolute top-full mt-1 right-0 w-32 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+            <div className="p-1.5">
+              <div 
+                onClick={() => setTimePeriod('2Y')}
+                className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                  timePeriod === '2Y'
+                    ? 'bg-[#5B6CFF]/20' 
+                    : 'hover:bg-[#1A1A2E]/80'
+                }`}
+              >
+                <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
+                </svg>
+                <span className={`text-xs font-medium ${
+                  timePeriod === '2Y' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                }`}>
+                  2 Years
+                </span>
+              </div>
+              <div 
+                onClick={() => setTimePeriod('3Y')}
+                className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                  timePeriod === '3Y'
+                    ? 'bg-[#5B6CFF]/20' 
+                    : 'hover:bg-[#1A1A2E]/80'
+                }`}
+              >
+                <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
+                </svg>
+                <span className={`text-xs font-medium ${
+                  timePeriod === '3Y' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                }`}>
+                  3 Years
+                </span>
+              </div>
+              <div 
+                onClick={() => setTimePeriod('All')}
+                className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                  timePeriod === 'All'
+                    ? 'bg-[#5B6CFF]/20' 
+                    : 'hover:bg-[#1A1A2E]/80'
+                }`}
+              >
+                <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+                </svg>
+                <span className={`text-xs font-medium ${
+                  timePeriod === 'All' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                }`}>
+                  All Time
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
@@ -332,7 +384,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     <div className={`space-y-6 ${className}`}>
       <div className="flex flex-wrap gap-4 items-center justify-between">
         <div className="flex flex-wrap gap-2">
-          {/* Time Period Buttons - moved to left side */}
+          {/* Time Period Buttons - 1M, 3M, 6M, 1Y */}
           {(['1M', '3M', '6M', '1Y'] as const).map((period) => (
             <button
               key={period}
@@ -346,88 +398,6 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
               {period}
             </button>
           ))}
-          
-          {/* Max Time Dropdown */}
-          <div className="relative group">
-            <button 
-              className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                timePeriod === 'All' || timePeriod === '2Y' || timePeriod === '3Y'
-                  ? 'bg-[#5B6CFF] text-white'
-                  : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
-              }`}
-            >
-              <svg className={`w-3 h-3 ${
-                timePeriod === 'All' || timePeriod === '2Y' || timePeriod === '3Y'
-                  ? 'text-white' 
-                  : 'text-[#6366F1]'
-              }`} fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
-              </svg>
-              <span>Max</span>
-              <svg className={`w-3 h-3 transition-colors ${
-                timePeriod === 'All' || timePeriod === '2Y' || timePeriod === '3Y'
-                  ? 'text-white group-hover:text-gray-200' 
-                  : 'text-current group-hover:text-[#5B6CFF]'
-              }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div className="absolute top-full mt-1 right-0 w-32 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
-              <div className="p-1.5">
-                <div 
-                  onClick={() => setTimePeriod('2Y')}
-                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                    timePeriod === '2Y'
-                      ? 'bg-[#5B6CFF]/20' 
-                      : 'hover:bg-[#1A1A2E]/80'
-                  }`}
-                >
-                  <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M19,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
-                  </svg>
-                  <span className={`text-xs font-medium ${
-                    timePeriod === '2Y' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                  }`}>
-                    2 Years
-                  </span>
-                </div>
-                <div 
-                  onClick={() => setTimePeriod('3Y')}
-                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                    timePeriod === '3Y'
-                      ? 'bg-[#5B6CFF]/20' 
-                      : 'hover:bg-[#1A1A2E]/80'
-                  }`}
-                >
-                  <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M19,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
-                  </svg>
-                  <span className={`text-xs font-medium ${
-                    timePeriod === '3Y' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                  }`}>
-                    3 Years
-                  </span>
-                </div>
-                <div 
-                  onClick={() => setTimePeriod('All')}
-                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                    timePeriod === 'All'
-                      ? 'bg-[#5B6CFF]/20' 
-                      : 'hover:bg-[#1A1A2E]/80'
-                  }`}
-                >
-                  <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
-                  </svg>
-                  <span className={`text-xs font-medium ${
-                    timePeriod === 'All' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                  }`}>
-                    All Time
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Price Scale Control */}
           <div className="relative group">
