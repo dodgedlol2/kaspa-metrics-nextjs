@@ -256,7 +256,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       font: { size: 11 }
     },
     hoverdistance: 100,
-    selectdirection: 'diagonal'
+    selectdirection: 'diagonal',
     yaxis: {
       title: { 
         text: 'Price (USD)', 
