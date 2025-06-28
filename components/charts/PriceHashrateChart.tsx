@@ -269,7 +269,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     return traces
   }, [analysisData, recentDataPoints, showPowerLaw, powerLawData])
 
-  // Chart layout - enhanced design
+  // Chart layout - enhanced design with fixed hover
   const mainLayout: any = {
     height: 650,
     plot_bgcolor: 'rgba(0,0,0,0)',
@@ -296,6 +296,8 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       borderwidth: 0,
       font: { size: 12 }
     },
+    hoverdistance: 20,
+    spikedistance: 20,
     yaxis: {
       title: { 
         text: 'Price (USD)', 
@@ -485,6 +487,71 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
             <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
               <div className="p-1.5">
                 <div 
+                  onClick={() => setShowPowerLaw('Hide')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    showPowerLaw === 'Hide' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,2C13.1,2 14,2.9 14,4C14,5.1 13.1,6 12,6C10.9,6 10,5.1 10,4C10,2.9 10.9,2 12,2M21,9V7L15,1H5C3.89,1 3,1.89 3,3V21A2,2 0 0,0 5,23H19A2,2 0 0,0 21,21V9H21M19,19H5V3H13V9H19V19Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${showPowerLaw === 'Hide' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Hide Power Law
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Display only the correlation data
+                    </div>
+                  </div>
+                </div>
+                <div 
+                  onClick={() => setShowPowerLaw('Show')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    showPowerLaw === 'Show' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${showPowerLaw === 'Show' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Show Power Law
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Display regression trend line
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Plotly Chart - Clean design with fixed hover */}
+      <div style={{ height: '650px' }} className="w-full">
+        <Plot
+          data={mainChartData}
+          layout={mainLayout}
+          style={{ width: '100%', height: '100%' }}
+          config={{
+            displayModeBar: false,
+            responsive: true,
+            doubleClick: 'autosize',
+            scrollZoom: true,
+            editable: false,
+            staticPlot: false
+          }}
+          useResizeHandler={true}
+        />
+      </div>
+    </div>
+  )
+}<div 
                   onClick={() => setShowPowerLaw('Hide')}
                   className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
                     showPowerLaw === 'Hide' 
