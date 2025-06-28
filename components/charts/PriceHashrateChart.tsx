@@ -148,7 +148,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
           color: '#5B6CFF',
           size: 6,
           opacity: 1.0,
-          line: { width: 0.5, color: 'rgba(150, 150, 150, 0.6)' }
+          line: { width: 0.5, color: 'rgba(80, 80, 80, 0.7)' }
         },
         hovertemplate: 'Hashrate: %{x:.1f} PH/s<br>Price: $%{y:.2f}<br>%{text}<extra></extra>',
         text: recentDataPoints.older.map(d => d.date.toISOString().split('T')[0]),
