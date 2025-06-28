@@ -332,7 +332,47 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     <div className={`space-y-6 ${className}`}>
       <div className="flex flex-wrap gap-4 items-center justify-between">
         <div className="flex flex-wrap gap-2">
-          {/* Time Period Buttons - moved to left side */}
+          {/* Price Scale Control */}
+          <div className="relative group">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
+              </svg>
+              <span className="text-[#A0A0B8] text-xs">Price Scale:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{priceScale}</span>
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                <div 
+                  onClick={() => setPriceScale('Linear')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    priceScale === 'Linear' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${showPowerLaw === 'Show' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Show Power Law
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Display regression trend line
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Time Period Buttons - Moved to the right side */}
+        <div className="flex items-center gap-2">
           {(['1M', '3M', '6M', '1Y'] as const).map((period) => (
             <button
               key={period}
@@ -428,30 +468,40 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Price Scale Control */}
-          <div className="relative group">
-            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
-              </svg>
-              <span className="text-[#A0A0B8] text-xs">Price Scale:</span>
-              <span className="font-medium text-[#FFFFFF] text-xs">{priceScale}</span>
-              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
-              <div className="p-1.5">
-                <div 
-                  onClick={() => setPriceScale('Linear')}
-                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
-                    priceScale === 'Linear' 
-                      ? 'bg-[#5B6CFF]/20' 
-                      : 'hover:bg-[#1A1A2E]/80'
-                  }`}
-                >
-                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+      <div style={{ height: '500px' }} className="w-full">
+        <Plot
+          data={mainChartData}
+          layout={mainLayout}
+          style={{ width: '100%', height: '100%' }}
+          config={{
+            displayModeBar: false,
+            responsive: true,
+            doubleClick: 'autosize',
+            scrollZoom: true,
+            editable: false,
+            staticPlot: false,
+            showTips: false,
+            autosizable: true,
+            frameMargins: 0,
+            modeBarButtonsToRemove: ['hoverClosestCartesian', 'hoverCompareCartesian'],
+            toImageButtonOptions: {
+              format: 'png',
+              filename: 'price_hashrate_chart',
+              height: 650,
+              width: 1200,
+              scale: 1
+            }
+          }}
+          useResizeHandler={true}
+          revision={filteredAnalysisData.length}
+        />
+      </div>
+    </div>
+  )
+}#6366F1]" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
                   </svg>
                   <div className="flex-1">
@@ -585,52 +635,4 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
                       : 'hover:bg-[#1A1A2E]/80'
                   }`}
                 >
-                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
-                  </svg>
-                  <div className="flex-1">
-                    <div className={`font-medium text-xs ${showPowerLaw === 'Show' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
-                      Show Power Law
-                    </div>
-                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
-                      Display regression trend line
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ height: '500px' }} className="w-full">
-        <Plot
-          data={mainChartData}
-          layout={mainLayout}
-          style={{ width: '100%', height: '100%' }}
-          config={{
-            displayModeBar: false,
-            responsive: true,
-            doubleClick: 'autosize',
-            scrollZoom: true,
-            editable: false,
-            staticPlot: false,
-            showTips: false,
-            autosizable: true,
-            frameMargins: 0,
-            modeBarButtonsToRemove: ['hoverClosestCartesian', 'hoverCompareCartesian'],
-            toImageButtonOptions: {
-              format: 'png',
-              filename: 'price_hashrate_chart',
-              height: 650,
-              width: 1200,
-              scale: 1
-            }
-          }}
-          useResizeHandler={true}
-          revision={filteredAnalysisData.length}
-        />
-      </div>
-    </div>
-  )
-}
+                  <svg className="w-5 h-5 text-[
