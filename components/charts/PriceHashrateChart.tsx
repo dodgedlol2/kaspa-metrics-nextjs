@@ -120,7 +120,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
 
     const traces: any[] = []
 
-    // Historical data (older than 10.0 days)
+    // Historical data (older than 10 days)
     if (recentDataPoints.older.length > 0) {
       traces.push({
         x: recentDataPoints.older.map(d => d.hashrate),
@@ -232,7 +232,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     font: { color: '#9CA3AF', family: 'Inter, ui-sans-serif, system-ui, sans-serif' },
     hovermode: 'x unified',
     showlegend: true,
-    margin: { l: 60, r: 30, t: 30, b: 60 },
+    margin: { l: 50, r: 20, t: 20, b: 50 },
     hoverlabel: {
       bgcolor: 'rgba(15, 20, 25, 0.95)',
       bordercolor: 'rgba(91, 108, 255, 0.5)',
@@ -253,17 +253,17 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       bgcolor: 'rgba(0,0,0,0)',
       bordercolor: 'rgba(0,0,0,0)',
       borderwidth: 0,
-      font: { size: 12 }
+      font: { size: 11 }
     },
     hoverdistance: 100,
-    spikedistance: -1,
+    selectdirection: 'diagonal'
     yaxis: {
       title: { 
         text: 'Price (USD)', 
         font: { size: 14, color: '#E5E7EB' }
       },
       type: priceScale === 'Log' ? 'log' : 'linear',
-      gridcolor: 'rgba(107, 114, 128, 0.15)',
+      gridcolor: '#363650',
       gridwidth: 1,
       color: '#9CA3AF',
       showspikes: false,
@@ -275,7 +275,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         font: { size: 14, color: '#E5E7EB' }
       },
       type: hashrateScale === 'Log' ? 'log' : 'linear',
-      gridcolor: 'rgba(107, 114, 128, 0.15)',
+      gridcolor: '#363650',
       gridwidth: 1,
       color: '#9CA3AF',
       showspikes: false,
