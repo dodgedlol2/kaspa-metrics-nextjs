@@ -1,4 +1,6 @@
-'use client'
+// Main scatter plot points - using #00FFCC like your Streamlit version
+    traces.push({
+      x: analysisData.map(d => d.hashrate'use client'
 import React, { useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 
@@ -152,7 +154,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
 
     const traces: any[] = []
 
-    // Main scatter plot points
+    // Main scatter plot points - using #00FFCC like your Streamlit version
     traces.push({
       x: analysisData.map(d => d.hashrate),
       y: analysisData.map(d => d.price),
@@ -169,7 +171,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       text: analysisData.map(d => d.date.toISOString().split('T')[0])
     })
 
-    // Last 7 points with gradient colors
+    // Last 7 points with gradient colors (teal to purple like Streamlit)
     last7Points.forEach((point, index) => {
       traces.push({
         x: [point.hashrate],
@@ -329,75 +331,55 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     return traces
   }, [analysisData, last7Points, timeScale, showRatioFit, powerLawData])
 
-  // Chart layouts
+  // Chart layout - matching PriceChart style
   const mainLayout: any = {
-    plot_bgcolor: '#262730',
-    paper_bgcolor: '#262730',
-    font: { color: '#e0e0e0' },
-    height: 500,
-    margin: { l: 20, r: 20, t: 60, b: 100 },
+    height: 650,
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    font: { color: '#9CA3AF', family: 'Inter, ui-sans-serif, system-ui, sans-serif' },
+    hovermode: 'closest',
+    showlegend: true,
+    margin: { l: 50, r: 20, t: 20, b: 50 },
+    hoverlabel: {
+      bgcolor: 'rgba(15, 20, 25, 0.95)',
+      bordercolor: 'rgba(91, 108, 255, 0.5)',
+      font: { color: '#e2e8f0', size: 11 },
+      align: 'left',
+      namelength: -1,
+      xanchor: 'right',
+      yanchor: 'middle',
+      x: -10,
+      y: 0
+    },
+    legend: {
+      orientation: "h",
+      yanchor: "bottom",
+      y: 1.02,
+      xanchor: "left",
+      x: 0,
+      bgcolor: 'rgba(0,0,0,0)',
+      bordercolor: 'rgba(0,0,0,0)',
+      borderwidth: 0,
+      font: { size: 11 }
+    },
+    hoverdistance: 100,
+    selectdirection: 'diagonal',
     yaxis: {
       title: { text: 'Price (USD)' },
       type: priceScale === 'Log' ? 'log' : 'linear',
-      showgrid: true,
+      gridcolor: '#363650',
       gridwidth: 1,
-      gridcolor: 'rgba(255, 255, 255, 0.1)',
-      linecolor: '#3A3C4A',
-      zerolinecolor: '#3A3C4A'
+      color: '#9CA3AF',
+      showspikes: false
     },
     xaxis: {
       title: { text: 'Hashrate (PH/s)' },
       type: hashrateScale === 'Log' ? 'log' : 'linear',
-      showgrid: true,
+      gridcolor: '#363650',
       gridwidth: 1,
-      gridcolor: 'rgba(255, 255, 255, 0.1)',
-      linecolor: '#3A3C4A',
-      zerolinecolor: '#3A3C4A'
-    },
-    legend: {
-      orientation: "h",
-      yanchor: "bottom",
-      y: 1.02,
-      xanchor: "right",
-      x: 1,
-      bgcolor: 'rgba(38, 39, 48, 0.8)'
-    },
-    hovermode: 'closest'
-  }
-
-  const ratioLayout: any = {
-    plot_bgcolor: '#262730',
-    paper_bgcolor: '#262730',
-    font: { color: '#e0e0e0' },
-    height: 250,
-    margin: { l: 20, r: 20, t: 30, b: 50 },
-    yaxis: {
-      title: { text: 'Price/Hashrate Ratio (USD/PH/s)' },
-      type: ratioScale === 'Log' ? 'log' : 'linear',
-      showgrid: true,
-      gridwidth: 1,
-      gridcolor: 'rgba(255, 255, 255, 0.1)',
-      linecolor: '#3A3C4A',
-      zerolinecolor: '#3A3C4A'
-    },
-    xaxis: {
-      title: { text: timeScale === 'Log' ? 'Days Since Genesis (Log Scale)' : 'Date' },
-      type: timeScale === 'Log' ? 'log' : 'linear',
-      showgrid: true,
-      gridwidth: 1,
-      gridcolor: 'rgba(255, 255, 255, 0.1)',
-      linecolor: '#3A3C4A',
-      zerolinecolor: '#3A3C4A'
-    },
-    legend: {
-      orientation: "h",
-      yanchor: "bottom",
-      y: 1.02,
-      xanchor: "right",
-      x: 1,
-      bgcolor: 'rgba(38, 39, 48, 0.8)'
-    },
-    hovermode: 'x unified'
+      color: '#9CA3AF',
+      showspikes: false
+    }
   }
 
   if (analysisData.length === 0) {
@@ -415,152 +397,201 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Controls */}
+      {/* Interactive Controls - matching PriceChart style */}
       <div className="flex flex-wrap gap-4 items-center justify-between">
         <div className="flex flex-wrap gap-2">
-          {/* Price Scale */}
-          <div className="flex flex-col">
-            <label className="text-xs text-[#A0A0B8] mb-1">Price Scale</label>
-            <select 
-              value={priceScale} 
-              onChange={(e) => setPriceScale(e.target.value as 'Linear' | 'Log')}
-              className="px-2 py-1 text-xs bg-[#1A1A2E] border border-[#2D2D45] rounded text-white"
-            >
-              <option value="Linear">Linear</option>
-              <option value="Log">Log</option>
-            </select>
+          {/* Price Scale Control */}
+          <div className="relative group">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
+              </svg>
+              <span className="text-[#A0A0B8] text-xs">Price Scale:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{priceScale}</span>
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                <div 
+                  onClick={() => setPriceScale('Linear')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    priceScale === 'Linear' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${priceScale === 'Linear' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Linear Scale
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Equal spacing between price intervals
+                    </div>
+                  </div>
+                </div>
+                <div 
+                  onClick={() => setPriceScale('Log')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    priceScale === 'Log' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M19,19H5V5H19V19M7,10H9V16H7V10M11,7H13V16H11V7M15,13H17V16H15V13Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${priceScale === 'Log' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Logarithmic Scale
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Better for analyzing percentage changes
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Hashrate Scale */}
-          <div className="flex flex-col">
-            <label className="text-xs text-[#A0A0B8] mb-1">Hashrate Scale</label>
-            <select 
-              value={hashrateScale} 
-              onChange={(e) => setHashrateScale(e.target.value as 'Linear' | 'Log')}
-              className="px-2 py-1 text-xs bg-[#1A1A2E] border border-[#2D2D45] rounded text-white"
-            >
-              <option value="Linear">Linear</option>
-              <option value="Log">Log</option>
-            </select>
+          {/* Hashrate Scale Control */}
+          <div className="relative group">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14.27,4.73L19.27,9.73C19.65,10.11 19.65,10.74 19.27,11.12L14.27,16.12C13.89,16.5 13.26,16.5 12.88,16.12C12.5,15.74 12.5,15.11 12.88,14.73L16.16,11.45H8.91L12.19,14.73C12.57,15.11 12.57,15.74 12.19,16.12C11.81,16.5 11.18,16.5 10.8,16.12L5.8,11.12C5.42,10.74 5.42,10.11 5.8,9.73L10.8,4.73C11.18,4.35 11.81,4.35 12.19,4.73C12.57,5.11 12.57,5.74 12.19,6.12L8.91,9.4H16.16L12.88,6.12C12.5,5.74 12.5,5.11 12.88,4.73C13.26,4.35 13.89,4.35 14.27,4.73Z"/>
+              </svg>
+              <span className="text-[#A0A0B8] text-xs">Hashrate Scale:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{hashrateScale}</span>
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                <div 
+                  onClick={() => setHashrateScale('Linear')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    hashrateScale === 'Linear' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${hashrateScale === 'Linear' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Linear Scale
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Equal spacing between hashrate intervals
+                    </div>
+                  </div>
+                </div>
+                <div 
+                  onClick={() => setHashrateScale('Log')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    hashrateScale === 'Log' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M19,19H5V5H19V19M7,10H9V16H7V10M11,7H13V16H11V7M15,13H17V16H15V13Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${hashrateScale === 'Log' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Logarithmic Scale
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Better for analyzing percentage changes
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Power Law */}
-          <div className="flex flex-col">
-            <label className="text-xs text-[#A0A0B8] mb-1">Power Law Fit</label>
-            <select 
-              value={showPowerLaw} 
-              onChange={(e) => setShowPowerLaw(e.target.value as 'Hide' | 'Show')}
-              className="px-2 py-1 text-xs bg-[#1A1A2E] border border-[#2D2D45] rounded text-white"
-            >
-              <option value="Hide">Hide</option>
-              <option value="Show">Show</option>
-            </select>
-          </div>
-
-          {/* Ratio Scale */}
-          <div className="flex flex-col">
-            <label className="text-xs text-[#A0A0B8] mb-1">Ratio Scale</label>
-            <select 
-              value={ratioScale} 
-              onChange={(e) => setRatioScale(e.target.value as 'Linear' | 'Log')}
-              className="px-2 py-1 text-xs bg-[#1A1A2E] border border-[#2D2D45] rounded text-white"
-            >
-              <option value="Linear">Linear</option>
-              <option value="Log">Log</option>
-            </select>
-          </div>
-
-          {/* Time Scale */}
-          <div className="flex flex-col">
-            <label className="text-xs text-[#A0A0B8] mb-1">Time Scale</label>
-            <select 
-              value={timeScale} 
-              onChange={(e) => setTimeScale(e.target.value as 'Linear' | 'Log')}
-              className="px-2 py-1 text-xs bg-[#1A1A2E] border border-[#2D2D45] rounded text-white"
-            >
-              <option value="Linear">Linear</option>
-              <option value="Log">Log</option>
-            </select>
-          </div>
-
-          {/* Ratio Fit */}
-          <div className="flex flex-col">
-            <label className="text-xs text-[#A0A0B8] mb-1">Ratio Fit</label>
-            <select 
-              value={showRatioFit} 
-              onChange={(e) => setShowRatioFit(e.target.value as 'Hide' | 'Show')}
-              className="px-2 py-1 text-xs bg-[#1A1A2E] border border-[#2D2D45] rounded text-white"
-            >
-              <option value="Hide">Hide</option>
-              <option value="Show">Show</option>
-            </select>
+          {/* Power Law Control */}
+          <div className="relative group">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
+              </svg>
+              <span className="text-[#A0A0B8] text-xs">Power Law:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{showPowerLaw}</span>
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                <div 
+                  onClick={() => setShowPowerLaw('Hide')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    showPowerLaw === 'Hide' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,2C13.1,2 14,2.9 14,4C14,5.1 13.1,6 12,6C10.9,6 10,5.1 10,4C10,2.9 10.9,2 12,2M21,9V7L15,1H5C3.89,1 3,1.89 3,3V21A2,2 0 0,0 5,23H19A2,2 0 0,0 21,21V9H21M19,19H5V3H13V9H19V19Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${showPowerLaw === 'Hide' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Hide Power Law
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Display only the correlation data
+                    </div>
+                  </div>
+                </div>
+                <div 
+                  onClick={() => setShowPowerLaw('Show')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    showPowerLaw === 'Show' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${showPowerLaw === 'Show' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Show Power Law
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Display regression trend line
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main Chart */}
-      <div className="bg-[#262730] rounded-xl p-4">
-        <h3 className="text-lg font-semibold text-white mb-4">Price vs Hashrate Analysis</h3>
+      {/* Plotly Chart - Clean design like PriceChart */}
+      <div style={{ height: '650px' }} className="w-full">
         <Plot
           data={mainChartData}
           layout={mainLayout}
-          style={{ width: '100%', height: '500px' }}
-          config={{ displayModeBar: false, responsive: true }}
+          style={{ width: '100%', height: '100%' }}
+          config={{
+            displayModeBar: false,
+            responsive: true,
+            doubleClick: 'autosize',
+            scrollZoom: true,
+            editable: false
+          }}
+          useResizeHandler={true}
         />
       </div>
-
-      {/* Ratio Chart */}
-      <div className="bg-[#262730] rounded-xl p-4">
-        <h4 className="text-md font-semibold text-white mb-4">Price/Hashrate Ratio</h4>
-        <Plot
-          data={ratioChartData}
-          layout={ratioLayout}
-          style={{ width: '100%', height: '250px' }}
-          config={{ displayModeBar: false, responsive: true }}
-        />
-      </div>
-
-      {/* Statistics */}
-      {powerLawData && (
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-          <div className="bg-[#262730] rounded-lg p-4 text-center">
-            <div className="text-xs text-[#A0A0B8] mb-1">Power-Law Slope</div>
-            <div className="text-lg font-semibold text-[#00FFCC]">
-              {powerLawData.priceHashrate.b.toFixed(3)}
-            </div>
-          </div>
-          <div className="bg-[#262730] rounded-lg p-4 text-center">
-            <div className="text-xs text-[#A0A0B8] mb-1">Price-HR Fit (R²)</div>
-            <div className="text-lg font-semibold text-[#00FFCC]">
-              {powerLawData.priceHashrate.r2.toFixed(3)}
-            </div>
-          </div>
-          <div className="bg-[#262730] rounded-lg p-4 text-center">
-            <div className="text-xs text-[#A0A0B8] mb-1">Ratio-Time Slope</div>
-            <div className="text-lg font-semibold text-[#00FFCC]">
-              {powerLawData.ratioTime.b.toFixed(3)}
-            </div>
-          </div>
-          <div className="bg-[#262730] rounded-lg p-4 text-center">
-            <div className="text-xs text-[#A0A0B8] mb-1">Ratio-Time Fit (R²)</div>
-            <div className="text-lg font-semibold text-[#00FFCC]">
-              {powerLawData.ratioTime.r2.toFixed(3)}
-            </div>
-          </div>
-          <div className="bg-[#262730] rounded-lg p-4 text-center">
-            <div className="text-xs text-[#A0A0B8] mb-1">Current Hashrate</div>
-            <div className="text-lg font-semibold text-[#00FFCC]">
-              {analysisData.length > 0 ? `${analysisData[analysisData.length - 1].hashrate.toFixed(2)} PH/s` : 'N/A'}
-            </div>
-          </div>
-          <div className="bg-[#262730] rounded-lg p-4 text-center">
-            <div className="text-xs text-[#A0A0B8] mb-1">Current Price</div>
-            <div className="text-lg font-semibold text-[#00FFCC]">
-              {analysisData.length > 0 ? `$${analysisData[analysisData.length - 1].price.toFixed(4)}` : 'N/A'}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
