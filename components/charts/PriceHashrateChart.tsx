@@ -11,8 +11,9 @@ import {
   Legend,
   LogarithmicScale,
   ScatterController,
+  LineController,
 } from 'chart.js'
-import { Scatter } from 'react-chartjs-2'
+import { Chart } from 'react-chartjs-2'
 
 ChartJS.register(
   CategoryScale,
@@ -23,7 +24,8 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  ScatterController
+  ScatterController,
+  LineController
 )
 
 interface DataPoint {
@@ -146,7 +148,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
 
   const trendLine = generateTrendLine()
 
-  const chartData = {
+  const chartData: any = {
     datasets: [
       {
         label: 'Price vs Hashrate',
@@ -156,6 +158,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         pointRadius: 4,
         pointHoverRadius: 6,
         showLine: false,
+        type: 'scatter',
       },
       ...(trendLine.length > 0 ? [{
         label: `Power Law Trend (R² = ${powerLaw ? (Math.random() * 0.3 + 0.7).toFixed(3) : 'N/A'})`,
@@ -166,12 +169,12 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         pointRadius: 0,
         showLine: true,
         tension: 0,
-        type: 'line' as const,
+        type: 'line',
       }] : [])
     ],
   }
 
-  const options = {
+  const options: any = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -330,7 +333,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
 
       {/* Chart */}
       <div className="h-80">
-        <Scatter data={chartData} options={options} />
+        <Chart type="scatter" data={chartData} options={options} />
       </div>
 
       {/* Statistics */}
