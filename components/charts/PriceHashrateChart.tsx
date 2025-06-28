@@ -191,7 +191,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         name: 'Support Level',
         line: { color: 'rgba(245, 158, 11, 0.4)', width: 1, dash: 'dot' },
         hoverinfo: 'skip',
-        showlegend: false,
+        showlegend: true,
         hoverdistance: -1
       })
 
@@ -217,7 +217,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         hoverinfo: 'skip',
         fill: 'tonexty',
         fillcolor: 'rgba(245, 158, 11, 0.08)',
-        showlegend: false,
+        showlegend: true,
         hoverdistance: -1
       })
     }
@@ -267,7 +267,11 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       gridwidth: 1,
       color: '#9CA3AF',
       showspikes: false,
-      tickfont: { size: 11 }
+      tickfont: { size: 11 },
+      autorange: false,
+      range: priceScale === 'Log' ? 
+        [Math.log10(Math.min(...analysisData.map(d => d.price)) * 0.8), Math.log10(Math.max(...analysisData.map(d => d.price)) * 1.2)] :
+        [Math.min(...analysisData.map(d => d.price)) * 0.9, Math.max(...analysisData.map(d => d.price)) * 1.1]
     },
     xaxis: {
       title: { 
@@ -279,7 +283,11 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       gridwidth: 1,
       color: '#9CA3AF',
       showspikes: false,
-      tickfont: { size: 11 }
+      tickfont: { size: 11 },
+      autorange: false,
+      range: hashrateScale === 'Log' ? 
+        [Math.log10(Math.min(...analysisData.map(d => d.hashrate)) * 0.9), Math.log10(Math.max(...analysisData.map(d => d.hashrate)) * 1.1)] :
+        [Math.min(...analysisData.map(d => d.hashrate)) * 0.95, Math.max(...analysisData.map(d => d.hashrate)) * 1.05]
     }
   }
 
