@@ -31,59 +31,57 @@ interface DataPoint {
 }
 
 interface PriceHashrateChartProps {
+  priceData: Array<{ timestamp: number; value: number }>
+  hashrateData: Array<{ timestamp: number; value: number }>
   className?: string
 }
 
-export default function PriceHashrateChart({ className = '' }: PriceHashrateChartProps) {
+export default function PriceHashrateChart({ priceData, hashrateData, className = '' }: PriceHashrateChartProps) {
   const [data, setData] = useState<DataPoint[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [timeframe, setTimeframe] = useState('1Y')
 
   useEffect(() => {
-    fetchData()
-  }, [timeframe])
+    processData()
+  }, [priceData, hashrateData, timeframe])
 
-  const fetchData = async () => {
+  const processData = () => {
     try {
       setLoading(true)
       setError(null)
 
-      // Fetch both price and hashrate data
-      const [priceResponse, hashrateResponse] = await Promise.all([
-        fetch('/api/data/price'),
-        fetch('/api/data/hashrate')
-      ])
-
-      if (!priceResponse.ok || !hashrateResponse.ok) {
-        throw new Error('Failed to fetch data')
+      if (!priceData || !hashrateData || priceData.length === 0 || hashrateData.length === 0) {
+        throw new Error('No data available')
       }
-
-      const priceData = await priceResponse.json()
-      const hashrateData = await hashrateResponse.json()
 
       // Combine and correlate the data by date
       const combinedData: DataPoint[] = []
       
-      priceData.forEach((pricePoint: any) => {
+      priceData.forEach((pricePoint) => {
         const correspondingHashrate = hashrateData.find(
-          (hashratePoint: any) => hashratePoint.date === pricePoint.date
+          (hashratePoint) => {
+            // Match by date (within the same day)
+            const priceDate = new Date(pricePoint.timestamp).toDateString()
+            const hashrateDate = new Date(hashratePoint.timestamp).toDateString()
+            return priceDate === hashrateDate
+          }
         )
         
-        if (correspondingHashrate && pricePoint.price > 0 && correspondingHashrate.hashrate > 0) {
+        if (correspondingHashrate && pricePoint.value > 0 && correspondingHashrate.value > 0) {
           combinedData.push({
-            x: correspondingHashrate.hashrate,
-            y: pricePoint.price,
-            date: pricePoint.date
+            x: correspondingHashrate.value,
+            y: pricePoint.value,
+            date: new Date(pricePoint.timestamp).toISOString()
           })
         }
       })
 
       // Filter by timeframe
-      const now = new Date()
+      const now = Date.now()
       const filtered = combinedData.filter(point => {
         const pointDate = new Date(point.date)
-        const daysDiff = (now.getTime() - pointDate.getTime()) / (1000 * 60 * 60 * 24)
+        const daysDiff = (now - pointDate.getTime()) / (1000 * 60 * 60 * 24)
         
         switch (timeframe) {
           case '7D': return daysDiff <= 7
@@ -290,7 +288,7 @@ export default function PriceHashrateChart({ className = '' }: PriceHashrateChar
             <div className="text-red-400 text-lg font-medium mb-2">Failed to load chart</div>
             <div className="text-[#6B7280] text-sm">{error}</div>
             <button
-              onClick={fetchData}
+              onClick={processData}
               className="mt-4 px-4 py-2 bg-[#5B6CFF] text-white rounded-lg hover:bg-[#4C5EE8] transition-colors"
             >
               Retry
