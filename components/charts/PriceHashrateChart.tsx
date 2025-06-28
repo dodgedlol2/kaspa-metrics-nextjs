@@ -130,7 +130,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         name: 'Historical Data',
         marker: {
           color: '#5B6CFF',
-          size: 4,
+          size: 6,
           opacity: 0.4,
           line: { width: 0 }
         },
