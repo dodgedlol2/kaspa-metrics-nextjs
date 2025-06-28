@@ -121,6 +121,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
 
     const traces: any[] = []
 
+    // Historical data (older than 30 days)
     if (recentDataPoints.older.length > 0) {
       traces.push({
         x: recentDataPoints.older.map(d => d.hashrate),
@@ -135,10 +136,12 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
           line: { width: 0 }
         },
         hovertemplate: '<b>Hashrate</b>: %{x:.2f} PH/s<br><b>Price</b>: $%{y:.4f}<br><b>Date</b>: %{text}<extra></extra>',
-        text: recentDataPoints.older.map(d => d.date.toISOString().split('T')[0])
+        text: recentDataPoints.older.map(d => d.date.toISOString().split('T')[0]),
+        hoverdistance: 5
       })
     }
 
+    // Last 30 days (excluding last 7)
     if (recentDataPoints.recent30 && recentDataPoints.recent30.length > 0) {
       traces.push({
         x: recentDataPoints.recent30.map(d => d.hashrate),
@@ -153,34 +156,44 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
           line: { width: 1, color: '#4C5EE8' }
         },
         hovertemplate: '<b>Hashrate</b>: %{x:.2f} PH/s<br><b>Price</b>: $%{y:.4f}<br><b>Date</b>: %{text}<extra></extra>',
-        text: recentDataPoints.recent30.map(d => d.date.toISOString().split('T')[0])
+        text: recentDataPoints.recent30.map(d => d.date.toISOString().split('T')[0]),
+        hoverdistance: 5
       })
     }
 
-    recentDataPoints.recent.forEach((point, index) => {
-      const intensity = (index + 1) / recentDataPoints.recent.length
-      const color = `rgba(91, 108, 255, ${0.6 + intensity * 0.4})`
-      const size = 8 + index * 2
+    // Last 7 days - Combined into single trace to prevent flickering
+    if (recentDataPoints.recent.length > 0) {
+      const recentSizes = recentDataPoints.recent.map((_, index) => 8 + index * 2)
+      const recentColors = recentDataPoints.recent.map((_, index) => {
+        const intensity = (index + 1) / recentDataPoints.recent.length
+        return `rgba(91, 108, 255, ${0.6 + intensity * 0.4})`
+      })
       
+      // Use star symbol for the latest point only
+      const symbols = recentDataPoints.recent.map((_, index) => 
+        index === recentDataPoints.recent.length - 1 ? 'star' : 'circle'
+      )
+
       traces.push({
-        x: [point.hashrate],
-        y: [point.price],
+        x: recentDataPoints.recent.map(d => d.hashrate),
+        y: recentDataPoints.recent.map(d => d.price),
         mode: 'markers',
         type: 'scattergl',
-        name: index === recentDataPoints.recent.length - 1 ? 'Latest Data' : null,
+        name: 'Last 7 Days',
         marker: {
-          color: color,
-          size: size,
+          color: recentColors,
+          size: recentSizes,
           opacity: 1,
           line: { width: 2, color: '#FFFFFF' },
-          symbol: index === recentDataPoints.recent.length - 1 ? 'star' : 'circle'
+          symbol: symbols
         },
-        showlegend: index === recentDataPoints.recent.length - 1,
         hovertemplate: '<b>Hashrate</b>: %{x:.2f} PH/s<br><b>Price</b>: $%{y:.4f}<br><b>Date</b>: %{text}<extra></extra>',
-        text: [point.date.toISOString().split('T')[0]]
+        text: recentDataPoints.recent.map(d => d.date.toISOString().split('T')[0]),
+        hoverdistance: 10
       })
-    })
+    }
 
+    // Power law trend line and support/resistance levels
     if (showPowerLaw === 'Show' && powerLawData?.priceHashrate) {
       const { a, b, r2 } = powerLawData.priceHashrate
       const minHashrate = Math.min(...analysisData.map(d => d.hashrate))
@@ -195,15 +208,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         yFit.push(y)
       }
 
-      traces.push({
-        x: xFit,
-        y: yFit,
-        mode: 'lines',
-        type: 'scatter',
-        name: `Power Law Trend (R²=${r2.toFixed(3)})`,
-        line: { color: '#F59E0B', width: 3, dash: 'solid' }
-      })
-
+      // Support level (bottom of channel)
       traces.push({
         x: xFit,
         y: yFit.map(y => y * 0.5),
@@ -212,10 +217,22 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         name: 'Support Level',
         line: { color: 'rgba(245, 158, 11, 0.4)', width: 1, dash: 'dot' },
         hoverinfo: 'skip',
-        fill: null,
-        showlegend: false
+        showlegend: false,
+        hoverdistance: -1
       })
 
+      // Main power law trend
+      traces.push({
+        x: xFit,
+        y: yFit,
+        mode: 'lines',
+        type: 'scatter',
+        name: `Power Law Trend (R²=${r2.toFixed(3)})`,
+        line: { color: '#F59E0B', width: 3, dash: 'solid' },
+        hoverdistance: 5
+      })
+
+      // Resistance level (top of channel)
       traces.push({
         x: xFit,
         y: yFit.map(y => y * 2.0),
@@ -226,7 +243,8 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         hoverinfo: 'skip',
         fill: 'tonexty',
         fillcolor: 'rgba(245, 158, 11, 0.08)',
-        showlegend: false
+        showlegend: false,
+        hoverdistance: -1
       })
     }
 
@@ -259,8 +277,8 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       borderwidth: 0,
       font: { size: 12 }
     },
-    hoverdistance: 20,
-    spikedistance: 20,
+    hoverdistance: 50,
+    spikedistance: -1,
     yaxis: {
       title: { 
         text: 'Price (USD)', 
