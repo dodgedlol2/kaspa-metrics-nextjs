@@ -278,7 +278,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       gridcolor: 'rgba(107, 114, 128, 0.15)',
       gridwidth: 1,
       color: '#9CA3AF',
-      showspikes: false
+      showspikes: false,
       tickfont: { size: 11 }
     }
   }
