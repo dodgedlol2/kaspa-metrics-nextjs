@@ -137,7 +137,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       if (d.date.getTime() === mostRecentDate) {
         return '#A855F7' // Bright purple for current/latest data
       }
-      return '#5B6CFF' // Primary button color for all other dots
+      return '#4C5BFF' // Brighter blue for all other dots
     })
     
     // Create sizes array - make current day larger
@@ -156,7 +156,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         color: colors,
         size: sizes,
         opacity: 1.0, // Full brightness, no opacity
-        line: { width: 1, color: 'rgba(60, 60, 60, 0.8)' } // Slightly thicker, darker outline
+        line: { width: 0.5, color: 'rgba(60, 60, 60, 0.8)' } // 0.5px outline
       },
       hovertemplate: 'Hashrate: %{x:.1f} PH/s<br>Price: $%{y:.2f}<br>%{text}<extra></extra>',
       text: filteredAnalysisData.map(d => d.date.toISOString().split('T')[0]),
