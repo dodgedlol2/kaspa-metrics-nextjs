@@ -1,12 +1,10 @@
 'use client'
 import { useSession } from 'next-auth/react'
 import PriceHashrateChart from '@/components/charts/PriceHashrateChart'
-import PremiumGate from '@/components/PremiumGate'
 
 export default function PriceHashratePage() {
   const { data: session } = useSession()
   const isLoggedIn = !!session
-  const isPremium = session?.user?.is_premium || false
 
   return (
     <div className="min-h-screen bg-[#0F0F1A] p-6">
@@ -22,12 +20,6 @@ export default function PriceHashratePage() {
                 Discover the mathematical relationship between Kaspa's network security and market valuation
               </p>
             </div>
-            
-            {!isPremium && (
-              <div className="bg-gradient-to-r from-[#F59E0B] to-[#EAB308] text-black px-4 py-2 rounded-lg font-medium text-sm">
-                Premium Feature
-              </div>
-            )}
           </div>
         </div>
 
@@ -93,22 +85,7 @@ export default function PriceHashratePage() {
 
         {/* Chart Section */}
         {isLoggedIn ? (
-          isPremium ? (
-            <PriceHashrateChart className="mb-8" />
-          ) : (
-            <PremiumGate
-              title="Unlock Power Law Analysis"
-              description="Get access to advanced mathematical models and correlation analysis to better understand Kaspa's long-term value proposition."
-              features={[
-                'Interactive Price vs Hashrate charts',
-                'Power law regression analysis',
-                'Historical correlation data',
-                'Market deviation indicators',
-                'Export analysis data'
-              ]}
-              className="mb-8"
-            />
-          )
+          <PriceHashrateChart className="mb-8" />
         ) : (
           <div className="bg-[#1A1A2E] rounded-xl p-8 text-center mb-8">
             <div className="mb-6">
