@@ -120,7 +120,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
 
     const traces: any[] = []
 
-    // Historical data (older than 10 days)
+    // Historical data (older than 10.0 days)
     if (recentDataPoints.older.length > 0) {
       traces.push({
         x: recentDataPoints.older.map(d => d.hashrate),
