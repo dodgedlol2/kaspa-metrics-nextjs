@@ -126,6 +126,10 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
 
     // Calculate colors based on distance from power law
     let colors: string[] = []
+    let sizes: number[] = []
+    
+    // Find the most recent data point (today's data)
+    const mostRecentDate = Math.max(...filteredAnalysisData.map(d => d.date.getTime()))
     
     if (powerLawData?.priceHashrate) {
       const { a, b } = powerLawData.priceHashrate
@@ -143,8 +147,14 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       const maxDev = Math.max(...deviations)
       const range = Math.max(Math.abs(minDev), Math.abs(maxDev))
       
-      // Create color array based on deviation from power law
-      colors = deviations.map(deviation => {
+      // Create color and size arrays
+      colors = filteredAnalysisData.map((d, index) => {
+        // Check if this is today's data point
+        if (d.date.getTime() === mostRecentDate) {
+          return '#A855F7' // Bright purple for current/latest data
+        }
+        
+        const deviation = deviations[index]
         const normalizedDev = deviation / range // -1 to 1
         
         if (normalizedDev > 0) {
@@ -165,9 +175,19 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
           }
         }
       })
+      
+      // Create sizes array - make current day larger
+      sizes = filteredAnalysisData.map(d => {
+        return d.date.getTime() === mostRecentDate ? 10 : 7 // Larger for current day
+      })
     } else {
       // Fallback to left-to-right gradient if no power law
-      colors = filteredAnalysisData.map((_, index) => {
+      colors = filteredAnalysisData.map((d, index) => {
+        // Check if this is today's data point
+        if (d.date.getTime() === mostRecentDate) {
+          return '#A855F7' // Bright purple for current/latest data
+        }
+        
         const progress = index / (filteredAnalysisData.length - 1)
         if (progress < 0.33) {
           return '#6366F1' // Primary Alt for early data
@@ -177,9 +197,13 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
           return '#4C5BFF' // Hover state for recent data
         }
       })
+      
+      sizes = filteredAnalysisData.map(d => {
+        return d.date.getTime() === mostRecentDate ? 10 : 7
+      })
     }
 
-    // All data points with dynamic coloring
+    // All data points with dynamic coloring and sizing
     traces.push({
       x: filteredAnalysisData.map(d => d.hashrate),
       y: filteredAnalysisData.map(d => d.price),
@@ -188,9 +212,9 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       name: 'Price vs Hashrate',
       marker: {
         color: colors,
-        size: 6,
-        opacity: 0.8,
-        line: { width: 0.5, color: 'rgba(80, 80, 80, 0.7)' }
+        size: sizes,
+        opacity: 0.9, // Increased opacity to make dots pop more
+        line: { width: 1, color: 'rgba(60, 60, 60, 0.8)' } // Slightly thicker, darker outline
       },
       hovertemplate: 'Hashrate: %{x:.1f} PH/s<br>Price: $%{y:.2f}<br>%{text}<extra></extra>',
       text: filteredAnalysisData.map(d => d.date.toISOString().split('T')[0]),
