@@ -26,6 +26,13 @@ export default async function PriceHashratePage() {
           </div>
         </div>
 
+        {/* Chart Section - moved up under title */}
+        <PriceHashrateChart 
+          priceData={priceData} 
+          hashrateData={hashrateData} 
+          className="mb-8" 
+        />
+
         {/* Power Law Theory Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <div className="lg:col-span-2">
@@ -85,13 +92,6 @@ export default async function PriceHashratePage() {
             </div>
           </div>
         </div>
-
-        {/* Chart Section */}
-        <PriceHashrateChart 
-          priceData={priceData} 
-          hashrateData={hashrateData} 
-          className="mb-8" 
-        />
 
         {/* Educational Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
