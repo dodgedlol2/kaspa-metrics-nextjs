@@ -54,6 +54,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
   const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
   const [hashrateScale, setHashrateScale] = useState<'Linear' | 'Log'>('Log')
   const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
+  const [isHovering, setIsHovering] = useState(false)
 
   const analysisData = useMemo(() => {
     if (!priceData || !hashrateData || priceData.length === 0 || hashrateData.length === 0) {
@@ -137,7 +138,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         },
         hovertemplate: '<b>Hashrate</b>: %{x:.2f} PH/s<br><b>Price</b>: $%{y:.4f}<br><b>Date</b>: %{text}<extra></extra>',
         text: recentDataPoints.older.map(d => d.date.toISOString().split('T')[0]),
-        hoverdistance: 5
+        hoverdistance: 15
       })
     }
 
@@ -157,7 +158,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         },
         hovertemplate: '<b>Hashrate</b>: %{x:.2f} PH/s<br><b>Price</b>: $%{y:.4f}<br><b>Date</b>: %{text}<extra></extra>',
         text: recentDataPoints.recent30.map(d => d.date.toISOString().split('T')[0]),
-        hoverdistance: 5
+        hoverdistance: 15
       })
     }
 
@@ -189,7 +190,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         },
         hovertemplate: '<b>Hashrate</b>: %{x:.2f} PH/s<br><b>Price</b>: $%{y:.4f}<br><b>Date</b>: %{text}<extra></extra>',
         text: recentDataPoints.recent.map(d => d.date.toISOString().split('T')[0]),
-        hoverdistance: 10
+        hoverdistance: 15
       })
     }
 
@@ -229,7 +230,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         type: 'scatter',
         name: `Power Law Trend (R²=${r2.toFixed(3)})`,
         line: { color: '#F59E0B', width: 3, dash: 'solid' },
-        hoverdistance: 5
+        hoverdistance: 15
       })
 
       // Resistance level (top of channel)
@@ -277,7 +278,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       borderwidth: 0,
       font: { size: 12 }
     },
-    hoverdistance: 50,
+    hoverdistance: 20,
     spikedistance: -1,
     yaxis: {
       title: { 
@@ -508,9 +509,19 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
             doubleClick: 'autosize',
             scrollZoom: true,
             editable: false,
-            staticPlot: false
+            staticPlot: false,
+            showTips: false,
+            toImageButtonOptions: {
+              format: 'png',
+              filename: 'price_hashrate_chart',
+              height: 650,
+              width: 1200,
+              scale: 1
+            }
           }}
           useResizeHandler={true}
+          onHover={() => setIsHovering(true)}
+          onUnhover={() => setIsHovering(false)}
         />
       </div>
     </div>
