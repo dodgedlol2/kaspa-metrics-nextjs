@@ -124,86 +124,28 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
 
     const traces: any[] = []
 
-    // Calculate colors based on distance from power law
+    // Calculate colors and sizes
     let colors: string[] = []
     let sizes: number[] = []
     
     // Find the most recent data point (today's data)
     const mostRecentDate = Math.max(...filteredAnalysisData.map(d => d.date.getTime()))
     
-    if (powerLawData?.priceHashrate) {
-      const { a, b } = powerLawData.priceHashrate
-      
-      // Calculate expected price for each hashrate point
-      const deviations = filteredAnalysisData.map(d => {
-        const expectedPrice = a * Math.pow(d.hashrate, b)
-        const actualPrice = d.price
-        const deviation = (actualPrice - expectedPrice) / expectedPrice // Percentage deviation
-        return deviation
-      })
-      
-      // Find min/max deviations for normalization
-      const minDev = Math.min(...deviations)
-      const maxDev = Math.max(...deviations)
-      const range = Math.max(Math.abs(minDev), Math.abs(maxDev))
-      
-      // Create color and size arrays
-      colors = filteredAnalysisData.map((d, index) => {
-        // Check if this is today's data point
-        if (d.date.getTime() === mostRecentDate) {
-          return '#A855F7' // Bright purple for current/latest data
-        }
-        
-        const deviation = deviations[index]
-        const normalizedDev = deviation / range // -1 to 1
-        
-        if (normalizedDev > 0) {
-          // Above power law - brighter blues
-          const intensity = Math.min(normalizedDev, 1)
-          if (intensity > 0.5) {
-            return '#4C5BFF' // Hover state for high above
-          } else {
-            return '#5B6CFF' // Primary for moderate above
-          }
-        } else {
-          // Below power law - purple tones
-          const intensity = Math.min(Math.abs(normalizedDev), 1)
-          if (intensity > 0.5) {
-            return '#6366F1' // Primary alt for significantly below
-          } else {
-            return '#5B6CFF' // Primary for moderate below
-          }
-        }
-      })
-      
-      // Create sizes array - make current day larger
-      sizes = filteredAnalysisData.map(d => {
-        return d.date.getTime() === mostRecentDate ? 10 : 7 // Larger for current day
-      })
-    } else {
-      // Fallback to left-to-right gradient if no power law
-      colors = filteredAnalysisData.map((d, index) => {
-        // Check if this is today's data point
-        if (d.date.getTime() === mostRecentDate) {
-          return '#A855F7' // Bright purple for current/latest data
-        }
-        
-        const progress = index / (filteredAnalysisData.length - 1)
-        if (progress < 0.33) {
-          return '#6366F1' // Primary Alt for early data
-        } else if (progress < 0.66) {
-          return '#5B6CFF' // Primary for middle data
-        } else {
-          return '#4C5BFF' // Hover state for recent data
-        }
-      })
-      
-      sizes = filteredAnalysisData.map(d => {
-        return d.date.getTime() === mostRecentDate ? 10 : 7
-      })
-    }
+    // Create color and size arrays - all same color except current day
+    colors = filteredAnalysisData.map(d => {
+      // Check if this is today's data point
+      if (d.date.getTime() === mostRecentDate) {
+        return '#A855F7' // Bright purple for current/latest data
+      }
+      return '#5B6CFF' // Primary button color for all other dots
+    })
+    
+    // Create sizes array - make current day larger
+    sizes = filteredAnalysisData.map(d => {
+      return d.date.getTime() === mostRecentDate ? 10 : 7 // Larger for current day
+    })
 
-    // All data points with dynamic coloring and sizing
+    // All data points with uniform coloring
     traces.push({
       x: filteredAnalysisData.map(d => d.hashrate),
       y: filteredAnalysisData.map(d => d.price),
@@ -213,7 +155,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       marker: {
         color: colors,
         size: sizes,
-        opacity: 0.9, // Increased opacity to make dots pop more
+        opacity: 1.0, // Full brightness, no opacity
         line: { width: 1, color: 'rgba(60, 60, 60, 0.8)' } // Slightly thicker, darker outline
       },
       hovertemplate: 'Hashrate: %{x:.1f} PH/s<br>Price: $%{y:.2f}<br>%{text}<extra></extra>',
