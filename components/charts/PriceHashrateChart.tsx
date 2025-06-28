@@ -1,6 +1,4 @@
-// Main scatter plot points - using #00FFCC like your Streamlit version
-    traces.push({
-      x: analysisData.map(d => d.hashrate'use client'
+'use client'
 import React, { useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 
@@ -72,9 +70,6 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
   const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
   const [hashrateScale, setHashrateScale] = useState<'Linear' | 'Log'>('Log')
   const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
-  const [ratioScale, setRatioScale] = useState<'Linear' | 'Log'>('Log')
-  const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear')
-  const [showRatioFit, setShowRatioFit] = useState<'Hide' | 'Show'>('Show')
 
   // Merge and process data (like Python version)
   const analysisData = useMemo(() => {
@@ -85,9 +80,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     const merged: Array<{
       date: Date,
       hashrate: number,
-      price: number,
-      ratio: number,
-      daysFromGenesis: number
+      price: number
     }> = []
 
     // Merge price and hashrate data by date
@@ -102,15 +95,11 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         const date = new Date(pricePoint.timestamp)
         const hashrate = correspondingHashrate.value / 1e15 // Convert to PH/s
         const price = pricePoint.value
-        const ratio = price / hashrate
-        const daysFromGenesis = getDaysFromGenesis(pricePoint.timestamp)
 
         merged.push({
           date,
           hashrate,
-          price,
-          ratio,
-          daysFromGenesis
+          price
         })
       }
     })
@@ -127,13 +116,8 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       const priceHashrateData = analysisData.map(d => ({ x: d.hashrate, y: d.price }))
       const priceHashrateFit = fitPowerLaw(priceHashrateData)
 
-      // Ratio vs Time relationship
-      const ratioTimeData = analysisData.map(d => ({ x: d.daysFromGenesis, y: d.ratio }))
-      const ratioTimeFit = fitPowerLaw(ratioTimeData)
-
       return {
-        priceHashrate: priceHashrateFit,
-        ratioTime: ratioTimeFit
+        priceHashrate: priceHashrateFit
       }
     } catch (error) {
       console.error('Power law calculation failed:', error)
@@ -242,94 +226,6 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
 
     return traces
   }, [analysisData, last7Points, showPowerLaw, powerLawData])
-
-  // Prepare ratio chart data
-  const ratioChartData = useMemo(() => {
-    if (analysisData.length === 0) return []
-
-    const traces: any[] = []
-    const xValues = timeScale === 'Log' ? analysisData.map(d => d.daysFromGenesis) : analysisData.map(d => d.date)
-    const xTitle = timeScale === 'Log' ? 'Days Since Genesis (Log Scale)' : 'Date'
-
-    // Main ratio line
-    traces.push({
-      x: xValues,
-      y: analysisData.map(d => d.ratio),
-      mode: 'lines+markers',
-      type: 'scattergl',
-      name: 'Price/Hashrate Ratio',
-      line: { color: '#00FFCC', width: 2 },
-      marker: { size: 5, color: '#00FFCC' },
-      hovertemplate: timeScale === 'Log' 
-        ? '<b>Days</b>: %{x:.1f}<br><b>Date</b>: %{customdata}<br><b>Ratio</b>: %{y:.6f}<extra></extra>'
-        : '<b>Date</b>: %{x|%Y-%m-%d}<br><b>Ratio</b>: %{y:.6f}<extra></extra>',
-      customdata: analysisData.map(d => d.date.toISOString().split('T')[0])
-    })
-
-    // Last 7 points with gradient colors
-    last7Points.forEach(point => {
-      const xVal = timeScale === 'Log' ? point.daysFromGenesis : point.date
-      traces.push({
-        x: [xVal],
-        y: [point.ratio],
-        mode: 'markers',
-        type: 'scattergl',
-        marker: {
-          color: point.color,
-          size: 8,
-          line: { width: 1.5, color: 'DarkSlateGrey' }
-        },
-        showlegend: false,
-        hoverinfo: 'skip'
-      })
-    })
-
-    // Ratio power law fit
-    if (showRatioFit === 'Show' && powerLawData?.ratioTime) {
-      const { a, b, r2 } = powerLawData.ratioTime
-      const xFit = []
-      const yFit = []
-
-      if (timeScale === 'Log') {
-        const minDays = Math.min(...analysisData.map(d => d.daysFromGenesis))
-        const maxDays = Math.max(...analysisData.map(d => d.daysFromGenesis))
-        
-        for (let i = 0; i <= 100; i++) {
-          const logMin = Math.log10(minDays)
-          const logMax = Math.log10(maxDays)
-          const x = Math.pow(10, logMin + (logMax - logMin) * (i / 100))
-          const y = a * Math.pow(x, b)
-          xFit.push(x)
-          yFit.push(y)
-        }
-      } else {
-        // For linear time scale
-        const minDate = new Date(Math.min(...analysisData.map(d => d.date.getTime())))
-        const maxDate = new Date(Math.max(...analysisData.map(d => d.date.getTime())))
-        const dateSpan = maxDate.getTime() - minDate.getTime()
-
-        for (let i = 0; i <= 100; i++) {
-          const dateTime = minDate.getTime() + (dateSpan * (i / 100))
-          const date = new Date(dateTime)
-          const daysSinceGenesis = getDaysFromGenesis(dateTime)
-          const y = a * Math.pow(daysSinceGenesis, b)
-          xFit.push(date)
-          yFit.push(y)
-        }
-      }
-
-      traces.push({
-        x: xFit,
-        y: yFit,
-        mode: 'lines',
-        type: 'scatter',
-        name: `Ratio Power-Law Fit (R²=${r2.toFixed(3)})`,
-        line: { color: '#FFA726', dash: 'dot', width: 2 }
-      })
-    }
-
-    return traces
-  }, [analysisData, last7Points, timeScale, showRatioFit, powerLawData])
 
   // Chart layout - matching PriceChart style
   const mainLayout: any = {
