@@ -124,21 +124,64 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
 
     const traces: any[] = []
 
-    // Calculate colors and sizes
+    // Calculate colors and sizes with power law deviation coloring
     let colors: string[] = []
     let sizes: number[] = []
     
     // Find the most recent data point (today's data)
     const mostRecentDate = Math.max(...filteredAnalysisData.map(d => d.date.getTime()))
     
-    // Create color and size arrays - all same color except current day
-    colors = filteredAnalysisData.map(d => {
-      // Check if this is today's data point
-      if (d.date.getTime() === mostRecentDate) {
-        return '#A855F7' // Bright purple for current/latest data
-      }
-      return '#4C5BFF' // Brighter blue for all other dots
-    })
+    if (powerLawData?.priceHashrate) {
+      const { a, b } = powerLawData.priceHashrate
+      
+      // Calculate expected price for each hashrate point
+      const deviations = filteredAnalysisData.map(d => {
+        const expectedPrice = a * Math.pow(d.hashrate, b)
+        const actualPrice = d.price
+        const deviation = (actualPrice - expectedPrice) / expectedPrice // Percentage deviation
+        return deviation
+      })
+      
+      // Create color array based on deviation from power law
+      colors = filteredAnalysisData.map((d, index) => {
+        // Check if this is today's data point
+        if (d.date.getTime() === mostRecentDate) {
+          return '#A855F7' // Bright purple for current/latest data
+        }
+        
+        const deviation = deviations[index]
+        
+        if (deviation > 0) {
+          // Above power law - blend towards teal
+          const intensity = Math.min(deviation * 2, 1) // Scale the intensity
+          if (intensity > 0.7) {
+            return '#14B8A6' // Teal for high above
+          } else if (intensity > 0.3) {
+            return '#2563EB' // Blue-teal blend for moderate above
+          } else {
+            return '#4C5BFF' // Original bright blue for slight above
+          }
+        } else {
+          // Below power law - darker blues
+          const intensity = Math.min(Math.abs(deviation) * 2, 1)
+          if (intensity > 0.7) {
+            return '#1E40AF' // Dark blue for significantly below
+          } else if (intensity > 0.3) {
+            return '#3B82F6' // Medium blue for moderate below
+          } else {
+            return '#4C5BFF' // Original bright blue for slight below
+          }
+        }
+      })
+    } else {
+      // Fallback to uniform color if no power law
+      colors = filteredAnalysisData.map(d => {
+        if (d.date.getTime() === mostRecentDate) {
+          return '#A855F7' // Bright purple for current/latest data
+        }
+        return '#4C5BFF' // Bright blue for all other dots
+      })
+    }
     
     // Create sizes array - make current day larger
     sizes = filteredAnalysisData.map(d => {
@@ -204,13 +247,13 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         hoverinfo: 'skip'
       })
 
-      // +60% deviation line (upper bound)
+      // +120% deviation line (upper bound)
       traces.push({
         x: xFit,
-        y: yFit.map(y => y * 1.6), // 60% above = 160% of original
+        y: yFit.map(y => y * 2.2), // 120% above = 220% of original
         mode: 'lines',
         type: 'scatter',
-        name: '+60% Deviation',
+        name: '+120% Deviation',
         line: { color: 'rgba(255, 255, 255, 0.6)', width: 1, dash: 'dot' },
         hoverinfo: 'skip',
         showlegend: true,
