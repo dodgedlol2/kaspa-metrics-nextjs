@@ -247,6 +247,26 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
     return sorted
   }, [priceData, hashrateData])
 
+  // Calculate 3D power law
+  const powerLaw3D = useMemo(() => {
+    if (analysisData.length < 30) return null
+
+    try {
+      // Use all available data for 3D power law fitting
+      const powerLawData = analysisData.map(d => ({
+        hashrate: d.hashrate,
+        price: d.price,
+        daysSinceGenesis: d.daysSinceGenesis
+      }))
+      
+      const result = fit3DPowerLaw(powerLawData)
+      return result
+    } catch (error) {
+      console.error('3D Power law calculation failed:', error)
+      return null
+    }
+  }, [analysisData])
+
   // Filter data based on time period
   const filteredAnalysisData = useMemo(() => {
     if (timePeriod === 'All' || analysisData.length === 0) return analysisData
