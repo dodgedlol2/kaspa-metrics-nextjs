@@ -241,81 +241,51 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
       })
     }
 
-    // Add 3D Power Law as a single straight line if enabled - FIXED VERSION
+    // Add 3D Power Law as predicted trajectory line if enabled
     if (showPowerLaw === 'Show' && powerLaw3D) {
       const { A, B, C, r2 } = powerLaw3D
       
-      // Create a single straight line through 3D space representing the power law
-      // Using the same logic as the volume chart
+      // Generate power law prediction line using actual hashrate and days progression
+      const powerLawLine = filteredAnalysisData.map(d => {
+        const predictedPrice = A * Math.pow(d.hashrate, B) * Math.pow(d.daysSinceGenesis, C)
+        return {
+          hashrate: d.hashrate,
+          predictedPrice: predictedPrice,
+          daysSinceGenesis: d.daysSinceGenesis,
+          date: d.date
+        }
+      })
       
-      const hashrateRange = {
-        min: Math.min(...filteredAnalysisData.map(d => d.hashrate)),
-        max: Math.max(...filteredAnalysisData.map(d => d.hashrate))
-      }
-      
-      const daysRange = {
-        min: Math.min(...filteredAnalysisData.map(d => d.daysSinceGenesis)),
-        max: Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis))
-      }
-      
-      // Generate a single line through the 3D space
-      const linePoints = []
-      const numPoints = 100
-      
-      for (let i = 0; i <= numPoints; i++) {
-        const t = i / numPoints
-        
-        // Create points along a line in log space
-        const logHashrateMin = Math.log(hashrateRange.min)
-        const logHashrateMax = Math.log(hashrateRange.max)
-        const logDaysMin = Math.log(daysRange.min)
-        const logDaysMax = Math.log(daysRange.max)
-        
-        const logHashrate = logHashrateMin + (logHashrateMax - logHashrateMin) * t
-        const logDays = logDaysMin + (logDaysMax - logDaysMin) * t
-        
-        const hashrate = Math.exp(logHashrate)
-        const days = Math.exp(logDays)
-        
-        // Calculate predicted price using power law
-        const predictedPrice = A * Math.pow(hashrate, B) * Math.pow(days, C)
-        
-        linePoints.push({
-          hashrate: hashrate,
-          days: days,
-          predictedPrice: predictedPrice
-        })
-      }
-      
-      // Add power law as a single straight line
+      // Add power law predicted trajectory
       allTraces.push({
-        x: linePoints.map(p => p.hashrate),
-        y: linePoints.map(p => p.predictedPrice),
-        z: linePoints.map(p => timeScale === 'Log' ? Math.log10(Math.max(1, p.days)) : p.days),
+        x: powerLawLine.map(d => d.hashrate),
+        y: powerLawLine.map(d => d.predictedPrice),
+        z: powerLawLine.map(d => timeScale === 'Log' ? Math.log10(Math.max(1, d.daysSinceGenesis)) : d.daysSinceGenesis),
         mode: 'lines',
         type: 'scatter3d',
-        name: `3D Power Law Line (R²=${r2.toFixed(3)})`,
+        name: `3D Power Law Prediction (R²=${r2.toFixed(3)})`,
         line: {
           color: '#EF4444', // Red color to distinguish from actual trajectory
-          width: 6
+          width: 4
         },
         hovertemplate: 
           'Hashrate: %{x:.1f} PH/s<br>' +
           'Predicted Price: $%{y:.2f}<br>' +
           'Days Since Genesis: %{text}<br>' +
-          '<extra>Power Law Line</extra>',
-        text: linePoints.map(p => `${Math.round(p.days)} days`),
+          '<extra>Power Law Prediction</extra>',
+        text: powerLawLine.map(d => `${d.daysSinceGenesis} days (${d.date.toISOString().split('T')[0]})`),
         showlegend: true
       })
       
       // Add equation text annotation
-      const midPoint = linePoints[Math.floor(linePoints.length / 2)]
-      if (midPoint) {
-        const textZ = timeScale === 'Log' ? Math.log10(Math.max(1, midPoint.days)) : midPoint.days
+      const midPoint = Math.floor(powerLawLine.length / 2)
+      const midData = powerLawLine[midPoint]
+      if (midData) {
+        const textZ = timeScale === 'Log' ? Math.log10(Math.max(1, midData.daysSinceGenesis)) : midData.daysSinceGenesis
         
         allTraces.push({
-          x: [midPoint.hashrate * 1.2],
-          y: [midPoint.predictedPrice * 1.5],
+          x: [midData.hashrate * 1.2],
+          y: [midData.predictedPrice * 1.5],
           z: [textZ],
           mode: 'markers+text',
           type: 'scatter3d',
@@ -397,8 +367,7 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
             `${Math.floor(Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis)) * 0.75)} days`,
             `${Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis))} days`
           ]
-        )
-} : [],
+        ) : [],
         tickvals: filteredAnalysisData.length > 0 ? (
           timeScale === 'Log' ? [
             Math.log10(1), Math.log10(10), Math.log10(100), Math.log10(1000)
@@ -868,3 +837,4 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
       </div>
     </div>
   )
+}
