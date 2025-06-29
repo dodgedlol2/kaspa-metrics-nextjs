@@ -1,5 +1,6 @@
 import React from 'react'
 import PriceHashrateChart from '@/components/charts/PriceHashrateChart'
+import PriceHashrate3DChart from '@/components/charts/PriceHashrate3DChart'
 import { getPriceData, getHashrateData } from '@/lib/sheets'
 
 export default async function PriceHashratePage() {
@@ -94,7 +95,7 @@ export default async function PriceHashratePage() {
         </div>
 
         {/* Educational Content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="bg-[#1A1A2E] rounded-xl p-6">
             <h3 className="text-lg font-semibold text-white mb-4">How to Interpret the Chart</h3>
             <div className="space-y-3 text-sm text-[#A0A0B8]">
@@ -135,6 +136,71 @@ export default async function PriceHashratePage() {
               <div className="flex items-start">
                 <span className="text-purple-400 font-semibold mr-2">📊</span>
                 <span>Validate investment thesis with mathematical evidence</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 3D Chart Section - Added at the bottom */}
+        <div className="mb-8">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-white mb-2">
+              3D Evolution Analysis
+            </h2>
+            <p className="text-[#A0A0B8]">
+              Explore how the price-hashrate relationship has evolved over time in three-dimensional space
+            </p>
+          </div>
+          
+          <PriceHashrate3DChart 
+            priceData={priceData} 
+            hashrateData={hashrateData} 
+            className="mb-6" 
+          />
+          
+          {/* 3D Chart Explanation */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-[#1A1A2E] rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Understanding the 3D Visualization</h3>
+              <div className="space-y-3 text-sm text-[#A0A0B8]">
+                <div className="flex items-start">
+                  <span className="text-[#5B6CFF] font-semibold mr-2">📊</span>
+                  <span><strong>X-Axis (Hashrate):</strong> Network security measured in petahashes per second</span>
+                </div>
+                <div className="flex items-start">
+                  <span className="text-[#5B6CFF] font-semibold mr-2">💰</span>
+                  <span><strong>Y-Axis (Price):</strong> Market valuation in USD</span>
+                </div>
+                <div className="flex items-start">
+                  <span className="text-[#5B6CFF] font-semibold mr-2">⏰</span>
+                  <span><strong>Z-Axis (Time):</strong> Chronological progression from past to present</span>
+                </div>
+                <div className="flex items-start">
+                  <span className="text-[#5B6CFF] font-semibold mr-2">🎨</span>
+                  <span><strong>Color Coding:</strong> Switch between time progression, price levels, or hashrate intensity</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-[#1A1A2E] rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">3D Analysis Insights</h3>
+              <div className="space-y-3 text-sm text-[#A0A0B8]">
+                <div className="flex items-start">
+                  <span className="text-green-400 font-semibold mr-2">🌀</span>
+                  <span><strong>Trajectory Path:</strong> The connecting line shows market evolution through time</span>
+                </div>
+                <div className="flex items-start">
+                  <span className="text-blue-400 font-semibold mr-2">🔄</span>
+                  <span><strong>Market Cycles:</strong> Loops and spirals reveal bull and bear market patterns</span>
+                </div>
+                <div className="flex items-start">
+                  <span className="text-yellow-400 font-semibold mr-2">📐</span>
+                  <span><strong>Rotation Controls:</strong> Use mouse to rotate and explore different perspectives</span>
+                </div>
+                <div className="flex items-start">
+                  <span className="text-purple-400 font-semibold mr-2">🎯</span>
+                  <span><strong>Zoom & Pan:</strong> Interactive controls to focus on specific time periods</span>
+                </div>
               </div>
             </div>
           </div>
