@@ -255,12 +255,12 @@ export default function PriceHashrateVolume3DChart({ priceData, hashrateData, vo
       })
     }
 
-    // Add 3D Power Law as mathematical surface if enabled
+    // Add 3D Power Law as a single straight line if enabled
     if (showPowerLaw === 'Show' && powerLaw3D) {
       const { A, B, C, r2 } = powerLaw3D
       
-      // Create a mathematical grid in 3D space showing the power law relationship
-      // Instead of following the actual data trajectory, we create a theoretical surface
+      // Create a single straight line through 3D space representing the power law
+      // In log-log-log space, this should appear perfectly straight
       
       const hashrateRange = {
         min: Math.min(...filteredAnalysisData.map(d => d.hashrate)),
@@ -272,66 +272,63 @@ export default function PriceHashrateVolume3DChart({ priceData, hashrateData, vo
         max: Math.max(...filteredAnalysisData.map(d => d.volume))
       }
       
-      // Generate a grid of points that follow the power law
-      // This should appear as a straight line/surface in log-log-log space
-      const gridPoints = []
-      const gridSize = 20
+      // Generate a single line through the 3D space
+      // We'll create points along one diagonal direction that represents the power law
+      const linePoints = []
+      const numPoints = 100
       
-      for (let i = 0; i <= gridSize; i++) {
-        for (let j = 0; j <= gridSize; j++) {
-          // Create evenly spaced points in log space
-          const logHashrateMin = Math.log(hashrateRange.min)
-          const logHashrateMax = Math.log(hashrateRange.max)
-          const logVolumeMin = Math.log(volumeRange.min)
-          const logVolumeMax = Math.log(volumeRange.max)
-          
-          const logHashrate = logHashrateMin + (logHashrateMax - logHashrateMin) * (i / gridSize)
-          const logVolume = logVolumeMin + (logVolumeMax - logVolumeMin) * (j / gridSize)
-          
-          const hashrate = Math.exp(logHashrate)
-          const volume = Math.exp(logVolume)
-          
-          // Calculate predicted price using power law
-          const predictedPrice = A * Math.pow(hashrate, B) * Math.pow(volume, C)
-          
-          gridPoints.push({
-            hashrate: hashrate,
-            volume: volume,
-            predictedPrice: predictedPrice
-          })
-        }
+      for (let i = 0; i <= numPoints; i++) {
+        const t = i / numPoints
+        
+        // Create points along a line in log space
+        const logHashrateMin = Math.log(hashrateRange.min)
+        const logHashrateMax = Math.log(hashrateRange.max)
+        const logVolumeMin = Math.log(volumeRange.min)
+        const logVolumeMax = Math.log(volumeRange.max)
+        
+        const logHashrate = logHashrateMin + (logHashrateMax - logHashrateMin) * t
+        const logVolume = logVolumeMin + (logVolumeMax - logVolumeMin) * t
+        
+        const hashrate = Math.exp(logHashrate)
+        const volume = Math.exp(logVolume)
+        
+        // Calculate predicted price using power law
+        const predictedPrice = A * Math.pow(hashrate, B) * Math.pow(volume, C)
+        
+        linePoints.push({
+          hashrate: hashrate,
+          volume: volume,
+          predictedPrice: predictedPrice
+        })
       }
       
-      // Add power law surface
+      // Add power law as a single straight line
       allTraces.push({
-        x: gridPoints.map(p => p.hashrate),
-        y: gridPoints.map(p => p.predictedPrice),
-        z: gridPoints.map(p => p.volume),
-        mode: 'markers',
+        x: linePoints.map(p => p.hashrate),
+        y: linePoints.map(p => p.predictedPrice),
+        z: linePoints.map(p => p.volume),
+        mode: 'lines',
         type: 'scatter3d',
-        name: `3D Power Law Surface (R²=${r2.toFixed(3)})`,
-        marker: {
-          size: 3,
+        name: `3D Power Law Line (R²=${r2.toFixed(3)})`,
+        line: {
           color: '#EF4444',
-          opacity: 0.6
+          width: 6
         },
         hovertemplate: 
           'Hashrate: %{x:.1f} PH/s<br>' +
           'Predicted Price: $%{y:.2f}<br>' +
           'Volume: $%{z:.0f}<br>' +
-          '<extra>Power Law Surface</extra>',
+          '<extra>Power Law Line</extra>',
         showlegend: true
       })
       
       // Add equation text annotation
-      const midHashrate = (hashrateRange.min + hashrateRange.max) / 2
-      const midVolume = (volumeRange.min + volumeRange.max) / 2
-      const midPrice = A * Math.pow(midHashrate, B) * Math.pow(midVolume, C)
+      const midPoint = linePoints[Math.floor(linePoints.length / 2)]
       
       allTraces.push({
-        x: [midHashrate * 1.2],
-        y: [midPrice * 1.5],
-        z: [midVolume * 1.1],
+        x: [midPoint.hashrate * 1.2],
+        y: [midPoint.predictedPrice * 1.5],
+        z: [midPoint.volume * 1.1],
         mode: 'markers+text',
         type: 'scatter3d',
         marker: { size: 0, opacity: 0 },
