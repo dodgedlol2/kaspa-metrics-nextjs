@@ -152,42 +152,21 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         const deviation = deviations[index]
         const deviationPercent = deviation * 100 // Convert to percentage
         
-        // Create a smooth flow from dark blue (-100%) to teal (+100%)
-        // Using a continuous gradient instead of discrete steps
-        const clampedPercent = Math.max(-100, Math.min(100, deviationPercent))
-        const normalizedValue = (clampedPercent + 100) / 200 // Convert -100 to +100 range to 0-1
-        
-        // Define color stops for smooth gradient
-        if (normalizedValue >= 0.9) { // 80-100% above
-          return '#14B8A6' // Teal
-        } else if (normalizedValue >= 0.8) { // 60-80% above
-          return '#059669' // Dark teal
-        } else if (normalizedValue >= 0.7) { // 40-60% above
-          return '#0891B2' // Cyan-teal
-        } else if (normalizedValue >= 0.65) { // 30-40% above
-          return '#0284C7' // Light cyan
-        } else if (normalizedValue >= 0.6) { // 20-30% above
-          return '#0369A1' // Blue-cyan
-        } else if (normalizedValue >= 0.55) { // 10-20% above
-          return '#0EA5E9' // Sky blue
-        } else if (normalizedValue >= 0.52) { // 4-10% above
-          return '#3B82F6' // Light blue
-        } else if (normalizedValue >= 0.48) { // -4% to +4% (near trend)
-          return '#4C5BFF' // Original bright blue (neutral)
-        } else if (normalizedValue >= 0.45) { // -10% to -4%
-          return '#4338CA' // Slightly darker blue
-        } else if (normalizedValue >= 0.4) { // -20% to -10%
-          return '#3730A3' // Medium dark blue
-        } else if (normalizedValue >= 0.35) { // -30% to -20%
-          return '#312E81' // Dark blue
-        } else if (normalizedValue >= 0.3) { // -40% to -30%
-          return '#1E40AF' // Darker blue
-        } else if (normalizedValue >= 0.2) { // -60% to -40%
-          return '#1E3A8A' // Very dark blue
-        } else if (normalizedValue >= 0.1) { // -80% to -60%
-          return '#1D4ED8' // Deep blue
-        } else { // -100% to -80%
-          return '#1E293B' // Darkest blue-gray
+        // Clean 3-color gradient system
+        if (deviationPercent >= 50) {
+          return '#14B8A6' // Teal for high positive deviation
+        } else if (deviationPercent >= 25) {
+          return '#0891B2' // Teal-blue blend for moderate-high positive
+        } else if (deviationPercent >= 10) {
+          return '#2563EB' // Blue-teal blend for moderate positive
+        } else if (deviationPercent >= -10) {
+          return '#4C5BFF' // Mid blue for neutral range
+        } else if (deviationPercent >= -25) {
+          return '#4338CA' // Purple-blue for moderate negative
+        } else if (deviationPercent >= -50) {
+          return '#3730A3' // Darker purple-blue for moderate-high negative
+        } else {
+          return '#312E81' // Darkest for high negative deviation
         }
       })
     } else {
