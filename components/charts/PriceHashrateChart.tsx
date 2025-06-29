@@ -152,45 +152,42 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         const deviation = deviations[index]
         const deviationPercent = deviation * 100 // Convert to percentage
         
-        if (deviation > 0) {
-          // Above power law - gradient from blue to teal
-          if (deviationPercent >= 100) {
-            return '#14B8A6' // Teal for 100%+ above
-          } else if (deviationPercent >= 80) {
-            return '#0891B2' // Cyan-teal for 80-100%
-          } else if (deviationPercent >= 60) {
-            return '#0284C7' // Light blue-cyan for 60-80%
-          } else if (deviationPercent >= 40) {
-            return '#0369A1' // Medium blue for 40-60%
-          } else if (deviationPercent >= 20) {
-            return '#1D4ED8' // Blue for 20-40%
-          } else if (deviationPercent >= 10) {
-            return '#2563EB' // Blue for 10-20%
-          } else if (deviationPercent >= 5) {
-            return '#3B82F6' // Light blue for 5-10%
-          } else {
-            return '#4C5BFF' // Original bright blue for 0-5%
-          }
-        } else {
-          // Below power law - gradient from blue to darker blue
-          const absPercent = Math.abs(deviationPercent)
-          if (absPercent >= 100) {
-            return '#1E3A8A' // Very dark blue for 100%+ below
-          } else if (absPercent >= 80) {
-            return '#1E40AF' // Dark blue for 80-100% below
-          } else if (absPercent >= 60) {
-            return '#1D4ED8' // Medium-dark blue for 60-80% below
-          } else if (absPercent >= 40) {
-            return '#2563EB' // Medium blue for 40-60% below
-          } else if (absPercent >= 20) {
-            return '#3B82F6' // Light blue for 20-40% below
-          } else if (absPercent >= 10) {
-            return '#60A5FA' // Lighter blue for 10-20% below
-          } else if (absPercent >= 5) {
-            return '#93C5FD' // Very light blue for 5-10% below
-          } else {
-            return '#4C5BFF' // Original bright blue for 0-5% below
-          }
+        // Create a smooth flow from dark blue (-100%) to teal (+100%)
+        // Using a continuous gradient instead of discrete steps
+        const clampedPercent = Math.max(-100, Math.min(100, deviationPercent))
+        const normalizedValue = (clampedPercent + 100) / 200 // Convert -100 to +100 range to 0-1
+        
+        // Define color stops for smooth gradient
+        if (normalizedValue >= 0.9) { // 80-100% above
+          return '#14B8A6' // Teal
+        } else if (normalizedValue >= 0.8) { // 60-80% above
+          return '#059669' // Dark teal
+        } else if (normalizedValue >= 0.7) { // 40-60% above
+          return '#0891B2' // Cyan-teal
+        } else if (normalizedValue >= 0.65) { // 30-40% above
+          return '#0284C7' // Light cyan
+        } else if (normalizedValue >= 0.6) { // 20-30% above
+          return '#0369A1' // Blue-cyan
+        } else if (normalizedValue >= 0.55) { // 10-20% above
+          return '#0EA5E9' // Sky blue
+        } else if (normalizedValue >= 0.52) { // 4-10% above
+          return '#3B82F6' // Light blue
+        } else if (normalizedValue >= 0.48) { // -4% to +4% (near trend)
+          return '#4C5BFF' // Original bright blue (neutral)
+        } else if (normalizedValue >= 0.45) { // -10% to -4%
+          return '#4338CA' // Slightly darker blue
+        } else if (normalizedValue >= 0.4) { // -20% to -10%
+          return '#3730A3' // Medium dark blue
+        } else if (normalizedValue >= 0.35) { // -30% to -20%
+          return '#312E81' // Dark blue
+        } else if (normalizedValue >= 0.3) { // -40% to -30%
+          return '#1E40AF' // Darker blue
+        } else if (normalizedValue >= 0.2) { // -60% to -40%
+          return '#1E3A8A' // Very dark blue
+        } else if (normalizedValue >= 0.1) { // -80% to -60%
+          return '#1D4ED8' // Deep blue
+        } else { // -100% to -80%
+          return '#1E293B' // Darkest blue-gray
         }
       })
     } else {
