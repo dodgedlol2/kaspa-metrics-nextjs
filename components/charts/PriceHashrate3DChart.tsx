@@ -15,105 +15,12 @@ interface PriceHashrate3DChartProps {
   className?: string
 }
 
-// Helper function to fit 3D power law: Price = A × Hashrate^B × (Days Since Genesis)^C
-function fit3DPowerLaw(data: Array<{hashrate: number, price: number, daysSinceGenesis: number}>) {
-  if (data.length < 10) {
-    throw new Error("Not enough valid data points for 3D power law fitting")
-  }
-  
-  // Transform to log space: ln(Price) = ln(A) + B*ln(Hashrate) + C*ln(Days)
-  const logData = data.map(point => ({
-    hashrate: Math.log(Math.max(0.0001, point.hashrate)),
-    price: Math.log(Math.max(0.0001, point.price)),
-    days: Math.log(Math.max(1, point.daysSinceGenesis))
-  }))
-  
-  const n = logData.length
-  
-  // Calculate sums for multiple linear regression
-  const sumPrice = logData.reduce((sum, p) => sum + p.price, 0)
-  const sumHashrate = logData.reduce((sum, p) => sum + p.hashrate, 0)
-  const sumDays = logData.reduce((sum, p) => sum + p.days, 0)
-  const sumHashratePrice = logData.reduce((sum, p) => sum + p.hashrate * p.price, 0)
-  const sumDaysPrice = logData.reduce((sum, p) => sum + p.days * p.price, 0)
-  const sumHashrateDays = logData.reduce((sum, p) => sum + p.hashrate * p.days, 0)
-  const sumHashrate2 = logData.reduce((sum, p) => sum + p.hashrate * p.hashrate, 0)
-  const sumDays2 = logData.reduce((sum, p) => sum + p.days * p.days, 0)
-  
-  // Solve the 3x3 system using matrix operations (simplified approach)
-  // This is a simplified implementation - for production, you'd want to use proper matrix math
-  const meanPrice = sumPrice / n
-  const meanHashrate = sumHashrate / n
-  const meanDays = sumDays / n
-  
-  // Simplified regression coefficients (this is an approximation)
-  const denominator = (sumHashrate2 - n * meanHashrate * meanHashrate) * (sumDays2 - n * meanDays * meanDays) - 
-                     (sumHashrateDays - n * meanHashrate * meanDays) * (sumHashrateDays - n * meanHashrate * meanDays)
-  
-  if (Math.abs(denominator) < 0.0001) {
-    throw new Error("Matrix is singular - cannot solve 3D power law")
-  }
-  
-  const b = ((sumHashratePrice - n * meanHashrate * meanPrice) * (sumDays2 - n * meanDays * meanDays) - 
-            (sumDaysPrice - n * meanDays * meanPrice) * (sumHashrateDays - n * meanHashrate * meanDays)) / denominator
-  
-  const c = ((sumDaysPrice - n * meanDays * meanPrice) * (sumHashrate2 - n * meanHashrate * meanHashrate) - 
-            (sumHashratePrice - n * meanHashrate * meanPrice) * (sumHashrateDays - n * meanHashrate * meanDays)) / denominator
-  
-  const a = Math.exp(meanPrice - b * meanHashrate - c * meanDays)
-  
-  // Calculate R²
-  const predictedPrices = logData.map(p => Math.log(a) + b * p.hashrate + c * p.days)
-  const ssRes = logData.reduce((sum, p, i) => sum + Math.pow(p.price - predictedPrices[i], 2), 0)
-  const ssTot = logData.reduce((sum, p) => sum + Math.pow(p.price - meanPrice, 2), 0)
-  const r2 = Math.max(0, 1 - (ssRes / ssTot))
-  
-  return { a, b, c, r2 }
-}
-
-// Helper function to fit 2D power law (keeping original for comparison)
-function fitPowerLaw(data: Array<{x: number, y: number}>) {
-  if (data.length < 2) {
-    throw new Error("Not enough valid data points for power law fitting")
-  }
-  
-  const logData = data.map(point => ({
-    x: Math.log(Math.max(0.0001, point.x)),
-    y: Math.log(Math.max(0.0001, point.y))
-  }))
-  
-  const n = logData.length
-  const sumX = logData.reduce((sum, point) => sum + point.x, 0)
-  const sumY = logData.reduce((sum, point) => sum + point.y, 0)
-  const sumXY = logData.reduce((sum, point) => sum + point.x * point.y, 0)
-  const sumX2 = logData.reduce((sum, point) => sum + point.x * point.x, 0)
-  
-  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
-  const intercept = (sumY - slope * sumX) / n
-  
-  const meanY = sumY / n
-  const ssRes = logData.reduce((sum, point) => {
-    const predicted = intercept + slope * point.x
-    return sum + Math.pow(point.y - predicted, 2)
-  }, 0)
-  const ssTot = logData.reduce((sum, point) => {
-    return sum + Math.pow(point.y - meanY, 2)
-  }, 0)
-  const r2 = 1 - (ssRes / ssTot)
-  
-  const a = Math.exp(intercept)
-  const b = slope
-  
-  return { a, b, r2 }
-}
-
 // Kaspa Genesis Date (November 7, 2021)
 const KASPA_GENESIS = new Date('2021-11-07').getTime()
 
 export default function PriceHashrate3DChart({ priceData, hashrateData, className = '' }: PriceHashrate3DChartProps) {
   const [timePeriod, setTimePeriod] = useState<'1M' | '3M' | '6M' | '1Y' | '2Y' | '3Y' | 'All'>('All')
   const [showTrajectory, setShowTrajectory] = useState<'Hide' | 'Show'>('Show')
-  const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
   const [colorBy, setColorBy] = useState<'Time' | 'Price' | 'Hashrate'>('Time')
   const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
   const [hashrateScale, setHashrateScale] = useState<'Linear' | 'Log'>('Log')
@@ -122,88 +29,6 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
   const analysisData = useMemo(() => {
     if (!priceData || !hashrateData || priceData.length === 0 || hashrateData.length === 0) {
       return []
-    }
-
-    // Add 3D power law surface if enabled
-    if (showPowerLaw === 'Show' && powerLaw3D) {
-      const { a, b, c, r2 } = powerLaw3D
-      
-      // Create ranges for the surface
-      const hashrateRange = {
-        min: Math.min(...filteredAnalysisData.map(d => d.hashrate)),
-        max: Math.max(...filteredAnalysisData.map(d => d.hashrate))
-      }
-      
-      const daysRange = {
-        min: Math.min(...filteredAnalysisData.map(d => d.daysSinceGenesis)),
-        max: Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis))
-      }
-
-      // Generate 3D power law surface
-      const surfaceX: number[][] = []
-      const surfaceY: number[][] = []
-      const surfaceZ: number[][] = []
-
-      const gridSize = 15
-      
-      for (let i = 0; i <= gridSize; i++) {
-        const hashrateRow: number[] = []
-        const priceRow: number[] = []
-        const daysRow: number[] = []
-        
-        const hashrate = hashrateRange.min + (hashrateRange.max - hashrateRange.min) * (i / gridSize)
-        
-        for (let j = 0; j <= gridSize; j++) {
-          const days = daysRange.min + (daysRange.max - daysRange.min) * (j / gridSize)
-          const predictedPrice = a * Math.pow(hashrate, b) * Math.pow(days, c)
-          const zValue = timeScale === 'Log' ? Math.log10(Math.max(1, days)) : days
-          
-          hashrateRow.push(hashrate)
-          priceRow.push(predictedPrice)
-          daysRow.push(zValue)
-        }
-        
-        surfaceX.push(hashrateRow)
-        surfaceY.push(priceRow)
-        surfaceZ.push(daysRow)
-      }
-
-      // Add 3D power law surface
-      traces.push({
-        x: surfaceX,
-        y: surfaceY,
-        z: surfaceZ,
-        type: 'surface',
-        name: `3D Power Law Surface (R²=${r2.toFixed(3)})`,
-        colorscale: [[0, 'rgba(245, 158, 11, 0.1)'], [1, 'rgba(245, 158, 11, 0.4)']],
-        showscale: false,
-        hovertemplate: 
-          'Hashrate: %{x:.1f} PH/s<br>' +
-          'Predicted Price: $%{y:.2f}<br>' +
-          'Days: %{z:.0f}<br>' +
-          '<extra>3D Power Law</extra>',
-        opacity: 0.6
-      })
-
-      // Add text annotation showing the power law equation
-      traces.push({
-        x: [hashrateRange.max * 0.8],
-        y: [a * Math.pow(hashrateRange.max * 0.8, b) * Math.pow(daysRange.max * 0.8, c)],
-        z: [timeScale === 'Log' ? Math.log10(daysRange.max * 0.8) : daysRange.max * 0.8],
-        mode: 'markers+text',
-        type: 'scatter3d',
-        name: '3D Power Law Equation',
-        marker: { size: 0, opacity: 0 },
-        text: [`Price = ${a.toFixed(3)} × HR^${b.toFixed(2)} × Days^${c.toFixed(2)}<br>R² = ${r2.toFixed(3)}`],
-        textposition: 'middle center',
-        textfont: { 
-          color: '#F59E0B', 
-          size: 12,
-          family: 'monospace'
-        },
-        hoverinfo: 'skip',
-        showlegend: false
-      })
     }
 
     const merged: Array<{
@@ -247,26 +72,6 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
     return sorted
   }, [priceData, hashrateData])
 
-  // Calculate 3D power law
-  const powerLaw3D = useMemo(() => {
-    if (analysisData.length < 30) return null
-
-    try {
-      // Use all available data for 3D power law fitting
-      const powerLawData = analysisData.map(d => ({
-        hashrate: d.hashrate,
-        price: d.price,
-        daysSinceGenesis: d.daysSinceGenesis
-      }))
-      
-      const result = fit3DPowerLaw(powerLawData)
-      return result
-    } catch (error) {
-      console.error('3D Power law calculation failed:', error)
-      return null
-    }
-  }, [analysisData])
-
   // Filter data based on time period
   const filteredAnalysisData = useMemo(() => {
     if (timePeriod === 'All' || analysisData.length === 0) return analysisData
@@ -284,9 +89,9 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
   const chartData = useMemo(() => {
     if (filteredAnalysisData.length === 0) return []
 
-    const traces: any[] = []
+    const allTraces: any[] = []
 
-    // Prepare color and size arrays
+    // Calculate colors and sizes
     let colors: number[] = []
     let colorscale: string = 'Viridis'
     let colorbarTitle: string = ''
@@ -310,7 +115,7 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
     }
 
     // 3D Scatter plot with days since genesis as Z-axis
-    traces.push({
+    allTraces.push({
       x: filteredAnalysisData.map(d => d.hashrate),
       y: filteredAnalysisData.map(d => d.price),
       z: filteredAnalysisData.map(d => timeScale === 'Log' ? Math.log10(Math.max(1, d.daysSinceGenesis)) : d.daysSinceGenesis),
@@ -347,7 +152,7 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
 
     // Add trajectory line if enabled
     if (showTrajectory === 'Show') {
-      traces.push({
+      allTraces.push({
         x: filteredAnalysisData.map(d => d.hashrate),
         y: filteredAnalysisData.map(d => d.price),
         z: filteredAnalysisData.map(d => timeScale === 'Log' ? Math.log10(Math.max(1, d.daysSinceGenesis)) : d.daysSinceGenesis),
@@ -363,8 +168,8 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
       })
     }
 
-    return traces
-  }, [filteredAnalysisData, showTrajectory, colorBy])
+    return allTraces
+  }, [filteredAnalysisData, showTrajectory, colorBy, timeScale])
 
   const layout: any = {
     height: 600,
@@ -680,64 +485,6 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
             </div>
           </div>
 
-          {/* Power Law Control */}
-          <div className="relative group">
-            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
-              </svg>
-              <span className="text-[#A0A0B8] text-xs">Power Law:</span>
-              <span className="font-medium text-[#FFFFFF] text-xs">{showPowerLaw}</span>
-              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
-              <div className="p-1.5">
-                <div 
-                  onClick={() => setShowPowerLaw('Hide')}
-                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
-                    showPowerLaw === 'Hide' 
-                      ? 'bg-[#5B6CFF]/20' 
-                      : 'hover:bg-[#1A1A2E]/80'
-                  }`}
-                >
-                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12,2C13.1,2 14,2.9 14,4C14,5.1 13.1,6 12,6C10.9,6 10,5.1 10,4C10,2.9 10.9,2 12,2M21,9V7L15,1H5C3.89,1 3,1.89 3,3V21A2,2 0 0,0 5,23H19A2,2 0 0,0 21,21V9H21M19,19H5V3H13V9H19V19Z"/>
-                  </svg>
-                  <div className="flex-1">
-                    <div className={`font-medium text-xs ${showPowerLaw === 'Hide' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
-                      Hide Power Law
-                    </div>
-                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
-                      Display only the raw data points
-                    </div>
-                  </div>
-                </div>
-                <div 
-                  onClick={() => setShowPowerLaw('Show')}
-                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
-                    showPowerLaw === 'Show' 
-                      ? 'bg-[#5B6CFF]/20' 
-                      : 'hover:bg-[#1A1A2E]/80'
-                  }`}
-                >
-                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
-                  </svg>
-                  <div className="flex-1">
-                    <div className={`font-medium text-xs ${showPowerLaw === 'Show' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
-                      Show 3D Power Law
-                    </div>
-                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
-                      Display 3D power law surface: Price = A × HR^B × Days^C
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Trajectory Control */}
           <div className="relative group">
             <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
@@ -868,7 +615,7 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
 
       <div style={{ height: '600px' }} className="w-full">
         <Plot
-          data={allTraces}
+          data={chartData}
           layout={layout}
           style={{ width: '100%', height: '100%' }}
           config={{
