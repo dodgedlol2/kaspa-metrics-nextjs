@@ -15,7 +15,63 @@ interface PriceHashrate3DChartProps {
   className?: string
 }
 
-// Helper function to fit power law
+// Helper function to fit 3D power law: Price = A × Hashrate^B × (Days Since Genesis)^C
+function fit3DPowerLaw(data: Array<{hashrate: number, price: number, daysSinceGenesis: number}>) {
+  if (data.length < 10) {
+    throw new Error("Not enough valid data points for 3D power law fitting")
+  }
+  
+  // Transform to log space: ln(Price) = ln(A) + B*ln(Hashrate) + C*ln(Days)
+  const logData = data.map(point => ({
+    hashrate: Math.log(Math.max(0.0001, point.hashrate)),
+    price: Math.log(Math.max(0.0001, point.price)),
+    days: Math.log(Math.max(1, point.daysSinceGenesis))
+  }))
+  
+  const n = logData.length
+  
+  // Calculate sums for multiple linear regression
+  const sumPrice = logData.reduce((sum, p) => sum + p.price, 0)
+  const sumHashrate = logData.reduce((sum, p) => sum + p.hashrate, 0)
+  const sumDays = logData.reduce((sum, p) => sum + p.days, 0)
+  const sumHashratePrice = logData.reduce((sum, p) => sum + p.hashrate * p.price, 0)
+  const sumDaysPrice = logData.reduce((sum, p) => sum + p.days * p.price, 0)
+  const sumHashrateDays = logData.reduce((sum, p) => sum + p.hashrate * p.days, 0)
+  const sumHashrate2 = logData.reduce((sum, p) => sum + p.hashrate * p.hashrate, 0)
+  const sumDays2 = logData.reduce((sum, p) => sum + p.days * p.days, 0)
+  
+  // Solve the 3x3 system using matrix operations (simplified approach)
+  // This is a simplified implementation - for production, you'd want to use proper matrix math
+  const meanPrice = sumPrice / n
+  const meanHashrate = sumHashrate / n
+  const meanDays = sumDays / n
+  
+  // Simplified regression coefficients (this is an approximation)
+  const denominator = (sumHashrate2 - n * meanHashrate * meanHashrate) * (sumDays2 - n * meanDays * meanDays) - 
+                     (sumHashrateDays - n * meanHashrate * meanDays) * (sumHashrateDays - n * meanHashrate * meanDays)
+  
+  if (Math.abs(denominator) < 0.0001) {
+    throw new Error("Matrix is singular - cannot solve 3D power law")
+  }
+  
+  const b = ((sumHashratePrice - n * meanHashrate * meanPrice) * (sumDays2 - n * meanDays * meanDays) - 
+            (sumDaysPrice - n * meanDays * meanPrice) * (sumHashrateDays - n * meanHashrate * meanDays)) / denominator
+  
+  const c = ((sumDaysPrice - n * meanDays * meanPrice) * (sumHashrate2 - n * meanHashrate * meanHashrate) - 
+            (sumHashratePrice - n * meanHashrate * meanPrice) * (sumHashrateDays - n * meanHashrate * meanDays)) / denominator
+  
+  const a = Math.exp(meanPrice - b * meanHashrate - c * meanDays)
+  
+  // Calculate R²
+  const predictedPrices = logData.map(p => Math.log(a) + b * p.hashrate + c * p.days)
+  const ssRes = logData.reduce((sum, p, i) => sum + Math.pow(p.price - predictedPrices[i], 2), 0)
+  const ssTot = logData.reduce((sum, p) => sum + Math.pow(p.price - meanPrice, 2), 0)
+  const r2 = Math.max(0, 1 - (ssRes / ssTot))
+  
+  return { a, b, c, r2 }
+}
+
+// Helper function to fit 2D power law (keeping original for comparison)
 function fitPowerLaw(data: Array<{x: number, y: number}>) {
   if (data.length < 2) {
     throw new Error("Not enough valid data points for power law fitting")
@@ -68,92 +124,86 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
       return []
     }
 
-    // Add power law evolution surface if enabled
-    if (showPowerLaw === 'Show' && powerLawEvolution && powerLawEvolution.length > 2) {
-      // Filter power law evolution to match time period
-      const filteredPowerLawEvolution = powerLawEvolution.filter(window => {
-        if (timePeriod === 'All') return true
-        const now = Date.now()
-        const days = {
-          '1M': 30, '3M': 90, '6M': 180, 
-          '1Y': 365, '2Y': 730, '3Y': 1095
+    // Add 3D power law surface if enabled
+    if (showPowerLaw === 'Show' && powerLaw3D) {
+      const { a, b, c, r2 } = powerLaw3D
+      
+      // Create ranges for the surface
+      const hashrateRange = {
+        min: Math.min(...filteredAnalysisData.map(d => d.hashrate)),
+        max: Math.max(...filteredAnalysisData.map(d => d.hashrate))
+      }
+      
+      const daysRange = {
+        min: Math.min(...filteredAnalysisData.map(d => d.daysSinceGenesis)),
+        max: Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis))
+      }
+
+      // Generate 3D power law surface
+      const surfaceX: number[][] = []
+      const surfaceY: number[][] = []
+      const surfaceZ: number[][] = []
+
+      const gridSize = 15
+      
+      for (let i = 0; i <= gridSize; i++) {
+        const hashrateRow: number[] = []
+        const priceRow: number[] = []
+        const daysRow: number[] = []
+        
+        const hashrate = hashrateRange.min + (hashrateRange.max - hashrateRange.min) * (i / gridSize)
+        
+        for (let j = 0; j <= gridSize; j++) {
+          const days = daysRange.min + (daysRange.max - daysRange.min) * (j / gridSize)
+          const predictedPrice = a * Math.pow(hashrate, b) * Math.pow(days, c)
+          const zValue = timeScale === 'Log' ? Math.log10(Math.max(1, days)) : days
+          
+          hashrateRow.push(hashrate)
+          priceRow.push(predictedPrice)
+          daysRow.push(zValue)
         }
-        const cutoffDays = now / (24 * 60 * 60 * 1000) - days[timePeriod]
-        return window.daysSinceGenesis >= cutoffDays
+        
+        surfaceX.push(hashrateRow)
+        surfaceY.push(priceRow)
+        surfaceZ.push(daysRow)
+      }
+
+      // Add 3D power law surface
+      traces.push({
+        x: surfaceX,
+        y: surfaceY,
+        z: surfaceZ,
+        type: 'surface',
+        name: `3D Power Law Surface (R²=${r2.toFixed(3)})`,
+        colorscale: [[0, 'rgba(245, 158, 11, 0.1)'], [1, 'rgba(245, 158, 11, 0.4)']],
+        showscale: false,
+        hovertemplate: 
+          'Hashrate: %{x:.1f} PH/s<br>' +
+          'Predicted Price: $%{y:.2f}<br>' +
+          'Days: %{z:.0f}<br>' +
+          '<extra>3D Power Law</extra>',
+        opacity: 0.6
       })
 
-      if (filteredPowerLawEvolution.length > 1) {
-        // Create power law trend surface
-        const hashrateRange = {
-          min: Math.min(...filteredAnalysisData.map(d => d.hashrate)),
-          max: Math.max(...filteredAnalysisData.map(d => d.hashrate))
-        }
-
-        // Generate surface points
-        const surfaceX: number[][] = []
-        const surfaceY: number[][] = []
-        const surfaceZ: number[][] = []
-
-        filteredPowerLawEvolution.forEach((window, windowIndex) => {
-          const { a, b } = window.powerLaw
-          const hashratePoints: number[] = []
-          const pricePoints: number[] = []
-          const timePoints: number[] = []
-
-          // Generate points along the power law curve for this time window
-          for (let i = 0; i <= 20; i++) {
-            const hashrate = hashrateRange.min + (hashrateRange.max - hashrateRange.min) * (i / 20)
-            const predictedPrice = a * Math.pow(hashrate, b)
-            const timeValue = timeScale === 'Log' ? Math.max(1, window.timeIndex + 1) : window.timeIndex
-
-            hashratePoints.push(hashrate)
-            pricePoints.push(predictedPrice)
-            timePoints.push(timeValue)
-          }
-
-          surfaceX.push(hashratePoints)
-          surfaceY.push(pricePoints)
-          surfaceZ.push(timePoints)
-        })
-
-        // Add power law surface
-        traces.push({
-          x: surfaceX,
-          y: surfaceY,
-          z: surfaceZ,
-          type: 'surface',
-          name: 'Power Law Evolution Surface',
-          colorscale: [[0, 'rgba(245, 158, 11, 0.1)'], [1, 'rgba(245, 158, 11, 0.3)']],
-          showscale: false,
-          hoverinfo: 'skip',
-          opacity: 0.3
-        })
-
-        // Add power law evolution trajectory
-        traces.push({
-          x: filteredPowerLawEvolution.map(w => w.avgHashrate),
-          y: filteredPowerLawEvolution.map(w => w.avgPrice),
-          z: filteredPowerLawEvolution.map(w => timeScale === 'Log' ? Math.max(1, w.timeIndex + 1) : w.timeIndex),
-          mode: 'lines+markers',
-          type: 'scatter3d',
-          name: 'Power Law Evolution',
-          line: {
-            color: '#F59E0B',
-            width: 5
-          },
-          marker: {
-            size: 6,
-            color: '#F59E0B',
-            opacity: 0.8
-          },
-          hovertemplate: 
-            'Avg Hashrate: %{x:.1f} PH/s<br>' +
-            'Avg Price: $%{y:.2f}<br>' +
-            'R²: %{text}<br>' +
-            '<extra></extra>',
-          text: filteredPowerLawEvolution.map(w => w.powerLaw.r2.toFixed(3))
-        })
-      }
+      // Add text annotation showing the power law equation
+      traces.push({
+        x: [hashrateRange.max * 0.8],
+        y: [a * Math.pow(hashrateRange.max * 0.8, b) * Math.pow(daysRange.max * 0.8, c)],
+        z: [timeScale === 'Log' ? Math.log10(daysRange.max * 0.8) : daysRange.max * 0.8],
+        mode: 'markers+text',
+        type: 'scatter3d',
+        name: '3D Power Law Equation',
+        marker: { size: 0, opacity: 0 },
+        text: [`Price = ${a.toFixed(3)} × HR^${b.toFixed(2)} × Days^${c.toFixed(2)}<br>R² = ${r2.toFixed(3)}`],
+        textposition: 'middle center',
+        textfont: { 
+          color: '#F59E0B', 
+          size: 12,
+          family: 'monospace'
+        },
+        hoverinfo: 'skip',
+        showlegend: false
+      })
     }
 
     const merged: Array<{
@@ -239,14 +289,14 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
         break
     }
 
-    // 3D Scatter plot with time as Z-axis
+    // 3D Scatter plot with days since genesis as Z-axis
     traces.push({
       x: filteredAnalysisData.map(d => d.hashrate),
       y: filteredAnalysisData.map(d => d.price),
-      z: filteredAnalysisData.map(d => timeScale === 'Log' ? Math.max(1, d.timeIndex + 1) : d.timeIndex),
+      z: filteredAnalysisData.map(d => timeScale === 'Log' ? Math.log10(Math.max(1, d.daysSinceGenesis)) : d.daysSinceGenesis),
       mode: 'markers',
       type: 'scatter3d',
-      name: 'Price vs Hashrate Evolution',
+      name: 'Price vs Hashrate vs Network Age',
       marker: {
         size: 4,
         color: colors,
@@ -270,9 +320,9 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
       hovertemplate: 
         'Hashrate: %{x:.1f} PH/s<br>' +
         'Price: $%{y:.2f}<br>' +
-        'Date: %{text}<br>' +
+        'Days Since Genesis: %{text}<br>' +
         '<extra></extra>',
-      text: filteredAnalysisData.map(d => d.date.toISOString().split('T')[0])
+      text: filteredAnalysisData.map(d => `${d.daysSinceGenesis} days (${d.date.toISOString().split('T')[0]})`)
     })
 
     // Add trajectory line if enabled
@@ -280,10 +330,10 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
       traces.push({
         x: filteredAnalysisData.map(d => d.hashrate),
         y: filteredAnalysisData.map(d => d.price),
-        z: filteredAnalysisData.map(d => timeScale === 'Log' ? Math.max(1, d.timeIndex + 1) : d.timeIndex),
+        z: filteredAnalysisData.map(d => timeScale === 'Log' ? Math.log10(Math.max(1, d.daysSinceGenesis)) : d.daysSinceGenesis),
         mode: 'lines',
         type: 'scatter3d',
-        name: 'Evolution Trajectory',
+        name: 'Network Evolution Path',
         line: {
           color: '#F59E0B',
           width: 3
@@ -338,7 +388,7 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
       },
       zaxis: {
         title: {
-          text: 'Time Progression',
+          text: 'Days Since Genesis',
           font: { color: '#9CA3AF', size: 12 }
         },
         type: timeScale === 'Log' ? 'log' : 'linear',
@@ -346,26 +396,26 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
         gridcolor: '#363650',
         backgroundcolor: 'rgba(0,0,0,0)',
         showbackground: true,
-        ticktext: filteredAnalysisData.length > 0 ? [
-          filteredAnalysisData[0]?.date.toISOString().split('T')[0] || '',
-          filteredAnalysisData[Math.floor(filteredAnalysisData.length * 0.25)]?.date.toISOString().split('T')[0] || '',
-          filteredAnalysisData[Math.floor(filteredAnalysisData.length * 0.5)]?.date.toISOString().split('T')[0] || '',
-          filteredAnalysisData[Math.floor(filteredAnalysisData.length * 0.75)]?.date.toISOString().split('T')[0] || '',
-          filteredAnalysisData[filteredAnalysisData.length - 1]?.date.toISOString().split('T')[0] || ''
-        ] : [],
+        ticktext: filteredAnalysisData.length > 0 ? (
+          timeScale === 'Log' ? [
+            '1 day', '10 days', '100 days', '1000 days'
+          ] : [
+            `${Math.min(...filteredAnalysisData.map(d => d.daysSinceGenesis))} days`,
+            `${Math.floor(Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis)) * 0.25)} days`,
+            `${Math.floor(Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis)) * 0.5)} days`,
+            `${Math.floor(Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis)) * 0.75)} days`,
+            `${Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis))} days`
+          ]
+        ) : [],
         tickvals: filteredAnalysisData.length > 0 ? (
           timeScale === 'Log' ? [
-            Math.max(1, 0),
-            Math.max(1, Math.floor(filteredAnalysisData.length * 0.25)),
-            Math.max(1, Math.floor(filteredAnalysisData.length * 0.5)),
-            Math.max(1, Math.floor(filteredAnalysisData.length * 0.75)),
-            Math.max(1, filteredAnalysisData.length - 1)
+            Math.log10(1), Math.log10(10), Math.log10(100), Math.log10(1000)
           ] : [
-            0,
-            Math.floor(filteredAnalysisData.length * 0.25),
-            Math.floor(filteredAnalysisData.length * 0.5),
-            Math.floor(filteredAnalysisData.length * 0.75),
-            filteredAnalysisData.length - 1
+            Math.min(...filteredAnalysisData.map(d => d.daysSinceGenesis)),
+            Math.floor(Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis)) * 0.25),
+            Math.floor(Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis)) * 0.5),
+            Math.floor(Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis)) * 0.75),
+            Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis))
           ]
         ) : []
       },
@@ -657,10 +707,10 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
                   </svg>
                   <div className="flex-1">
                     <div className={`font-medium text-xs ${showPowerLaw === 'Show' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
-                      Show Power Law Evolution
+                      Show 3D Power Law
                     </div>
                     <div className="text-[10px] text-[#9CA3AF] mt-0.5">
-                      Display 3D power law surface and evolution
+                      Display 3D power law surface: Price = A × HR^B × Days^C
                     </div>
                   </div>
                 </div>
