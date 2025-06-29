@@ -868,7 +868,7 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
 
       <div style={{ height: '600px' }} className="w-full">
         <Plot
-          data={chartData}
+          data={allTraces}
           layout={layout}
           style={{ width: '100%', height: '100%' }}
           config={{
