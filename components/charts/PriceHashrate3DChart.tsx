@@ -18,7 +18,7 @@ interface PriceHashrate3DChartProps {
 // Kaspa Genesis Date (November 7, 2021)
 const KASPA_GENESIS = new Date('2021-11-07').getTime()
 
-// Simple 3D power law fitting function
+// 3D power law fitting function: Price = A × Hashrate^B × Days^C
 function fit3DPowerLaw(data: Array<{hashrate: number, price: number, daysSinceGenesis: number}>) {
   if (data.length < 10) return null
   
@@ -187,7 +187,7 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
         break
     }
 
-    // 3D Scatter plot with days since genesis as Z-axis
+    // 3D Scatter plot with hashrate, price, days since genesis
     allTraces.push({
       x: filteredAnalysisData.map(d => d.hashrate),
       y: filteredAnalysisData.map(d => d.price),
@@ -241,11 +241,11 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
       })
     }
 
-    // Add 3D Power Law as a straight line through 3D space if enabled
+    // Add 3D Power Law as a single straight line if enabled
     if (showPowerLaw === 'Show' && powerLaw3D) {
       const { A, B, C, r2 } = powerLaw3D
       
-      // Create a straight line through 3D space representing the power law
+      // Create a single straight line through 3D space representing the power law
       // Similar to the volume chart approach
       
       const hashrateRange = {
@@ -258,14 +258,15 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
         max: Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis))
       }
       
-      // Generate a single straight line through the 3D space
+      // Generate a single line through the 3D space
+      // We'll create points along one diagonal direction that represents the power law
       const linePoints = []
       const numPoints = 100
       
       for (let i = 0; i <= numPoints; i++) {
         const t = i / numPoints
         
-        // Create points along a diagonal line in log space
+        // Create points along a line in log space
         const logHashrateMin = Math.log(hashrateRange.min)
         const logHashrateMax = Math.log(hashrateRange.max)
         const logDaysMin = Math.log(daysRange.min)
@@ -296,7 +297,7 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
         type: 'scatter3d',
         name: `3D Power Law Line (R²=${r2.toFixed(3)})`,
         line: {
-          color: '#EF4444', // Red color to distinguish from actual trajectory
+          color: '#EF4444',
           width: 6
         },
         hovertemplate: 
@@ -318,7 +319,7 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
         mode: 'markers+text',
         type: 'scatter3d',
         marker: { size: 0, opacity: 0 },
-        text: [`Price = ${A.toFixed(2)} × HR^${B.toFixed(2)} × Days^${C.toFixed(2)}<br>R² = ${r2.toFixed(3)}`],
+        text: [`Price = ${A.toFixed(3)} × HR^${B.toFixed(2)} × Days^${C.toFixed(2)}<br>R² = ${r2.toFixed(3)}`],
         textposition: 'middle center',
         textfont: { 
           color: '#EF4444', 
@@ -383,29 +384,7 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
         color: '#9CA3AF',
         gridcolor: '#363650',
         backgroundcolor: 'rgba(0,0,0,0)',
-        showbackground: true,
-        ticktext: filteredAnalysisData.length > 0 ? (
-          timeScale === 'Log' ? [
-            '1 day', '10 days', '100 days', '1000 days'
-          ] : [
-            `${Math.min(...filteredAnalysisData.map(d => d.daysSinceGenesis))} days`,
-            `${Math.floor(Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis)) * 0.25)} days`,
-            `${Math.floor(Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis)) * 0.5)} days`,
-            `${Math.floor(Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis)) * 0.75)} days`,
-            `${Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis))} days`
-          ]
-        ) : [],
-        tickvals: filteredAnalysisData.length > 0 ? (
-          timeScale === 'Log' ? [
-            Math.log10(1), Math.log10(10), Math.log10(100), Math.log10(1000)
-          ] : [
-            Math.min(...filteredAnalysisData.map(d => d.daysSinceGenesis)),
-            Math.floor(Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis)) * 0.25),
-            Math.floor(Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis)) * 0.5),
-            Math.floor(Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis)) * 0.75),
-            Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis))
-          ]
-        ) : []
+        showbackground: true
       },
       camera: {
         eye: { x: 1.5, y: 1.5, z: 1.2 }
@@ -439,64 +418,6 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
               </svg>
               <span className="text-[#A0A0B8] text-xs">Price Scale:</span>
               <span className="font-medium text-[#FFFFFF] text-xs">{priceScale}</span>
-              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
-              <div className="p-1.5">
-                <div 
-                  onClick={() => setPriceScale('Linear')}
-                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
-                    priceScale === 'Linear' 
-                      ? 'bg-[#5B6CFF]/20' 
-                      : 'hover:bg-[#1A1A2E]/80'
-                  }`}
-                >
-                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
-                  </svg>
-                  <div className="flex-1">
-                    <div className={`font-medium text-xs ${priceScale === 'Linear' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
-                      Linear Scale
-                    </div>
-                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
-                      Equal spacing between price intervals
-                    </div>
-                  </div>
-                </div>
-                <div 
-                  onClick={() => setPriceScale('Log')}
-                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
-                    priceScale === 'Log' 
-                      ? 'bg-[#5B6CFF]/20' 
-                      : 'hover:bg-[#1A1A2E]/80'
-                  }`}
-                >
-                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M19,19H5V5H19V19M7,10H9V16H7V10M11,7H13V16H11V7M15,13H17V16H15V13Z"/>
-                  </svg>
-                  <div className="flex-1">
-                    <div className={`font-medium text-xs ${hashrateScale === 'Log' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
-                      Logarithmic Scale
-                    </div>
-                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
-                      Better for analyzing percentage changes
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Time Scale Control */}
-          <div className="relative group">
-            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
-              </svg>
-              <span className="text-[#A0A0B8] text-xs">Time Scale:</span>
-              <span className="font-medium text-[#FFFFFF] text-xs">{timeScale}</span>
               <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -806,7 +727,39 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
       </div>
     </div>
   )
-}.9,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M19,19H5V5H19V19M7,10H9V16H7V10M11,7H13V16H11V7M15,13H17V16H15V13Z"/>
+}
+            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                <div 
+                  onClick={() => setPriceScale('Linear')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    priceScale === 'Linear' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${priceScale === 'Linear' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Linear Scale
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Equal spacing between price intervals
+                    </div>
+                  </div>
+                </div>
+                <div 
+                  onClick={() => setPriceScale('Log')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    priceScale === 'Log' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M19,19H5V5H19V19M7,10H9V16H7V10M11,7H13V16H11V7M15,13H17V16H15V13Z"/>
                   </svg>
                   <div className="flex-1">
                     <div className={`font-medium text-xs ${priceScale === 'Log' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
@@ -864,4 +817,30 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
                   }`}
                 >
                   <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3
+                    <path d="M19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M19,19H5V5H19V19M7,10H9V16H7V10M11,7H13V16H11V7M15,13H17V16H15V13Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${hashrateScale === 'Log' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Logarithmic Scale
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Better for analyzing percentage changes
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Time Scale Control */}
+          <div className="relative group">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+              </svg>
+              <span className="text-[#A0A0B8] text-xs">Time Scale:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{timeScale}</span>
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
