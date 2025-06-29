@@ -202,7 +202,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     font: { color: '#9CA3AF', family: 'Inter, ui-sans-serif, system-ui, sans-serif' },
     hovermode: 'x unified',
     showlegend: true,
-    margin: { l: 50, r: 20, t: 20, b: 50 },
+    margin: { l: 40, r: 10, t: 10, b: 40 }, // Reduced margins
     hoverlabel: {
       bgcolor: 'rgba(15, 20, 25, 0.95)',
       bordercolor: 'rgba(91, 108, 255, 0.5)',
