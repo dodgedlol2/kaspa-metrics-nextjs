@@ -241,89 +241,67 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
       })
     }
 
-    // Add 3D Power Law surface if enabled
+    // Add 3D Power Law as predicted trajectory line if enabled
     if (showPowerLaw === 'Show' && powerLaw3D) {
       const { A, B, C, r2 } = powerLaw3D
       
-      // Create surface grid
-      const hashrateRange = {
-        min: Math.min(...filteredAnalysisData.map(d => d.hashrate)),
-        max: Math.max(...filteredAnalysisData.map(d => d.hashrate))
-      }
-      
-      const daysRange = {
-        min: Math.min(...filteredAnalysisData.map(d => d.daysSinceGenesis)),
-        max: Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis))
-      }
-      
-      // Generate 3D power law surface
-      const gridSize = 12
-      const surfaceX: number[][] = []
-      const surfaceY: number[][] = []
-      const surfaceZ: number[][] = []
-      
-      for (let i = 0; i <= gridSize; i++) {
-        const xRow: number[] = []
-        const yRow: number[] = []
-        const zRow: number[] = []
-        
-        for (let j = 0; j <= gridSize; j++) {
-          const hashrate = hashrateRange.min + (hashrateRange.max - hashrateRange.min) * (i / gridSize)
-          const days = daysRange.min + (daysRange.max - daysRange.min) * (j / gridSize)
-          const predictedPrice = A * Math.pow(hashrate, B) * Math.pow(days, C)
-          const zValue = timeScale === 'Log' ? Math.log10(Math.max(1, days)) : days
-          
-          xRow.push(hashrate)
-          yRow.push(predictedPrice)
-          zRow.push(zValue)
+      // Generate power law prediction line using actual hashrate and days progression
+      const powerLawLine = filteredAnalysisData.map(d => {
+        const predictedPrice = A * Math.pow(d.hashrate, B) * Math.pow(d.daysSinceGenesis, C)
+        return {
+          hashrate: d.hashrate,
+          predictedPrice: predictedPrice,
+          daysSinceGenesis: d.daysSinceGenesis,
+          date: d.date
         }
-        
-        surfaceX.push(xRow)
-        surfaceY.push(yRow)
-        surfaceZ.push(zRow)
-      }
+      })
       
-      // Add 3D power law surface
+      // Add power law predicted trajectory
       allTraces.push({
-        x: surfaceX,
-        y: surfaceY,
-        z: surfaceZ,
-        type: 'surface',
-        name: `3D Power Law Surface`,
-        colorscale: [[0, 'rgba(245, 158, 11, 0.15)'], [1, 'rgba(245, 158, 11, 0.4)']],
-        showscale: false,
-        opacity: 0.7,
+        x: powerLawLine.map(d => d.hashrate),
+        y: powerLawLine.map(d => d.predictedPrice),
+        z: powerLawLine.map(d => timeScale === 'Log' ? Math.log10(Math.max(1, d.daysSinceGenesis)) : d.daysSinceGenesis),
+        mode: 'lines',
+        type: 'scatter3d',
+        name: `3D Power Law Prediction (R²=${r2.toFixed(3)})`,
+        line: {
+          color: '#EF4444', // Red color to distinguish from actual trajectory
+          width: 4
+        },
         hovertemplate: 
           'Hashrate: %{x:.1f} PH/s<br>' +
           'Predicted Price: $%{y:.2f}<br>' +
-          'Days: %{z:.0f}<br>' +
-          '<extra>Power Law Surface</extra>'
+          'Days Since Genesis: %{text}<br>' +
+          '<extra>Power Law Prediction</extra>',
+        text: powerLawLine.map(d => `${d.daysSinceGenesis} days (${d.date.toISOString().split('T')[0]})`),
+        showlegend: true
       })
       
       // Add equation text annotation
-      const maxHashrate = hashrateRange.max
-      const maxDays = daysRange.max
-      const textPrice = A * Math.pow(maxHashrate * 0.7, B) * Math.pow(maxDays * 0.7, C)
-      const textZ = timeScale === 'Log' ? Math.log10(maxDays * 0.7) : maxDays * 0.7
-      
-      allTraces.push({
-        x: [maxHashrate * 0.7],
-        y: [textPrice],
-        z: [textZ],
-        mode: 'markers+text',
-        type: 'scatter3d',
-        marker: { size: 0, opacity: 0 },
-        text: [`Price = ${A.toFixed(2)} × HR^${B.toFixed(2)} × Days^${C.toFixed(2)}<br>R² = ${r2.toFixed(3)}`],
-        textposition: 'middle center',
-        textfont: { 
-          color: '#F59E0B', 
-          size: 11,
-          family: 'monospace'
-        },
-        name: '3D Power Law Equation',
-        hoverinfo: 'skip',
-        showlegend: false
-      })
+      const midPoint = Math.floor(powerLawLine.length / 2)
+      const midData = powerLawLine[midPoint]
+      if (midData) {
+        const textZ = timeScale === 'Log' ? Math.log10(Math.max(1, midData.daysSinceGenesis)) : midData.daysSinceGenesis
+        
+        allTraces.push({
+          x: [midData.hashrate * 1.2],
+          y: [midData.predictedPrice * 1.5],
+          z: [textZ],
+          mode: 'markers+text',
+          type: 'scatter3d',
+          marker: { size: 0, opacity: 0 },
+          text: [`Price = ${A.toFixed(2)} × HR^${B.toFixed(2)} × Days^${C.toFixed(2)}<br>R² = ${r2.toFixed(3)}`],
+          textposition: 'middle center',
+          textfont: { 
+            color: '#EF4444', 
+            size: 11,
+            family: 'monospace'
+          },
+          name: '3D Power Law Equation',
+          hoverinfo: 'skip',
+          showlegend: false
+        })
+      }
     }
 
     return allTraces
@@ -690,10 +668,10 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
                   </svg>
                   <div className="flex-1">
                     <div className={`font-medium text-xs ${showPowerLaw === 'Show' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
-                      Show 3D Power Law
+                      Show 3D Power Law Line
                     </div>
                     <div className="text-[10px] text-[#9CA3AF] mt-0.5">
-                      Display surface: Price = A × HR^B × Days^C
+                      Display predicted trajectory: Price = A × HR^B × Days^C
                     </div>
                   </div>
                 </div>
