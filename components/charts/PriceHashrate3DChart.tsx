@@ -258,54 +258,46 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
         max: Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis))
       }
       
-      // Generate a perfectly straight line in log₁₀-log₁₀-log₁₀ display space
-      // The key is to work entirely in the DISPLAY coordinate system
+      // Create a single straight line through 3D space representing the power law
+      // EXACT same approach as the working volume chart
+      
+      const hashrateRange = {
+        min: Math.min(...filteredAnalysisData.map(d => d.hashrate)),
+        max: Math.max(...filteredAnalysisData.map(d => d.hashrate))
+      }
+      
+      const daysRange = {
+        min: Math.min(...filteredAnalysisData.map(d => d.daysSinceGenesis)),
+        max: Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis))
+      }
+      
+      // Generate a single line through the 3D space
+      // IDENTICAL to volume chart approach
       const linePoints = []
       const numPoints = 100
       
-      // Get the display coordinate ranges (what user actually sees)
-      let xDisplayMin, xDisplayMax, zDisplayMin, zDisplayMax
-      
-      if (hashrateScale === 'Log') {
-        xDisplayMin = Math.log10(hashrateRange.min)
-        xDisplayMax = Math.log10(hashrateRange.max)
-      } else {
-        xDisplayMin = hashrateRange.min
-        xDisplayMax = hashrateRange.max
-      }
-      
-      if (timeScale === 'Log') {
-        zDisplayMin = Math.log10(daysRange.min)
-        zDisplayMax = Math.log10(daysRange.max)
-      } else {
-        zDisplayMin = daysRange.min
-        zDisplayMax = daysRange.max
-      }
-      
-      // Create perfectly straight line in display coordinates
       for (let i = 0; i <= numPoints; i++) {
         const t = i / numPoints
         
-        // Linear interpolation in DISPLAY space (this is what makes it straight)
-        const xDisplay = xDisplayMin + (xDisplayMax - xDisplayMin) * t
-        const zDisplay = zDisplayMin + (zDisplayMax - zDisplayMin) * t
+        // Create points along a line in log space (EXACT same as volume chart)
+        const logHashrateMin = Math.log(hashrateRange.min)
+        const logHashrateMax = Math.log(hashrateRange.max)
+        const logDaysMin = Math.log(daysRange.min)
+        const logDaysMax = Math.log(daysRange.max)
         
-        // Convert display coordinates back to actual values for power law
-        const actualHashrate = hashrateScale === 'Log' ? Math.pow(10, xDisplay) : xDisplay
-        const actualDays = timeScale === 'Log' ? Math.pow(10, zDisplay) : zDisplay
+        const logHashrate = logHashrateMin + (logHashrateMax - logHashrateMin) * t
+        const logDays = logDaysMin + (logDaysMax - logDaysMin) * t
         
-        // Calculate power law price
-        const predictedPrice = A * Math.pow(actualHashrate, B) * Math.pow(actualDays, C)
+        const hashrate = Math.exp(logHashrate)
+        const days = Math.exp(logDays)
         
-        // For the line coordinates, use display values directly for log axes
-        const lineX = actualHashrate  // Plotly will convert to log if axis is log
-        const lineY = predictedPrice  // Plotly will convert to log if axis is log
-        const lineZ = actualDays      // Plotly will convert to log if axis is log
+        // Calculate predicted price using power law
+        const predictedPrice = A * Math.pow(hashrate, B) * Math.pow(days, C)
         
         linePoints.push({
-          hashrate: lineX,
-          days: lineZ,
-          predictedPrice: lineY
+          hashrate: hashrate,
+          days: days,
+          predictedPrice: predictedPrice
         })
       }
       
