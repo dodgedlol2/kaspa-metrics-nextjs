@@ -397,7 +397,8 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
             `${Math.floor(Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis)) * 0.75)} days`,
             `${Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis))} days`
           ]
-        ) : [],
+        )
+} : [],
         tickvals: filteredAnalysisData.length > 0 ? (
           timeScale === 'Log' ? [
             Math.log10(1), Math.log10(10), Math.log10(100), Math.log10(1000)
