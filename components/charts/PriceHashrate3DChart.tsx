@@ -77,48 +77,10 @@ function fit3DPowerLaw(data: Array<{hashrate: number, price: number, daysSinceGe
   }
 }
 
-// Linear 3D fitting function - creates a simplified power law that's geometrically straight
-function fit3DLinear(data: Array<{hashrate: number, price: number, daysSinceGenesis: number}>) {
-  if (data.length < 10) return null
-  
-  try {
-    // Sort data by time progression to create a straight line through 3D space
-    const sortedData = [...data].sort((a, b) => a.daysSinceGenesis - b.daysSinceGenesis)
-    
-    // Take first and last points to define the linear trajectory
-    const startPoint = sortedData[0]
-    const endPoint = sortedData[sortedData.length - 1]
-    
-    // Calculate linear interpolation factors
-    const timeSpan = endPoint.daysSinceGenesis - startPoint.daysSinceGenesis
-    const priceRatio = endPoint.price / startPoint.price
-    const hashrateRatio = endPoint.hashrate / startPoint.hashrate
-    
-    // Create simplified power law coefficients that will produce a straight line
-    // This forces the relationship to be linear in 3D space while maintaining power law structure
-    const B = Math.log(priceRatio) / Math.log(hashrateRatio) // Hashrate exponent
-    const C = 0.5 // Fixed time exponent for simplicity
-    const A = startPoint.price / (Math.pow(startPoint.hashrate, B) * Math.pow(startPoint.daysSinceGenesis, C))
-    
-    // Ensure we have valid coefficients
-    if (!isFinite(A) || !isFinite(B) || !isFinite(C)) {
-      // Fallback to simple values
-      return { A: 0.01, B: 1.0, C: 0.3 }
-    }
-    
-    return { A: Math.abs(A), B: Math.abs(B), C: Math.abs(C) }
-  } catch (error) {
-    console.error('3D Linear fitting error:', error)
-    // Return fallback values
-    return { A: 0.01, B: 1.0, C: 0.3 }
-  }
-}
-
 export default function PriceHashrate3DChart({ priceData, hashrateData, className = '' }: PriceHashrate3DChartProps) {
   const [timePeriod, setTimePeriod] = useState<'1M' | '3M' | '6M' | '1Y' | '2Y' | '3Y' | 'All'>('All')
   const [showTrajectory, setShowTrajectory] = useState<'Hide' | 'Show'>('Show')
   const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Hide')
-  const [showLinear, setShowLinear] = useState<'Hide' | 'Show'>('Hide')
   const [colorBy, setColorBy] = useState<'Time' | 'Price' | 'Hashrate'>('Time')
   const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
   const [hashrateScale, setHashrateScale] = useState<'Linear' | 'Log'>('Log')
@@ -181,23 +143,6 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
     }))
     
     return fit3DPowerLaw(powerLawData)
-  }, [analysisData])
-
-  // Calculate 3D linear (simplified power law)
-  const linear3D = useMemo(() => {
-    if (analysisData.length < 50) return null
-    
-    const linearData = analysisData.map(d => ({
-      hashrate: d.hashrate,
-      price: d.price,
-      daysSinceGenesis: d.daysSinceGenesis
-    }))
-    
-    const result = fit3DLinear(linearData)
-    if (result) {
-      console.log('Linear 3D coefficients:', result)
-    }
-    return result
   }, [analysisData])
 
   // Filter data based on time period
@@ -727,64 +672,6 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
                     </div>
                     <div className="text-[10px] text-[#9CA3AF] mt-0.5">
                       Display predicted trajectory: Price = A × HR^B × Days^C
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Linear Power Law Control */}
-          <div className="relative group">
-            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-              <svg className="w-3.5 h-3.5 text-[#10B981]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M3,3V21H21V19H5V3H3M20,8L14,14L10,10L6,14L7.41,15.41L10,12.83L14,16.83L21.41,9.41L20,8Z"/>
-              </svg>
-              <span className="text-[#A0A0B8] text-xs">Linear Power Law:</span>
-              <span className="font-medium text-[#FFFFFF] text-xs">{showLinear}</span>
-              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
-              <div className="p-1.5">
-                <div 
-                  onClick={() => setShowLinear('Hide')}
-                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
-                    showLinear === 'Hide' 
-                      ? 'bg-[#5B6CFF]/20' 
-                      : 'hover:bg-[#1A1A2E]/80'
-                  }`}
-                >
-                  <svg className="w-5 h-5 text-[#10B981]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4Z"/>
-                  </svg>
-                  <div className="flex-1">
-                    <div className={`font-medium text-xs ${showLinear === 'Hide' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
-                      Hide Linear Power Law
-                    </div>
-                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
-                      Hide the simplified straight-line version
-                    </div>
-                  </div>
-                </div>
-                <div 
-                  onClick={() => setShowLinear('Show')}
-                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
-                    showLinear === 'Show' 
-                      ? 'bg-[#5B6CFF]/20' 
-                      : 'hover:bg-[#1A1A2E]/80'
-                  }`}
-                >
-                  <svg className="w-5 h-5 text-[#10B981]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M3,3V21H21V19H5V3H3M20,8L14,14L10,10L6,14L7.41,15.41L10,12.83L14,16.83L21.41,9.41L20,8Z"/>
-                  </svg>
-                  <div className="flex-1">
-                    <div className={`font-medium text-xs ${showLinear === 'Show' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
-                      Show Linear Power Law
-                    </div>
-                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
-                      Display simplified power law (straight from all angles)
                     </div>
                   </div>
                 </div>
