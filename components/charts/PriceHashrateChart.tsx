@@ -55,7 +55,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
   const [hashrateScale, setHashrateScale] = useState<'Linear' | 'Log'>('Log')
   const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
   const [timePeriod, setTimePeriod] = useState<'1M' | '3M' | '6M' | '1Y' | '2Y' | '3Y' | 'All'>('All')
-  const [isHovering, setIsHovering] = useState(false)
+  const [colorMode, setColorMode] = useState<'Deviation' | 'Temporal'>('Deviation')
 
   const analysisData = useMemo(() => {
     if (!priceData || !hashrateData || priceData.length === 0 || hashrateData.length === 0) {
@@ -124,14 +124,14 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
 
     const traces: any[] = []
 
-    // Calculate colors and sizes with power law deviation coloring
+    // Calculate colors and sizes
     let colors: string[] = []
     let sizes: number[] = []
     
     // Find the most recent data point (today's data)
     const mostRecentDate = Math.max(...filteredAnalysisData.map(d => d.date.getTime()))
     
-    if (powerLawData?.priceHashrate) {
+    if (colorMode === 'Deviation' && powerLawData?.priceHashrate) {
       const { a, b } = powerLawData.priceHashrate
       
       // Calculate expected price for each hashrate point
@@ -170,12 +170,29 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         }
       })
     } else {
-      // Fallback to uniform color if no power law
-      colors = filteredAnalysisData.map(d => {
+      // Temporal coloring mode - oldest to newest
+      colors = filteredAnalysisData.map((d, index) => {
+        // Check if this is today's data point
         if (d.date.getTime() === mostRecentDate) {
-          return '#F59E0B' // Orange for current/latest data (same as power law)
+          return '#F59E0B' // Orange for current/latest data
         }
-        return '#4C5BFF' // Bright blue for all other dots
+        
+        // Create gradient from oldest (dark blue) to newest (teal)
+        const progress = index / (filteredAnalysisData.length - 1) // 0 to 1
+        
+        if (progress <= 0.16) { // 0-16%
+          return '#312E81' // Darkest blue (oldest)
+        } else if (progress <= 0.33) { // 16-33%
+          return '#3730A3' // Dark purple-blue
+        } else if (progress <= 0.5) { // 33-50%
+          return '#4338CA' // Purple-blue
+        } else if (progress <= 0.66) { // 50-66%
+          return '#4C5BFF' // Mid blue
+        } else if (progress <= 0.83) { // 66-83%
+          return '#2563EB' // Blue-teal blend
+        } else { // 83-100%
+          return '#14B8A6' // Teal (newest, excluding current day)
+        }
       })
     }
     
@@ -184,7 +201,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       return d.date.getTime() === mostRecentDate ? 10 : 7 // Larger for current day
     })
 
-    // All data points with uniform coloring
+    // All data points with dynamic coloring
     traces.push({
       x: filteredAnalysisData.map(d => d.hashrate),
       y: filteredAnalysisData.map(d => d.price),
@@ -258,7 +275,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     }
 
     return traces
-  }, [filteredAnalysisData, showPowerLaw, powerLawData])
+  }, [filteredAnalysisData, showPowerLaw, powerLawData, colorMode])
 
   const mainLayout: any = {
     height: 500,
@@ -512,6 +529,64 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
                     </div>
                     <div className="text-[10px] text-[#9CA3AF] mt-0.5">
                       Display regression trend line
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Color Mode Control - NEW */}
+          <div className="relative group">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12,18.5A6.5,6.5 0 0,1 5.5,12A6.5,6.5 0 0,1 12,5.5A6.5,6.5 0 0,1 18.5,12A6.5,6.5 0 0,1 12,18.5M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
+              </svg>
+              <span className="text-[#A0A0B8] text-xs">Color Mode:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{colorMode}</span>
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                <div 
+                  onClick={() => setColorMode('Deviation')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    colorMode === 'Deviation' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${colorMode === 'Deviation' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Deviation Mode
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Color by power law deviation
+                    </div>
+                  </div>
+                </div>
+                <div 
+                  onClick={() => setColorMode('Temporal')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    colorMode === 'Temporal' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${colorMode === 'Temporal' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Temporal Mode
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Color by chronological order
                     </div>
                   </div>
                 </div>
