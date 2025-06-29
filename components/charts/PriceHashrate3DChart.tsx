@@ -258,29 +258,45 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
         max: Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis))
       }
       
-      // Generate a single line through the 3D space
-      // IDENTICAL to volume chart approach
+      // Generate PURE MATHEMATICAL straight line in log space
+      // Completely independent of data point positions
       const linePoints = []
       const numPoints = 100
       
+      // Get the FULL range of each axis (not just data range)
+      const hashrateRange = {
+        min: Math.min(...filteredAnalysisData.map(d => d.hashrate)),
+        max: Math.max(...filteredAnalysisData.map(d => d.hashrate))
+      }
+      
+      const daysRange = {
+        min: Math.min(...filteredAnalysisData.map(d => d.daysSinceGenesis)),
+        max: Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis))
+      }
+      
+      // Generate points along a DIAGONAL LINE in LOG₁₀ space
+      // This creates a perfectly straight line when all axes are log scale
       for (let i = 0; i <= numPoints; i++) {
-        const t = i / numPoints
+        const t = i / numPoints  // 0 to 1
         
-        // Create points along a line in log space (EXACT same as volume chart)
-        const logHashrateMin = Math.log(hashrateRange.min)
-        const logHashrateMax = Math.log(hashrateRange.max)
-        const logDaysMin = Math.log(daysRange.min)
-        const logDaysMax = Math.log(daysRange.max)
+        // Work directly in log₁₀ space (what Plotly displays)
+        const log10HashrateMin = Math.log10(hashrateRange.min)
+        const log10HashrateMax = Math.log10(hashrateRange.max)
+        const log10DaysMin = Math.log10(daysRange.min)
+        const log10DaysMax = Math.log10(daysRange.max)
         
-        const logHashrate = logHashrateMin + (logHashrateMax - logHashrateMin) * t
-        const logDays = logDaysMin + (logDaysMax - logDaysMin) * t
+        // Linear interpolation in LOG₁₀ display space
+        const log10Hashrate = log10HashrateMin + (log10HashrateMax - log10HashrateMin) * t
+        const log10Days = log10DaysMin + (log10DaysMax - log10DaysMin) * t
         
-        const hashrate = Math.exp(logHashrate)
-        const days = Math.exp(logDays)
+        // Convert to actual values for power law calculation
+        const hashrate = Math.pow(10, log10Hashrate)
+        const days = Math.pow(10, log10Days)
         
-        // Calculate predicted price using power law
+        // Calculate power law price using fitted coefficients
         const predictedPrice = A * Math.pow(hashrate, B) * Math.pow(days, C)
         
+        // Store actual values (Plotly will handle log conversion)
         linePoints.push({
           hashrate: hashrate,
           days: days,
