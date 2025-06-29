@@ -259,31 +259,47 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
       }
       
       // Generate a single line through the 3D space
-      // We'll create points along one diagonal direction that represents the power law
+      // Create a perfectly straight line in log-log-log space
       const linePoints = []
       const numPoints = 100
       
       for (let i = 0; i <= numPoints; i++) {
         const t = i / numPoints
         
-        // Create points along a line in log space
-        const logHashrateMin = Math.log(hashrateRange.min)
-        const logHashrateMax = Math.log(hashrateRange.max)
-        const logDaysMin = Math.log(daysRange.min)
-        const logDaysMax = Math.log(daysRange.max)
+        // Work directly in the display coordinate system
+        // If axes are log scale, work in log space throughout
+        let xMin, xMax, zMin, zMax
         
-        const logHashrate = logHashrateMin + (logHashrateMax - logHashrateMin) * t
-        const logDays = logDaysMin + (logDaysMax - logDaysMin) * t
+        if (hashrateScale === 'Log') {
+          xMin = Math.log10(hashrateRange.min)
+          xMax = Math.log10(hashrateRange.max)
+        } else {
+          xMin = hashrateRange.min
+          xMax = hashrateRange.max
+        }
         
-        const hashrate = Math.exp(logHashrate)
-        const days = Math.exp(logDays)
+        if (timeScale === 'Log') {
+          zMin = Math.log10(daysRange.min)
+          zMax = Math.log10(daysRange.max)
+        } else {
+          zMin = daysRange.min
+          zMax = daysRange.max
+        }
+        
+        // Interpolate linearly in the display coordinate system
+        const x = xMin + (xMax - xMin) * t
+        const z = zMin + (zMax - zMin) * t
+        
+        // Convert back to actual values for power law calculation
+        const actualHashrate = hashrateScale === 'Log' ? Math.pow(10, x) : x
+        const actualDays = timeScale === 'Log' ? Math.pow(10, z) : z
         
         // Calculate predicted price using power law
-        const predictedPrice = A * Math.pow(hashrate, B) * Math.pow(days, C)
+        const predictedPrice = A * Math.pow(actualHashrate, B) * Math.pow(actualDays, C)
         
         linePoints.push({
-          hashrate: hashrate,
-          days: days,
+          hashrate: actualHashrate,
+          days: actualDays,
           predictedPrice: predictedPrice
         })
       }
