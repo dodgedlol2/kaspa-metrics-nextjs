@@ -241,13 +241,11 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
       })
     }
 
-    // Add 3D Power Law as a single straight line if enabled
+    // Add 3D Power Law as perfectly straight line if enabled
     if (showPowerLaw === 'Show' && powerLaw3D) {
       const { A, B, C, r2 } = powerLaw3D
       
-      // Create a single straight line through 3D space representing the power law
-      // EXACT same approach as the working volume chart
-      
+      // Get data ranges
       const hashrateRange = {
         min: Math.min(...filteredAnalysisData.map(d => d.hashrate)),
         max: Math.max(...filteredAnalysisData.map(d => d.hashrate))
@@ -258,49 +256,40 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
         max: Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis))
       }
       
-      // Generate PURE MATHEMATICAL straight line in log space
-      // Completely independent of data point positions
+      // PURE MATHEMATICAL LINE GENERATION IN LOG₁₀ SPACE
+      // Power law: Price = A × Hashrate^B × Days^C
+      // In log₁₀: log₁₀(Price) = log₁₀(A) + B×log₁₀(Hashrate) + C×log₁₀(Days)
+      const log10A = Math.log10(A)
+      
+      // Define line endpoints in log₁₀ space
+      const log10HashrateMin = Math.log10(hashrateRange.min)
+      const log10HashrateMax = Math.log10(hashrateRange.max)
+      const log10DaysMin = Math.log10(daysRange.min)
+      const log10DaysMax = Math.log10(daysRange.max)
+      
+      // Generate perfectly straight line in log₁₀ coordinates
       const linePoints = []
       const numPoints = 100
       
-      // Get the FULL range of each axis (not just data range)
-      const hashrateRange = {
-        min: Math.min(...filteredAnalysisData.map(d => d.hashrate)),
-        max: Math.max(...filteredAnalysisData.map(d => d.hashrate))
-      }
-      
-      const daysRange = {
-        min: Math.min(...filteredAnalysisData.map(d => d.daysSinceGenesis)),
-        max: Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis))
-      }
-      
-      // Generate points along a DIAGONAL LINE in LOG₁₀ space
-      // This creates a perfectly straight line when all axes are log scale
       for (let i = 0; i <= numPoints; i++) {
-        const t = i / numPoints  // 0 to 1
+        const t = i / numPoints
         
-        // Work directly in log₁₀ space (what Plotly displays)
-        const log10HashrateMin = Math.log10(hashrateRange.min)
-        const log10HashrateMax = Math.log10(hashrateRange.max)
-        const log10DaysMin = Math.log10(daysRange.min)
-        const log10DaysMax = Math.log10(daysRange.max)
-        
-        // Linear interpolation in LOG₁₀ display space
+        // Linear interpolation in LOG₁₀ space (guarantees straight line)
         const log10Hashrate = log10HashrateMin + (log10HashrateMax - log10HashrateMin) * t
         const log10Days = log10DaysMin + (log10DaysMax - log10DaysMin) * t
         
-        // Convert to actual values for power law calculation
+        // Calculate log₁₀(Price) using the linear equation in log space
+        const log10Price = log10A + B * log10Hashrate + C * log10Days
+        
+        // Convert back to actual values for Plotly
         const hashrate = Math.pow(10, log10Hashrate)
         const days = Math.pow(10, log10Days)
+        const price = Math.pow(10, log10Price)
         
-        // Calculate power law price using fitted coefficients
-        const predictedPrice = A * Math.pow(hashrate, B) * Math.pow(days, C)
-        
-        // Store actual values (Plotly will handle log conversion)
         linePoints.push({
           hashrate: hashrate,
           days: days,
-          predictedPrice: predictedPrice
+          predictedPrice: price
         })
       }
       
