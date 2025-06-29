@@ -21,6 +21,7 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
   const [colorBy, setColorBy] = useState<'Time' | 'Price' | 'Hashrate'>('Time')
   const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
   const [hashrateScale, setHashrateScale] = useState<'Linear' | 'Log'>('Log')
+  const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear')
 
   const analysisData = useMemo(() => {
     if (!priceData || !hashrateData || priceData.length === 0 || hashrateData.length === 0) {
@@ -112,7 +113,7 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
     traces.push({
       x: filteredAnalysisData.map(d => d.hashrate),
       y: filteredAnalysisData.map(d => d.price),
-      z: filteredAnalysisData.map(d => d.timeIndex),
+      z: filteredAnalysisData.map(d => timeScale === 'Log' ? Math.max(1, d.timeIndex + 1) : d.timeIndex),
       mode: 'markers',
       type: 'scatter3d',
       name: 'Price vs Hashrate Evolution',
@@ -149,7 +150,7 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
       traces.push({
         x: filteredAnalysisData.map(d => d.hashrate),
         y: filteredAnalysisData.map(d => d.price),
-        z: filteredAnalysisData.map(d => d.timeIndex),
+        z: filteredAnalysisData.map(d => timeScale === 'Log' ? Math.max(1, d.timeIndex + 1) : d.timeIndex),
         mode: 'lines',
         type: 'scatter3d',
         name: 'Evolution Trajectory',
@@ -210,6 +211,7 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
           text: 'Time Progression',
           font: { color: '#9CA3AF', size: 12 }
         },
+        type: timeScale === 'Log' ? 'log' : 'linear',
         color: '#9CA3AF',
         gridcolor: '#363650',
         backgroundcolor: 'rgba(0,0,0,0)',
@@ -221,13 +223,21 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
           filteredAnalysisData[Math.floor(filteredAnalysisData.length * 0.75)]?.date.toISOString().split('T')[0] || '',
           filteredAnalysisData[filteredAnalysisData.length - 1]?.date.toISOString().split('T')[0] || ''
         ] : [],
-        tickvals: filteredAnalysisData.length > 0 ? [
-          0,
-          Math.floor(filteredAnalysisData.length * 0.25),
-          Math.floor(filteredAnalysisData.length * 0.5),
-          Math.floor(filteredAnalysisData.length * 0.75),
-          filteredAnalysisData.length - 1
-        ] : []
+        tickvals: filteredAnalysisData.length > 0 ? (
+          timeScale === 'Log' ? [
+            Math.max(1, 0),
+            Math.max(1, Math.floor(filteredAnalysisData.length * 0.25)),
+            Math.max(1, Math.floor(filteredAnalysisData.length * 0.5)),
+            Math.max(1, Math.floor(filteredAnalysisData.length * 0.75)),
+            Math.max(1, filteredAnalysisData.length - 1)
+          ] : [
+            0,
+            Math.floor(filteredAnalysisData.length * 0.25),
+            Math.floor(filteredAnalysisData.length * 0.5),
+            Math.floor(filteredAnalysisData.length * 0.75),
+            filteredAnalysisData.length - 1
+          ]
+        ) : []
       },
       camera: {
         eye: { x: 1.5, y: 1.5, z: 1.2 }
@@ -362,6 +372,64 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
                     </div>
                     <div className="text-[10px] text-[#9CA3AF] mt-0.5">
                       Better for analyzing percentage changes
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Time Scale Control */}
+          <div className="relative group">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+              </svg>
+              <span className="text-[#A0A0B8] text-xs">Time Scale:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{timeScale}</span>
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                <div 
+                  onClick={() => setTimeScale('Linear')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    timeScale === 'Linear' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${timeScale === 'Linear' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Linear Time Scale
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Equal spacing between time intervals
+                    </div>
+                  </div>
+                </div>
+                <div 
+                  onClick={() => setTimeScale('Log')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    timeScale === 'Log' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M19,19H5V5H19V19M7,10H9V16H7V10M11,7H13V16H11V7M15,13H17V16H15V13Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${timeScale === 'Log' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Logarithmic Time Scale
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Emphasizes early periods and compresses recent data
                     </div>
                   </div>
                 </div>
