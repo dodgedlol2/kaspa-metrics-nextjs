@@ -55,7 +55,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
   const [hashrateScale, setHashrateScale] = useState<'Linear' | 'Log'>('Log')
   const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
   const [timePeriod, setTimePeriod] = useState<'1M' | '3M' | '6M' | '1Y' | '2Y' | '3Y' | 'All'>('All')
-  const [isHovering, setIsHovering] = useState(false)
+  const [showTemporalLines, setShowTemporalLines] = useState<'Hide' | 'Show'>('Hide')
 
   const analysisData = useMemo(() => {
     if (!priceData || !hashrateData || priceData.length === 0 || hashrateData.length === 0) {
@@ -258,7 +258,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     }
 
     return traces
-  }, [filteredAnalysisData, showPowerLaw, powerLawData])
+  }, [filteredAnalysisData, showPowerLaw, powerLawData, showTemporalLines])
 
   const mainLayout: any = {
     height: 500,
@@ -512,6 +512,64 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
                     </div>
                     <div className="text-[10px] text-[#9CA3AF] mt-0.5">
                       Display regression trend line
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Temporal Lines Control */}
+          <div className="relative group">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M4,11V13H16L10.5,18.5L11.92,19.92L19.84,12L11.92,4.08L10.5,5.5L16,11H4Z"/>
+              </svg>
+              <span className="text-[#A0A0B8] text-xs">Temporal Lines:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{showTemporalLines}</span>
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                <div 
+                  onClick={() => setShowTemporalLines('Hide')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    showTemporalLines === 'Hide' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${showTemporalLines === 'Hide' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Hide Lines
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Show only scatter points
+                    </div>
+                  </div>
+                </div>
+                <div 
+                  onClick={() => setShowTemporalLines('Show')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    showTemporalLines === 'Show' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M4,11V13H16L10.5,18.5L11.92,19.92L19.84,12L11.92,4.08L10.5,5.5L16,11H4Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${showTemporalLines === 'Show' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Show Lines
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Connect dots chronologically
                     </div>
                   </div>
                 </div>
