@@ -258,49 +258,54 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
         max: Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis))
       }
       
-      // Generate a single line through the 3D space
-      // Create a perfectly straight line in log-log-log space
+      // Generate a perfectly straight line in log₁₀-log₁₀-log₁₀ display space
+      // The key is to work entirely in the DISPLAY coordinate system
       const linePoints = []
       const numPoints = 100
       
+      // Get the display coordinate ranges (what user actually sees)
+      let xDisplayMin, xDisplayMax, zDisplayMin, zDisplayMax
+      
+      if (hashrateScale === 'Log') {
+        xDisplayMin = Math.log10(hashrateRange.min)
+        xDisplayMax = Math.log10(hashrateRange.max)
+      } else {
+        xDisplayMin = hashrateRange.min
+        xDisplayMax = hashrateRange.max
+      }
+      
+      if (timeScale === 'Log') {
+        zDisplayMin = Math.log10(daysRange.min)
+        zDisplayMax = Math.log10(daysRange.max)
+      } else {
+        zDisplayMin = daysRange.min
+        zDisplayMax = daysRange.max
+      }
+      
+      // Create perfectly straight line in display coordinates
       for (let i = 0; i <= numPoints; i++) {
         const t = i / numPoints
         
-        // Work directly in the display coordinate system
-        // If axes are log scale, work in log space throughout
-        let xMin, xMax, zMin, zMax
+        // Linear interpolation in DISPLAY space (this is what makes it straight)
+        const xDisplay = xDisplayMin + (xDisplayMax - xDisplayMin) * t
+        const zDisplay = zDisplayMin + (zDisplayMax - zDisplayMin) * t
         
-        if (hashrateScale === 'Log') {
-          xMin = Math.log10(hashrateRange.min)
-          xMax = Math.log10(hashrateRange.max)
-        } else {
-          xMin = hashrateRange.min
-          xMax = hashrateRange.max
-        }
+        // Convert display coordinates back to actual values for power law
+        const actualHashrate = hashrateScale === 'Log' ? Math.pow(10, xDisplay) : xDisplay
+        const actualDays = timeScale === 'Log' ? Math.pow(10, zDisplay) : zDisplay
         
-        if (timeScale === 'Log') {
-          zMin = Math.log10(daysRange.min)
-          zMax = Math.log10(daysRange.max)
-        } else {
-          zMin = daysRange.min
-          zMax = daysRange.max
-        }
-        
-        // Interpolate linearly in the display coordinate system
-        const x = xMin + (xMax - xMin) * t
-        const z = zMin + (zMax - zMin) * t
-        
-        // Convert back to actual values for power law calculation
-        const actualHashrate = hashrateScale === 'Log' ? Math.pow(10, x) : x
-        const actualDays = timeScale === 'Log' ? Math.pow(10, z) : z
-        
-        // Calculate predicted price using power law
+        // Calculate power law price
         const predictedPrice = A * Math.pow(actualHashrate, B) * Math.pow(actualDays, C)
         
+        // For the line coordinates, use display values directly for log axes
+        const lineX = actualHashrate  // Plotly will convert to log if axis is log
+        const lineY = predictedPrice  // Plotly will convert to log if axis is log
+        const lineZ = actualDays      // Plotly will convert to log if axis is log
+        
         linePoints.push({
-          hashrate: actualHashrate,
-          days: actualDays,
-          predictedPrice: predictedPrice
+          hashrate: lineX,
+          days: lineZ,
+          predictedPrice: lineY
         })
       }
       
