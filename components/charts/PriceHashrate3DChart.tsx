@@ -15,9 +15,49 @@ interface PriceHashrate3DChartProps {
   className?: string
 }
 
+// Helper function to fit power law
+function fitPowerLaw(data: Array<{x: number, y: number}>) {
+  if (data.length < 2) {
+    throw new Error("Not enough valid data points for power law fitting")
+  }
+  
+  const logData = data.map(point => ({
+    x: Math.log(Math.max(0.0001, point.x)),
+    y: Math.log(Math.max(0.0001, point.y))
+  }))
+  
+  const n = logData.length
+  const sumX = logData.reduce((sum, point) => sum + point.x, 0)
+  const sumY = logData.reduce((sum, point) => sum + point.y, 0)
+  const sumXY = logData.reduce((sum, point) => sum + point.x * point.y, 0)
+  const sumX2 = logData.reduce((sum, point) => sum + point.x * point.x, 0)
+  
+  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
+  const intercept = (sumY - slope * sumX) / n
+  
+  const meanY = sumY / n
+  const ssRes = logData.reduce((sum, point) => {
+    const predicted = intercept + slope * point.x
+    return sum + Math.pow(point.y - predicted, 2)
+  }, 0)
+  const ssTot = logData.reduce((sum, point) => {
+    return sum + Math.pow(point.y - meanY, 2)
+  }, 0)
+  const r2 = 1 - (ssRes / ssTot)
+  
+  const a = Math.exp(intercept)
+  const b = slope
+  
+  return { a, b, r2 }
+}
+
+// Kaspa Genesis Date (November 7, 2021)
+const KASPA_GENESIS = new Date('2021-11-07').getTime()
+
 export default function PriceHashrate3DChart({ priceData, hashrateData, className = '' }: PriceHashrate3DChartProps) {
   const [timePeriod, setTimePeriod] = useState<'1M' | '3M' | '6M' | '1Y' | '2Y' | '3Y' | 'All'>('All')
   const [showTrajectory, setShowTrajectory] = useState<'Hide' | 'Show'>('Show')
+  const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
   const [colorBy, setColorBy] = useState<'Time' | 'Price' | 'Hashrate'>('Time')
   const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
   const [hashrateScale, setHashrateScale] = useState<'Linear' | 'Log'>('Log')
@@ -28,12 +68,101 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
       return []
     }
 
+    // Add power law evolution surface if enabled
+    if (showPowerLaw === 'Show' && powerLawEvolution && powerLawEvolution.length > 2) {
+      // Filter power law evolution to match time period
+      const filteredPowerLawEvolution = powerLawEvolution.filter(window => {
+        if (timePeriod === 'All') return true
+        const now = Date.now()
+        const days = {
+          '1M': 30, '3M': 90, '6M': 180, 
+          '1Y': 365, '2Y': 730, '3Y': 1095
+        }
+        const cutoffDays = now / (24 * 60 * 60 * 1000) - days[timePeriod]
+        return window.daysSinceGenesis >= cutoffDays
+      })
+
+      if (filteredPowerLawEvolution.length > 1) {
+        // Create power law trend surface
+        const hashrateRange = {
+          min: Math.min(...filteredAnalysisData.map(d => d.hashrate)),
+          max: Math.max(...filteredAnalysisData.map(d => d.hashrate))
+        }
+
+        // Generate surface points
+        const surfaceX: number[][] = []
+        const surfaceY: number[][] = []
+        const surfaceZ: number[][] = []
+
+        filteredPowerLawEvolution.forEach((window, windowIndex) => {
+          const { a, b } = window.powerLaw
+          const hashratePoints: number[] = []
+          const pricePoints: number[] = []
+          const timePoints: number[] = []
+
+          // Generate points along the power law curve for this time window
+          for (let i = 0; i <= 20; i++) {
+            const hashrate = hashrateRange.min + (hashrateRange.max - hashrateRange.min) * (i / 20)
+            const predictedPrice = a * Math.pow(hashrate, b)
+            const timeValue = timeScale === 'Log' ? Math.max(1, window.timeIndex + 1) : window.timeIndex
+
+            hashratePoints.push(hashrate)
+            pricePoints.push(predictedPrice)
+            timePoints.push(timeValue)
+          }
+
+          surfaceX.push(hashratePoints)
+          surfaceY.push(pricePoints)
+          surfaceZ.push(timePoints)
+        })
+
+        // Add power law surface
+        traces.push({
+          x: surfaceX,
+          y: surfaceY,
+          z: surfaceZ,
+          type: 'surface',
+          name: 'Power Law Evolution Surface',
+          colorscale: [[0, 'rgba(245, 158, 11, 0.1)'], [1, 'rgba(245, 158, 11, 0.3)']],
+          showscale: false,
+          hoverinfo: 'skip',
+          opacity: 0.3
+        })
+
+        // Add power law evolution trajectory
+        traces.push({
+          x: filteredPowerLawEvolution.map(w => w.avgHashrate),
+          y: filteredPowerLawEvolution.map(w => w.avgPrice),
+          z: filteredPowerLawEvolution.map(w => timeScale === 'Log' ? Math.max(1, w.timeIndex + 1) : w.timeIndex),
+          mode: 'lines+markers',
+          type: 'scatter3d',
+          name: 'Power Law Evolution',
+          line: {
+            color: '#F59E0B',
+            width: 5
+          },
+          marker: {
+            size: 6,
+            color: '#F59E0B',
+            opacity: 0.8
+          },
+          hovertemplate: 
+            'Avg Hashrate: %{x:.1f} PH/s<br>' +
+            'Avg Price: $%{y:.2f}<br>' +
+            'R²: %{text}<br>' +
+            '<extra></extra>',
+          text: filteredPowerLawEvolution.map(w => w.powerLaw.r2.toFixed(3))
+        })
+      }
+    }
+
     const merged: Array<{
       date: Date,
       timestamp: number,
       hashrate: number,
       price: number,
-      timeIndex: number
+      timeIndex: number,
+      daysSinceGenesis: number
     }> = []
 
     priceData.forEach(pricePoint => {
@@ -53,7 +182,8 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
           timestamp: pricePoint.timestamp,
           hashrate,
           price,
-          timeIndex: 0 // Will be set below
+          timeIndex: 0, // Will be set below
+          daysSinceGenesis: Math.max(1, Math.floor((pricePoint.timestamp - KASPA_GENESIS) / (24 * 60 * 60 * 1000)))
         })
       }
     })
@@ -476,6 +606,64 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Power Law Control */}
+          <div className="relative group">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
+              </svg>
+              <span className="text-[#A0A0B8] text-xs">Power Law:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{showPowerLaw}</span>
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                <div 
+                  onClick={() => setShowPowerLaw('Hide')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    showPowerLaw === 'Hide' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,2C13.1,2 14,2.9 14,4C14,5.1 13.1,6 12,6C10.9,6 10,5.1 10,4C10,2.9 10.9,2 12,2M21,9V7L15,1H5C3.89,1 3,1.89 3,3V21A2,2 0 0,0 5,23H19A2,2 0 0,0 21,21V9H21M19,19H5V3H13V9H19V19Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${showPowerLaw === 'Hide' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Hide Power Law
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Display only the raw data points
+                    </div>
+                  </div>
+                </div>
+                <div 
+                  onClick={() => setShowPowerLaw('Show')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    showPowerLaw === 'Show' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${showPowerLaw === 'Show' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Show Power Law Evolution
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Display 3D power law surface and evolution
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
