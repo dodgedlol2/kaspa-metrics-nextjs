@@ -246,19 +246,6 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
       const { A, B, C, r2 } = powerLaw3D
       
       // Create a single straight line through 3D space representing the power law
-      // Similar to the volume chart approach
-      
-      const hashrateRange = {
-        min: Math.min(...filteredAnalysisData.map(d => d.hashrate)),
-        max: Math.max(...filteredAnalysisData.map(d => d.hashrate))
-      }
-      
-      const daysRange = {
-        min: Math.min(...filteredAnalysisData.map(d => d.daysSinceGenesis)),
-        max: Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis))
-      }
-      
-      // Create a single straight line through 3D space representing the power law
       // EXACT same approach as the working volume chart
       
       const hashrateRange = {
