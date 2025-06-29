@@ -163,7 +163,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
       hoverdistance: 5
     })
 
-    // Power law trend line only
+    // Power law trend line with deviation bands
     if (showPowerLaw === 'Show' && powerLawData?.priceHashrate) {
       const { a, b, r2 } = powerLawData.priceHashrate
       
@@ -180,7 +180,20 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         yFit.push(y)
       }
 
-      // Main power law trend only
+      // -60% deviation line (lower bound)
+      traces.push({
+        x: xFit,
+        y: yFit.map(y => y * 0.4), // 60% below = 40% of original
+        mode: 'lines',
+        type: 'scatter',
+        name: '-60% Deviation',
+        line: { color: 'rgba(255, 255, 255, 0.6)', width: 1, dash: 'dot' },
+        hoverinfo: 'skip',
+        showlegend: true,
+        hoverdistance: -1
+      })
+
+      // Main power law trend
       traces.push({
         x: xFit,
         y: yFit,
@@ -189,6 +202,19 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
         name: `Power Law Trend (R²=${r2.toFixed(3)})`,
         line: { color: '#F59E0B', width: 3, dash: 'solid' },
         hoverinfo: 'skip'
+      })
+
+      // +60% deviation line (upper bound)
+      traces.push({
+        x: xFit,
+        y: yFit.map(y => y * 1.6), // 60% above = 160% of original
+        mode: 'lines',
+        type: 'scatter',
+        name: '+60% Deviation',
+        line: { color: 'rgba(255, 255, 255, 0.6)', width: 1, dash: 'dot' },
+        hoverinfo: 'skip',
+        showlegend: true,
+        hoverdistance: -1
       })
     }
 
@@ -202,7 +228,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     font: { color: '#9CA3AF', family: 'Inter, ui-sans-serif, system-ui, sans-serif' },
     hovermode: 'x unified',
     showlegend: true,
-    margin: { l: 40, r: 10, t: 10, b: 40 }, // Reduced margins
+    margin: { l: 30, r: 5, t: 5, b: 30 }, // Even smaller margins for maximum width
     hoverlabel: {
       bgcolor: 'rgba(15, 20, 25, 0.95)',
       bordercolor: 'rgba(91, 108, 255, 0.5)',
