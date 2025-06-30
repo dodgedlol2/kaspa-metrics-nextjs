@@ -111,7 +111,7 @@ export default function PowerLawResidualHashratePriceChart({
   priceData, 
   hashrateData, 
   className = '' 
-}: CombinedPriceHashrateResidualChartProps) {
+}: PowerLawResidualHashratePriceChartProps) {
   const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
   const [hashrateScale, setHashrateScale] = useState<'Linear' | 'Log'>('Log')
   const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear')
@@ -308,7 +308,7 @@ export default function PowerLawResidualHashratePriceChart({
           width: 2
         },
         fill: 'tozeroy',
-        fillcolor: residuals.map(r => r > 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)'),
+        fillcolor: 'rgba(139, 92, 246, 0.2)',
         hovertemplate: '<b>Residual</b><br>Deviation: %{y:.1f}%<extra></extra>',
       })
 
@@ -513,6 +513,72 @@ export default function PowerLawResidualHashratePriceChart({
               </svg>
               <span className="text-[#A0A0B8] text-xs">Price:</span>
               <span className="font-medium text-[#FFFFFF] text-xs">{priceScale}</span>
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-48 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                {['Linear', 'Log'].map((scale) => (
+                  <div 
+                    key={scale}
+                    onClick={() => setPriceScale(scale as 'Linear' | 'Log')}
+                    className={`flex items-center space-x-2.5 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                      priceScale === scale ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
+                    }`}
+                  >
+                    <span className={`text-xs font-medium ${
+                      priceScale === scale ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                    }`}>
+                      {scale} Price
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Hashrate Scale Control */}
+          <div className="relative group">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#F59E0B]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14.27,4.73L19.27,9.73C19.65,10.11 19.65,10.74 19.27,11.12L14.27,16.12C13.89,16.5 13.26,16.5 12.88,16.12C12.5,15.74 12.5,15.11 12.88,14.73L16.16,11.45H8.91L12.19,14.73C12.57,15.11 12.57,15.74 12.19,16.12C11.81,16.5 11.18,16.5 10.8,16.12L5.8,11.12C5.42,10.74 5.42,10.11 5.8,9.73L10.8,4.73C11.18,4.35 11.81,4.35 12.19,4.73C12.57,5.11 12.57,5.74 12.19,6.12L8.91,9.4H16.16L12.88,6.12C12.5,5.74 12.5,5.11 12.88,4.73C13.26,4.35 13.89,4.35 14.27,4.73Z"/>
+              </svg>
+              <span className="text-[#A0A0B8] text-xs">Hashrate:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{hashrateScale}</span>
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-48 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                {['Linear', 'Log'].map((scale) => (
+                  <div 
+                    key={scale}
+                    onClick={() => setHashrateScale(scale as 'Linear' | 'Log')}
+                    className={`flex items-center space-x-2.5 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                      hashrateScale === scale ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
+                    }`}
+                  >
+                    <span className={`text-xs font-medium ${
+                      hashrateScale === scale ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                    }`}>
+                      {scale} Hashrate
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Time Scale Control */}
+          <div className="relative group">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+              </svg>
+              <span className="text-[#A0A0B8] text-xs">Time:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{timeScale}</span>
               <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -781,69 +847,3 @@ export default function PowerLawResidualHashratePriceChart({
     </div>
   )
 }
-                    onClick={() => setPriceScale(scale as 'Linear' | 'Log')}
-                    className={`flex items-center space-x-2.5 p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                      priceScale === scale ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
-                    }`}
-                  >
-                    <span className={`text-xs font-medium ${
-                      priceScale === scale ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                    }`}>
-                      {scale} Price
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Hashrate Scale Control */}
-          <div className="relative group">
-            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-              <svg className="w-3.5 h-3.5 text-[#F59E0B]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M14.27,4.73L19.27,9.73C19.65,10.11 19.65,10.74 19.27,11.12L14.27,16.12C13.89,16.5 13.26,16.5 12.88,16.12C12.5,15.74 12.5,15.11 12.88,14.73L16.16,11.45H8.91L12.19,14.73C12.57,15.11 12.57,15.74 12.19,16.12C11.81,16.5 11.18,16.5 10.8,16.12L5.8,11.12C5.42,10.74 5.42,10.11 5.8,9.73L10.8,4.73C11.18,4.35 11.81,4.35 12.19,4.73C12.57,5.11 12.57,5.74 12.19,6.12L8.91,9.4H16.16L12.88,6.12C12.5,5.74 12.5,5.11 12.88,4.73C13.26,4.35 13.89,4.35 14.27,4.73Z"/>
-              </svg>
-              <span className="text-[#A0A0B8] text-xs">Hashrate:</span>
-              <span className="font-medium text-[#FFFFFF] text-xs">{hashrateScale}</span>
-              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div className="absolute top-full mt-1 left-0 w-48 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
-              <div className="p-1.5">
-                {['Linear', 'Log'].map((scale) => (
-                  <div 
-                    key={scale}
-                    onClick={() => setHashrateScale(scale as 'Linear' | 'Log')}
-                    className={`flex items-center space-x-2.5 p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                      hashrateScale === scale ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
-                    }`}
-                  >
-                    <span className={`text-xs font-medium ${
-                      hashrateScale === scale ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                    }`}>
-                      {scale} Hashrate
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Time Scale Control */}
-          <div className="relative group">
-            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
-              </svg>
-              <span className="text-[#A0A0B8] text-xs">Time:</span>
-              <span className="font-medium text-[#FFFFFF] text-xs">{timeScale}</span>
-              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div className="absolute top-full mt-1 left-0 w-48 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
-              <div className="p-1.5">
-                {['Linear', 'Log'].map((scale) => (
-                  <div 
-                    key={scale}
