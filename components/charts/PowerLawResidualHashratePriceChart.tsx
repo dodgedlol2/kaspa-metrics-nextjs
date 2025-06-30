@@ -1,40 +1,7 @@
-// High and Low markers
-    if (athData) {
-      const athX = timeScale === 'Log' ? athData.daysFromGenesis : athData.date
-      traces.push({
-        x: [athX],
-        y: [athData.hashrate],
-        mode: 'markers+text',
-        type: 'scatter',
-        name: 'All-Time High',
-        marker: { color: '#10B981', size: 10, line: { color: '#FFFFFF', width: 2 } },
-        text: [`ATH: ${formatHashrate(athData.hashrate)}`],
-        textposition: 'top center',
-        textfont: { color: '#10B981', size: 11, family: 'Inter' },
-        showlegend: true,
-        hovertemplate: '<b>All-Time High</b><br>%{customdata}<br><b>Date:</b> %{x}<extra></extra>',
-        customdata: [formatHashrate(athData.hashrate)],
-      })
-    }
-
-    if (oylData) {
-      const oylX = timeScale === 'Log' ? oylData.daysFromGenesis : oylData.date
-      traces.push({
-        x: [oylX],
-        y: [oylData.hashrate],
-        mode: 'markers+text',
-        type: 'scatter',
-        name: '1-Year Low',
-        legendgroup: 'markers',
-        marker: { color: '#EF4444', size: 10, line: { color: '#FFFFFF', width: 2 } },
-        text: [`1YL: ${formatHashrate(oylData.hashrate)}`],
-        textposition: 'bottom center',
-        textfont: { color: '#EF4444', size: 11, family: 'Inter' },
-        showlegend: true,
-        hovertemplate: '<b>1-Year Low</b><br>%{customdata}<br><b>Date:</b> %{x}<extra></extra>',
-        customdata: [formatHashrate(oylData.hashrate)],
-      })
-    }
+'use client'
+import React, { useState, useMemo } from 'react'
+import dynamic from 'next/dynamic'
+import { KaspaMetric } from '@/lib/sheets'
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false })
 
@@ -416,7 +383,7 @@ export default function PowerLawResidualHashratePriceChart({
     }
 
     return traces
-  }, [filteredData, filteredPriceData, timeScale, powerLawData, athData, oylData, showResidual, priceResidualData])
+  }, [filteredData, filteredPriceData, timeScale, powerLawData, athData, oylData, showResidual, priceResidualData, actualHashrateData])
 
   const plotlyLayout = useMemo(() => {
     if (filteredData.length === 0) return {}
@@ -582,10 +549,7 @@ export default function PowerLawResidualHashratePriceChart({
                     <div 
                       key={option.value}
                       onClick={() => setPriceScale(option.value as 'Linear' | 'Log')}
-                      className={`p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                        priceScale === option.value ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
-                      }`}
-                    >
+                      >
                       <div className={`text-xs font-medium ${
                         priceScale === option.value ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
                       }`}>
