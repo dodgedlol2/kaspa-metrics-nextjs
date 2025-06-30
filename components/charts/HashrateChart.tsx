@@ -223,7 +223,7 @@ function generateLinearTicks(dataMin: number, dataMax: number, numTicks: number 
 
 export default function HashrateChart({ data, priceData, height = 600 }: HashrateChartProps) {
   const [hashrateScale, setHashrateScale] = useState<'Linear' | 'Log'>('Log')
-  const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Linear')
+  const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
   const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear')
   const [timePeriod, setTimePeriod] = useState<'1W' | '1M' | '3M' | '6M' | '1Y' | '2Y' | '3Y' | '5Y' | 'All' | 'Full'>('All')
   const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
