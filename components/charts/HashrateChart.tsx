@@ -223,6 +223,7 @@ function generateLinearTicks(dataMin: number, dataMax: number, numTicks: number 
 
 export default function HashrateChart({ data, priceData, height = 600 }: HashrateChartProps) {
   const [hashrateScale, setHashrateScale] = useState<'Linear' | 'Log'>('Log')
+  const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Linear')
   const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear')
   const [timePeriod, setTimePeriod] = useState<'1W' | '1M' | '3M' | '6M' | '1Y' | '2Y' | '3Y' | '5Y' | 'All' | 'Full'>('All')
   const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
@@ -532,7 +533,7 @@ export default function HashrateChart({ data, priceData, height = 600 }: Hashrat
     }
 
     return traces
-  }, [filteredData, filteredPriceData, timeScale, hashrateScale, powerLawData, athData, oylData])
+  }, [filteredData, filteredPriceData, timeScale, hashrateScale, priceScale, powerLawData, athData, oylData])
 
   // Plotly layout
   const plotlyLayout = useMemo(() => {
@@ -574,19 +575,33 @@ export default function HashrateChart({ data, priceData, height = 600 }: Hashrat
     let priceYTickVals: number[] | undefined
     let priceYTickText: string[] | undefined
     let priceYRange: [number, number] | undefined
+    let priceYMinorTicks: number[] = []
 
     if (filteredPriceData && filteredPriceData.length > 0) {
       const priceValues = filteredPriceData.map(d => d.value)
       const priceMin = Math.min(...priceValues)
       const priceMax = Math.max(...priceValues)
       
-      // Set price range with some padding
-      priceYRange = [priceMin * 0.95, priceMax * 1.05]
-      
-      // Generate price ticks
-      const priceTicks = generateLinearTicks(priceYRange[0], priceYRange[1], 6)
-      priceYTickVals = priceTicks
-      priceYTickText = priceTicks.map(val => formatCurrency(val))
+      if (priceScale === 'Log') {
+        // Log scale for price
+        const priceMinChart = priceMin * 0.8
+        const priceMaxChart = priceMax * 1.2
+        priceYRange = [Math.log10(priceMinChart), Math.log10(priceMaxChart)]
+        
+        // Generate log ticks for price
+        const { majorTicks, intermediateTicks, minorTicks } = generateLogTicks(priceMinChart, priceMaxChart)
+        priceYTickVals = [...majorTicks, ...intermediateTicks].sort((a, b) => a - b)
+        priceYTickText = priceYTickVals.map(val => formatCurrency(val))
+        priceYMinorTicks = minorTicks
+      } else {
+        // Linear scale for price
+        priceYRange = [priceMin * 0.95, priceMax * 1.05]
+        
+        // Generate linear ticks for price
+        const priceTicks = generateLinearTicks(priceYRange[0], priceYRange[1], 6)
+        priceYTickVals = priceTicks
+        priceYTickText = priceTicks.map(val => formatCurrency(val))
+      }
     }
 
     // Create base layout with increased left margin and right margin for price axis
@@ -712,7 +727,7 @@ export default function HashrateChart({ data, priceData, height = 600 }: Hashrat
     if (filteredPriceData && filteredPriceData.length > 0 && priceYRange && priceYTickVals && priceYTickText) {
       layout.yaxis2 = {
         title: { text: 'Price (USD)', standoff: 20 },
-        type: 'linear',
+        type: priceScale === 'Log' ? 'log' : 'linear',
         overlaying: 'y',
         side: 'right',
         showgrid: false, // Don't show grid for secondary axis
@@ -723,10 +738,21 @@ export default function HashrateChart({ data, priceData, height = 600 }: Hashrat
         ticktext: priceYTickText,
         showspikes: false,
       }
+
+      // Add log-specific configuration for price Y-axis
+      if (priceScale === 'Log') {
+        layout.yaxis2.minor = {
+          showgrid: false,
+          gridwidth: 0.5,
+          gridcolor: 'rgba(54, 54, 80, 0.3)',
+          tickmode: 'array',
+          tickvals: priceYMinorTicks
+        }
+      }
     }
 
     return layout
-  }, [filteredData, filteredPriceData, timeScale, hashrateScale, athData, height])
+  }, [filteredData, filteredPriceData, timeScale, hashrateScale, priceScale, athData, height])
 
   return (
     <div className="space-y-6">
@@ -791,7 +817,65 @@ export default function HashrateChart({ data, priceData, height = 600 }: Hashrat
             </div>
           </div>
 
-          {/* Time Scale Control */}
+          {/* Price Scale Control - Only show if price data exists */}
+          {filteredPriceData && filteredPriceData.length > 0 && (
+            <div className="relative group">
+              <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+                <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,7H13V9H11V7M11,11H13V17H11V11Z"/>
+                </svg>
+                <span className="text-[#A0A0B8] text-xs">Price Scale:</span>
+                <span className="font-medium text-[#FFFFFF] text-xs">{priceScale}</span>
+                <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+                <div className="p-1.5">
+                  <div 
+                    onClick={() => setPriceScale('Linear')}
+                    className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                      priceScale === 'Linear' 
+                        ? 'bg-[#5B6CFF]/20' 
+                        : 'hover:bg-[#1A1A2E]/80'
+                    }`}
+                  >
+                    <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
+                    </svg>
+                    <div className="flex-1">
+                      <div className={`font-medium text-xs ${priceScale === 'Linear' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                        Linear Scale
+                      </div>
+                      <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                        Equal spacing between price intervals
+                      </div>
+                    </div>
+                  </div>
+                  <div 
+                    onClick={() => setPriceScale('Log')}
+                    className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                      priceScale === 'Log' 
+                        ? 'bg-[#5B6CFF]/20' 
+                        : 'hover:bg-[#1A1A2E]/80'
+                    }`}
+                  >
+                    <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M19,19H5V5H19V19M7,10H9V16H7V10M11,7H13V16H11V7M15,13H17V16H15V13Z"/>
+                    </svg>
+                    <div className="flex-1">
+                      <div className={`font-medium text-xs ${priceScale === 'Log' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                        Logarithmic Scale
+                      </div>
+                      <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                        Better for analyzing percentage changes
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="relative group">
             <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
               <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
