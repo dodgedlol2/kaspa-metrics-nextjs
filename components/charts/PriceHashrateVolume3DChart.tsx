@@ -349,7 +349,7 @@ export default function PriceHashrateVolume3DChart({ priceData, hashrateData, vo
   }, [filteredAnalysisData, showTrajectory, colorBy, showPowerLaw, powerLaw3D])
 
   const layout: any = {
-    height: 600,
+    height: 900,
     plot_bgcolor: 'rgba(0,0,0,0)',
     paper_bgcolor: 'rgba(0,0,0,0)',
     font: { color: '#9CA3AF', family: 'Inter, ui-sans-serif, system-ui, sans-serif' },
