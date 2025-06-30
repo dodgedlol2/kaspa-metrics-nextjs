@@ -1,18 +1,715 @@
-'use client'
+const yMaxData = Math.max(...yValues)
+    const athInView = athData !== null
+    
+    let yMinChart: number, yMaxChart: number
+    
+    if (hashrateScale === 'Log') {
+      yMinChart = yMinData * 0.8
+      yMaxChart = yMaxData * (athInView ? 1.50 : 1.05)
+    } else {
+      yMinChart = 0
+      yMaxChart = yMaxData * (athInView ? 1.15 : 1.05)
+    }
+
+    // Generate custom ticks for Y-axis
+    let yTickVals: number[] | undefined
+    let yTickText: string[] | undefined
+    let yMinorTicks: number[] = []
+
+    if (hashrateScale === 'Log') {
+      const { majorTicks, intermediateTicks, minorTicks } = generateLogTicks(yMinChart, yMaxChart)
+      yTickVals = [...majorTicks, ...intermediateTicks].sort((a, b) => a - b)
+      yTickText = yTickVals.map(val => formatHashrate(val))
+      yMinorTicks = minorTicks
+    } else {
+      // For linear scale, generate appropriate ticks
+      const linearTicks = generateLinearTicks(yMinChart, yMaxChart)
+      yTickVals = linearTicks
+      yTickText = linearTicks.map(val => formatHashrate(val))
+    }
+
+    // Calculate price Y-axis range and ticks if price data exists
+    let priceYTickVals: number[] | undefined
+    let priceYTickText: string[] | undefined
+    let priceYRange: [number, number] | undefined
+    let priceYMinorTicks: number[] = []
+
+    if (filteredPriceData && filteredPriceData.length > 0) {
+      const priceValues = filteredPriceData.map(d => d.value)
+      const priceMin = Math.min(...priceValues)
+      const priceMax = Math.max(...priceValues)
+      
+      if (priceScale === 'Log') {
+        // Log scale for price
+        const priceMinChart = priceMin * 0.8
+        const priceMaxChart = priceMax * 1.2
+        priceYRange = [Math.log10(priceMinChart), Math.log10(priceMaxChart)]
+        
+        // Generate log ticks for price
+        const { majorTicks, intermediateTicks, minorTicks } = generateLogTicks(priceMinChart, priceMaxChart)
+        priceYTickVals = [...majorTicks, ...intermediateTicks].sort((a, b) => a - b)
+        priceYTickText = priceYTickVals.map(val => formatCurrency(val))
+        priceYMinorTicks = minorTicks
+      } else {
+        // Linear scale for price
+        priceYRange = [priceMin * 0.95, priceMax * 1.05]
+        
+        // Generate linear ticks for price
+        const priceTicks = generateLinearTicks(priceYRange[0], priceYRange[1], 6)
+        priceYTickVals = priceTicks
+        priceYTickText = priceTicks.map(val => formatCurrency(val))
+      }
+    }
+
+    // Determine chart domains based on whether residual is shown
+    const mainChartDomain = showResidual === 'Show' && priceResidualData?.residuals ? [0.35, 1] : [0, 1]
+    const residualDomain = [0, 0.25]
+
+    // Create base layout with increased left margin and right margin for price axis
+    const layout: any = {
+      height: height,
+      plot_bgcolor: 'rgba(0,0,0,0)',
+      paper_bgcolor: 'rgba(0,0,0,0)',
+      font: { color: '#9CA3AF', family: 'Inter, ui-sans-serif, system-ui, sans-serif' },
+      hovermode: 'x unified',
+      showlegend: true,
+      margin: { l: 80, r: filteredPriceData && filteredPriceData.length > 0 ? 80 : 20, t: 20, b: 50 }, // Increased right margin when price data exists
+      hoverlabel: {
+        bgcolor: 'rgba(15, 20, 25, 0.95)',
+        bordercolor: 'rgba(91, 108, 255, 0.5)',
+        font: { color: '#e2e8f0', size: 11 },
+        align: 'left',
+        namelength: -1,
+        xanchor: 'right',  // This anchors the tooltip to the right edge, making it appear to the left of cursor
+        yanchor: 'middle', // Centers vertically relative to the cursor
+        x: -10,            // Move 10 pixels to the left
+        y: 0               // No vertical offset
+      },
+      legend: {
+        orientation: "h",
+        yanchor: "bottom",
+        y: 1.02,
+        xanchor: "left",
+        x: 0,
+        bgcolor: 'rgba(0,0,0,0)',
+        bordercolor: 'rgba(0,0,0,0)',
+        borderwidth: 0,
+        font: { size: 11 }
+      },
+      // Remove crosshair and selection performance settings
+      hoverdistance: 100,
+      selectdirection: 'diagonal'
+    }
+
+    // Configure X-axis based on time scale
+    if (timeScale === 'Log') {
+      // For log time scale, calculate the actual data range
+      const daysFromGenesisValues = filteredData.map(d => getDaysFromGenesis(d.timestamp))
+      const minDays = Math.min(...daysFromGenesisValues)
+      const maxDays = Math.max(...daysFromGenesisValues)
+      
+      // No padding - fit exactly to data range
+      const logMin = Math.log10(Math.max(1, minDays))
+      const logMax = Math.log10(maxDays)
+      
+      layout.xaxis = {
+        title: { text: 'Days Since Genesis (Log Scale)' },
+        type: 'log',
+        showgrid: true,
+        gridwidth: 1,
+        gridcolor: 'rgba(255, 255, 255, 0.1)',
+        linecolor: '#3A3C4A',
+        zerolinecolor: '#3A3C4A',
+        color: '#9CA3AF',
+        range: [logMin, logMax],
+        autorange: false, // Disable autorange to use our custom range
+        minor: {
+          ticklen: 6,
+          gridcolor: 'rgba(255, 255, 255, 0.05)',
+          gridwidth: 0.5
+        },
+        // Remove crosshair lines
+        showspikes: false,
+        domain: [0, 1]
+      }
+    } else {
+      // Linear time scale - use date format with data range
+      const dates = filteredData.map(d => new Date(d.timestamp))
+      const minDate = new Date(Math.min(...dates.map(d => d.getTime())))
+      const maxDate = new Date(Math.max(...dates.map(d => d.getTime())))
+      
+      layout.xaxis = {
+        title: { text: 'Date' },
+        type: 'date',
+        showgrid: true,
+        gridwidth: 1,
+        gridcolor: '#363650',
+        linecolor: '#3A3C4A',
+        zerolinecolor: '#3A3C4A',
+        color: '#9CA3AF',
+        tickformat: '%b %Y',
+        hoverformat: '%B %d, %Y',
+        range: [minDate.toISOString(), maxDate.toISOString()],
+        autorange: false, // Disable autorange to use our custom range
+        // Remove crosshair lines
+        showspikes: false,
+        domain: [0, 1]
+      }
+    }
+
+    // Configure primary Y-axis (hashrate)
+    layout.yaxis = {
+      title: { text: 'Hashrate (H/s)' },
+      type: hashrateScale === 'Log' ? 'log' : 'linear',
+      gridcolor: '#363650',
+      gridwidth: 1,
+      color: '#9CA3AF',
+      range: hashrateScale === 'Log' 
+        ? [Math.log10(yMinChart), Math.log10(yMaxChart)]
+        : [yMinChart, yMaxChart],
+      // Remove horizontal crosshair line
+      showspikes: false,
+      // Custom tick configuration
+      tickmode: 'array',
+      tickvals: yTickVals,
+      ticktext: yTickText,
+      domain: mainChartDomain
+    }
+
+    // Add log-specific Y-axis configuration
+    if (hashrateScale === 'Log') {
+      layout.yaxis.minor = {
+        showgrid: true,
+        gridwidth: 0.5,
+        gridcolor: 'rgba(54, 54, 80, 0.3)',
+        tickmode: 'array',
+        tickvals: yMinorTicks
+      }
+    }
+
+    // Configure secondary Y-axis (price) if price data exists
+    if (filteredPriceData && filteredPriceData.length > 0 && priceYRange && priceYTickVals && priceYTickText) {
+      layout.yaxis2 = {
+        title: { text: 'Price (USD)', standoff: 20 },
+        type: priceScale === 'Log' ? 'log' : 'linear',
+        overlaying: 'y',
+        side: 'right',
+        showgrid: false, // Don't show grid for secondary axis
+        color: '#9CA3AF',
+        range: priceYRange,
+        tickmode: 'array',
+        tickvals: priceYTickVals,
+        ticktext: priceYTickText,
+        showspikes: false,
+        domain: mainChartDomain
+      }
+
+      // Add log-specific configuration for price Y-axis
+      if (priceScale === 'Log') {
+        layout.yaxis2.minor = {
+          showgrid: false,
+          gridwidth: 0.5,
+          gridcolor: 'rgba(54, 54, 80, 0.3)',
+          tickmode: 'array',
+          tickvals: priceYMinorTicks
+        }
+      }
+    }
+
+    // Configure residual Y-axis if residual is shown
+    if (showResidual === 'Show' && priceResidualData?.residuals) {
+      layout.yaxis3 = {
+        title: { 
+          text: 'Power Law Residual (%)', 
+          font: { size: 14, color: '#8B5CF6' }
+        },
+        type: 'linear',
+        side: 'left',
+        gridcolor: '#363650',
+        gridwidth: 1,
+        color: '#8B5CF6',
+        tickfont: { size: 11, color: '#8B5CF6' },
+        linecolor: '#8B5CF6',
+        zerolinecolor: '#6B7280',
+        zerolinewidth: 2,
+        domain: residualDomain,
+        tickformat: '.0f',
+        ticksuffix: '%',
+        showspikes: false
+      }
+    }
+
+    return layout
+  }, [filteredData, filteredPriceData, timeScale, hashrateScale, priceScale, athData, height, showResidual, priceResidualData])
+
+  return (
+    <div className="space-y-6">
+      {/* Interactive Controls */}
+      <div className="flex flex-wrap gap-4 items-center justify-between">
+        <div className="flex flex-wrap gap-2">
+          {/* Hashrate Scale Control */}
+          <div className="relative group">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14.27,4.73L19.27,9.73C19.65,10.11 19.65,10.74 19.27,11.12L14.27,16.12C13.89,16.5 13.26,16.5 12.88,16.12C12.5,15.74 12.5,15.11 12.88,14.73L16.16,11.45H8.91L12.19,14.73C12.57,15.11 12.57,15.74 12.19,16.12C11.81,16.5 11.18,16.5 10.8,16.12L5.8,11.12C5.42,10.74 5.42,10.11 5.8,9.73L10.8,4.73C11.18,4.35 11.81,4.35 12.19,4.73C12.57,5.11 12.57,5.74 12.19,6.12L8.91,9.4H16.16L12.88,6.12C12.5,5.74 12.5,5.11 12.88,4.73C13.26,4.35 13.89,4.35 14.27,4.73Z"/>
+              </svg>
+              <span className="text-[#A0A0B8] text-xs">Hashrate Scale:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{hashrateScale}</span>
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                <div 
+                  onClick={() => setHashrateScale('Linear')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    hashrateScale === 'Linear' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${hashrateScale === 'Linear' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Linear Scale
+                    </div>
+                <div 
+                  onClick={() => setShowPowerLaw('Show')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    showPowerLaw === 'Show' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${showPowerLaw === 'Show' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Show Power Law
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Display regression trend line
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Residual Control - Only show if price data exists */}
+          {filteredPriceData && filteredPriceData.length > 0 && (
+            <div className="relative group">
+              <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+                <svg className="w-3.5 h-3.5 text-[#8B5CF6]" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
+                </svg>
+                <span className="text-[#A0A0B8] text-xs">Residual:</span>
+                <span className="font-medium text-[#FFFFFF] text-xs">{showResidual}</span>
+                <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+                <div className="p-1.5">
+                  <div 
+                    onClick={() => setShowResidual('Hide')}
+                    className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                      showResidual === 'Hide' 
+                        ? 'bg-[#5B6CFF]/20' 
+                        : 'hover:bg-[#1A1A2E]/80'
+                    }`}
+                  >
+                    <svg className="w-5 h-5 text-[#8B5CF6]" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12,2C13.1,2 14,2.9 14,4C14,5.1 13.1,6 12,6C10.9,6 10,5.1 10,4C10,2.9 10.9,2 12,2M21,9V7L15,1H5C3.89,1 3,1.89 3,3V21A2,2 0 0,0 5,23H19A2,2 0 0,0 21,21V9H21M19,19H5V3H13V9H19V19Z"/>
+                    </svg>
+                    <div className="flex-1">
+                      <div className={`font-medium text-xs ${showResidual === 'Hide' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                        Hide Residual
+                      </div>
+                      <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                        Hide the residual oscillator
+                      </div>
+                    </div>
+                  </div>
+                  <div 
+                    onClick={() => setShowResidual('Show')}
+                    className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                      showResidual === 'Show' 
+                        ? 'bg-[#5B6CFF]/20' 
+                        : 'hover:bg-[#1A1A2E]/80'
+                    }`}
+                  >
+                    <svg className="w-5 h-5 text-[#8B5CF6]" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
+                    </svg>
+                    <div className="flex-1">
+                      <div className={`font-medium text-xs ${showResidual === 'Show' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                        Show Residual
+                      </div>
+                      <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                        Show price deviation oscillator
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Time Period Buttons */}
+        <div className="flex items-center gap-2">
+          {(['1M', '3M', '6M', '1Y'] as const).map((period) => (
+            <button
+              key={period}
+              onClick={() => setTimePeriod(period)}
+              className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                timePeriod === period
+                  ? 'bg-[#5B6CFF] text-white'
+                  : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
+              }`}
+            >
+              {period}
+            </button>
+          ))}
+          
+          {/* Max Time Dropdown */}
+          <div className="relative group">
+            <button 
+              className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                timePeriod === 'All' || timePeriod === 'Full' || timePeriod === '1W' || timePeriod === '2Y' || timePeriod === '3Y' || timePeriod === '5Y'
+                  ? 'bg-[#5B6CFF] text-white'
+                  : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
+              }`}
+            >
+              <svg className={`w-3 h-3 ${
+                timePeriod === 'All' || timePeriod === 'Full' || timePeriod === '1W' || timePeriod === '2Y' || timePeriod === '3Y' || timePeriod === '5Y'
+                  ? 'text-white' 
+                  : 'text-[#6366F1]'
+              }`} fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+              </svg>
+              <span>Max</span>
+              <svg className={`w-3 h-3 transition-colors ${
+                timePeriod === 'All' || timePeriod === 'Full' || timePeriod === '1W' || timePeriod === '2Y' || timePeriod === '3Y' || timePeriod === '5Y'
+                  ? 'text-white group-hover:text-gray-200' 
+                  : 'text-current group-hover:text-[#5B6CFF]'
+              }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 right-0 w-32 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                <div 
+                  onClick={() => setTimePeriod('1W')}
+                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                    timePeriod === '1W'
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
+                  </svg>
+                  <span className={`text-xs font-medium ${
+                    timePeriod === '1W' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                  }`}>
+                    1 Week
+                  </span>
+                </div>
+                <div 
+                  onClick={() => setTimePeriod('2Y' as any)}
+                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                    timePeriod === '2Y'
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
+                  </svg>
+                  <span className={`text-xs font-medium ${
+                    timePeriod === '2Y' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                  }`}>
+                    2 Years
+                  </span>
+                </div>
+                <div 
+                  onClick={() => setTimePeriod('3Y' as any)}
+                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                    timePeriod === '3Y'
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
+                  </svg>
+                  <span className={`text-xs font-medium ${
+                    timePeriod === '3Y' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                  }`}>
+                    3 Years
+                  </span>
+                </div>
+                <div 
+                  onClick={() => setTimePeriod('5Y' as any)}
+                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                    timePeriod === '5Y'
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
+                  </svg>
+                  <span className={`text-xs font-medium ${
+                    timePeriod === '5Y' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                  }`}>
+                    5 Years
+                  </span>
+                </div>
+                <div 
+                  onClick={() => setTimePeriod('All')}
+                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                    timePeriod === 'All' || timePeriod === 'Full'
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-4 h-4 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+                  </svg>
+                  <span className={`text-xs font-medium ${
+                    timePeriod === 'All' || timePeriod === 'Full' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                  }`}>
+                    All Time
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Plotly Chart */}
+      <div style={{ height: `${height}px` }} className="w-full">
+        <Plot
+          data={plotlyData}
+          layout={plotlyLayout}
+          style={{ width: '100%', height: '100%' }}
+          onDoubleClick={handleDoubleClickReset}
+          onRelayout={(eventData) => {
+            console.log('Plotly relayout event:', eventData)
+          }}
+          config={{
+            displayModeBar: false,
+            responsive: true,
+            doubleClick: 'autosize',
+            scrollZoom: true,
+            editable: false
+          }}
+          useResizeHandler={true}
+        />
+      </div>
+    </div>
+  )
+}>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Equal spacing between hashrate intervals
+                    </div>
+                  </div>
+                </div>
+                <div 
+                  onClick={() => setHashrateScale('Log')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    hashrateScale === 'Log' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M19,19H5V5H19V19M7,10H9V16H7V10M11,7H13V16H11V7M15,13H17V16H15V13Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${hashrateScale === 'Log' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Logarithmic Scale
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Better for analyzing percentage changes
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Price Scale Control - Only show if price data exists */}
+          {filteredPriceData && filteredPriceData.length > 0 && (
+            <div className="relative group">
+              <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+                <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,7H13V9H11V7M11,11H13V17H11V11Z"/>
+                </svg>
+                <span className="text-[#A0A0B8] text-xs">Price Scale:</span>
+                <span className="font-medium text-[#FFFFFF] text-xs">{priceScale}</span>
+                <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+                <div className="p-1.5">
+                  <div 
+                    onClick={() => setPriceScale('Linear')}
+                    className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                      priceScale === 'Linear' 
+                        ? 'bg-[#5B6CFF]/20' 
+                        : 'hover:bg-[#1A1A2E]/80'
+                    }`}
+                  >
+                    <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
+                    </svg>
+                    <div className="flex-1">
+                      <div className={`font-medium text-xs ${priceScale === 'Linear' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                        Linear Scale
+                      </div>
+                      <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                        Equal spacing between price intervals
+                      </div>
+                    </div>
+                  </div>
+                  <div 
+                    onClick={() => setPriceScale('Log')}
+                    className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                      priceScale === 'Log' 
+                        ? 'bg-[#5B6CFF]/20' 
+                        : 'hover:bg-[#1A1A2E]/80'
+                    }`}
+                  >
+                    <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M19,19H5V5H19V19M7,10H9V16H7V10M11,7H13V16H11V7M15,13H17V16H15V13Z"/>
+                    </svg>
+                    <div className="flex-1">
+                      <div className={`font-medium text-xs ${priceScale === 'Log' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                        Logarithmic Scale
+                      </div>
+                      <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                        Better for analyzing percentage changes
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Time Scale Control */}
+          <div className="relative group">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+              </svg>
+              <span className="text-[#A0A0B8] text-xs">Time Scale:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{timeScale}</span>
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                <div 
+                  onClick={() => setTimeScale('Linear')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    timeScale === 'Linear' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${timeScale === 'Linear' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Linear Time
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Standard calendar-based time axis
+                    </div>
+                  </div>
+                </div>
+                <div 
+                  onClick={() => setTimeScale('Log')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    timeScale === 'Log' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${timeScale === 'Log' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Logarithmic Time
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Days from genesis, log-scaled
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Power Law Control */}
+          <div className="relative group">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
+              </svg>
+              <span className="text-[#A0A0B8] text-xs">Power Law:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{showPowerLaw}</span>
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                <div 
+                  onClick={() => setShowPowerLaw('Hide')}
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                    showPowerLaw === 'Hide' 
+                      ? 'bg-[#5B6CFF]/20' 
+                      : 'hover:bg-[#1A1A2E]/80'
+                  }`}
+                >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,2C13.1,2 14,2.9 14,4C14,5.1 13.1,6 12,6C10.9,6 10,5.1 10,4C10,2.9 10.9,2 12,2M21,9V7L15,1H5C3.89,1 3,1.89 3,3V21A2,2 0 0,0 5,23H19A2,2 0 0,0 21,21V9H21M19,19H5V3H13V9H19V19Z"/>
+                  </svg>
+                  <div className="flex-1">
+                    <div className={`font-medium text-xs ${showPowerLaw === 'Hide' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                      Hide Power Law
+                    </div>
+                    <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                      Display only the hashrate data
+                    </div>
+                  </div>
+                </div'use client'
 import React, { useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
+import { KaspaMetric } from '@/lib/sheets'
 
+// Dynamically import Plotly to avoid SSR issues
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false })
 
-interface DataPoint {
-  timestamp: number
-  value: number
-}
-
-interface PowerLawResidualHashratePriceChartProps {
-  priceData: DataPoint[]
-  hashrateData: DataPoint[]
-  className?: string
+interface HashrateChartProps {
+  data: KaspaMetric[]
+  priceData?: KaspaMetric[] // Add optional price data
+  height?: number
 }
 
 // Kaspa genesis date - November 7, 2021
@@ -23,14 +720,58 @@ function getDaysFromGenesis(timestamp: number): number {
   return Math.max(1, Math.floor((timestamp - GENESIS_DATE) / (24 * 60 * 60 * 1000)) + 1)
 }
 
-function fitPowerLaw(data: Array<{x: number, y: number}>) {
-  if (data.length < 2) {
+// Enhanced power law regression function
+function fitPowerLaw(data: KaspaMetric[]) {
+  const validData = data.filter(point => point.value > 0)
+  
+  if (validData.length < 2) {
     throw new Error("Not enough valid data points for power law fitting")
   }
   
+  // Always use days from genesis for power law calculation
+  const logX = validData.map(point => {
+    const daysFromGenesis = getDaysFromGenesis(point.timestamp)
+    return Math.log(Math.max(1, daysFromGenesis))
+  })
+  const logY = validData.map(point => Math.log(point.value))
+  
+  // Linear regression on log-transformed data
+  const n = logX.length
+  const sumX = logX.reduce((a, b) => a + b, 0)
+  const sumY = logY.reduce((a, b) => a + b, 0)
+  const sumXY = logX.reduce((sum, x, i) => sum + x * logY[i], 0)
+  const sumX2 = logX.reduce((sum, x) => sum + x * x, 0)
+  const sumY2 = logY.reduce((sum, y) => sum + y * y, 0)
+  
+  // Calculate slope and intercept
+  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
+  const intercept = (sumY - slope * sumX) / n
+  
+  // Calculate correlation coefficient and R²
+  const meanX = sumX / n
+  const meanY = sumY / n
+  const ssXY = sumXY - n * meanX * meanY
+  const ssXX = sumX2 - n * meanX * meanX
+  const ssYY = sumY2 - n * meanY * meanY
+  const rValue = ssXY / Math.sqrt(ssXX * ssYY)
+  const r2 = rValue * rValue
+  
+  // Convert back to power law coefficients: y = a * x^b
+  const a = Math.exp(intercept)
+  const b = slope
+  
+  return { a, b, r2 }
+}
+
+// Power law regression for price vs hashrate relationship
+function fitPricePowerLaw(data: Array<{hashrate: number, price: number}>) {
+  if (data.length < 2) {
+    throw new Error("Not enough valid data points for price power law fitting")
+  }
+  
   const logData = data.map(point => ({
-    x: Math.log(Math.max(0.0001, point.x)),
-    y: Math.log(Math.max(0.0001, point.y))
+    x: Math.log(Math.max(0.0001, point.hashrate / 1e15)), // Convert to PH/s
+    y: Math.log(Math.max(0.0001, point.price))
   }))
   
   const n = logData.length
@@ -58,16 +799,73 @@ function fitPowerLaw(data: Array<{x: number, y: number}>) {
   return { a, b, r2 }
 }
 
-function calculateMovingAverage(data: number[], windowSize: number): number[] {
-  const result: number[] = []
-  for (let i = 0; i < data.length; i++) {
-    const start = Math.max(0, i - Math.floor(windowSize / 2))
-    const end = Math.min(data.length, i + Math.floor(windowSize / 2) + 1)
-    const window = data.slice(start, end)
-    const average = window.reduce((sum, val) => sum + val, 0) / window.length
-    result.push(average)
+// Calculate ATH (All-Time High) data
+function calculateATH(data: KaspaMetric[]) {
+  if (data.length === 0) return null
+  
+  const athPoint = data.reduce((max, point) => 
+    point.value > max.value ? point : max
+  )
+  
+  return {
+    hashrate: athPoint.value,
+    date: new Date(athPoint.timestamp),
+    timestamp: athPoint.timestamp,
+    daysFromGenesis: getDaysFromGenesis(athPoint.timestamp)
   }
-  return result
+}
+
+// Calculate 1YL (One Year Low) data
+function calculate1YL(data: KaspaMetric[]) {
+  if (data.length === 0) return null
+  
+  const oneYearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000)
+  const recentData = data.filter(point => point.timestamp >= oneYearAgo)
+  
+  if (recentData.length === 0) {
+    const minPoint = data.reduce((min, point) => 
+      point.value < min.value ? point : min
+    )
+    return {
+      hashrate: minPoint.value,
+      date: new Date(minPoint.timestamp),
+      timestamp: minPoint.timestamp,
+      daysFromGenesis: getDaysFromGenesis(minPoint.timestamp)
+    }
+  }
+  
+  const oylPoint = recentData.reduce((min, point) => 
+    point.value < min.value ? point : min
+  )
+  
+  return {
+    hashrate: oylPoint.value,
+    date: new Date(oylPoint.timestamp),
+    timestamp: oylPoint.timestamp,
+    daysFromGenesis: getDaysFromGenesis(oylPoint.timestamp)
+  }
+}
+
+// Enhanced hashrate formatting with accurate PH/s conversion
+function formatHashrate(value: number, forceUnit?: string): string {
+  // Hashrate is typically measured in H/s (hashes per second)
+  if (forceUnit === 'PH/s' || (!forceUnit && value >= 1e15)) {
+    return `${(value/1e15).toFixed(2)} PH/s`
+  } else if (value >= 1e18) {
+    return `${(value/1e18).toFixed(2)} EH/s`
+  } else if (value >= 1e15) {
+    return `${(value/1e15).toFixed(2)} PH/s`
+  } else if (value >= 1e12) {
+    return `${(value/1e12).toFixed(2)} TH/s`
+  } else if (value >= 1e9) {
+    return `${(value/1e9).toFixed(2)} GH/s`
+  } else if (value >= 1e6) {
+    return `${(value/1e6).toFixed(2)} MH/s`
+  } else if (value >= 1e3) {
+    return `${(value/1e3).toFixed(2)} KH/s`
+  } else {
+    return `${value.toFixed(2)} H/s`
+  }
 }
 
 // Enhanced currency formatting
@@ -88,109 +886,218 @@ function formatCurrency(value: number): string {
   }
 }
 
-// Enhanced hashrate formatting
-function formatHashrate(value: number): string {
-  if (value >= 1e18) {
-    return `${(value/1e18).toFixed(2)} EH/s`
-  } else if (value >= 1e15) {
-    return `${(value/1e15).toFixed(2)} PH/s`
-  } else if (value >= 1e12) {
-    return `${(value/1e12).toFixed(2)} TH/s`
-  } else if (value >= 1e9) {
-    return `${(value/1e9).toFixed(2)} GH/s`
-  } else if (value >= 1e6) {
-    return `${(value/1e6).toFixed(2)} MH/s`
-  } else if (value >= 1e3) {
-    return `${(value/1e3).toFixed(2)} KH/s`
-  } else {
-    return `${value.toFixed(2)} H/s`
+// Generate log ticks with PH/s formatting
+function generateLogTicks(dataMin: number, dataMax: number) {
+  const logMin = Math.floor(Math.log10(dataMin))
+  const logMax = Math.ceil(Math.log10(dataMax))
+  
+  const majorTicks: number[] = []
+  const intermediateTicks: number[] = []
+  const minorTicks: number[] = []
+  
+  for (let i = logMin; i <= logMax + 1; i++) {
+    const base = Math.pow(10, i)
+    
+    // Major tick at 1 * 10^i
+    if (dataMin <= base && base <= dataMax) {
+      majorTicks.push(base)
+    }
+    
+    // Intermediate ticks at 2 and 5 * 10^i
+    for (const factor of [2, 5]) {
+      const intermediateVal = factor * base
+      if (dataMin <= intermediateVal && intermediateVal <= dataMax) {
+        intermediateTicks.push(intermediateVal)
+      }
+    }
+    
+    // Minor ticks at 3, 4, 6, 7, 8, 9 * 10^i
+    for (const j of [3, 4, 6, 7, 8, 9]) {
+      const minorVal = j * base
+      if (dataMin <= minorVal && minorVal <= dataMax) {
+        minorTicks.push(minorVal)
+      }
+    }
   }
+  
+  return { majorTicks, intermediateTicks, minorTicks }
 }
 
-export default function PowerLawResidualHashratePriceChart({ 
-  priceData, 
-  hashrateData, 
-  className = '' 
-}: PowerLawResidualHashratePriceChartProps) {
-  const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
-  const [hashrateScale, setHashrateScale] = useState<'Linear' | 'Log'>('Log')
-  const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear')
-  const [timePeriod, setTimePeriod] = useState<'1M' | '3M' | '6M' | '1Y' | '2Y' | '3Y' | 'All'>('All')
-  const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
-  const [showMovingAverage, setShowMovingAverage] = useState<'Hide' | 'Show'>('Show')
-  const [movingAverageWindow, setMovingAverageWindow] = useState<7 | 14 | 30 | 90>(30)
+// Generate linear ticks with appropriate spacing
+function generateLinearTicks(dataMin: number, dataMax: number, numTicks: number = 8) {
+  const range = dataMax - dataMin
+  const rawStep = range / (numTicks - 1)
+  
+  // Find a nice step size
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)))
+  const normalizedStep = rawStep / magnitude
+  
+  let niceStep: number
+  if (normalizedStep <= 1) {
+    niceStep = 1
+  } else if (normalizedStep <= 2) {
+    niceStep = 2
+  } else if (normalizedStep <= 5) {
+    niceStep = 5
+  } else {
+    niceStep = 10
+  }
+  
+  const step = niceStep * magnitude
+  const niceMin = Math.floor(dataMin / step) * step
+  const niceMax = Math.ceil(dataMax / step) * step
+  
+  const ticks: number[] = []
+  for (let i = niceMin; i <= niceMax + step/2; i += step) {
+    if (i >= 0) { // Only include non-negative values
+      ticks.push(i)
+    }
+  }
+  
+  return ticks
+}
 
-  const analysisData = useMemo(() => {
-    if (!priceData || !hashrateData || priceData.length === 0 || hashrateData.length === 0) {
+export default function HashrateChart({ data, priceData, height = 800 }: HashrateChartProps) {
+  const [hashrateScale, setHashrateScale] = useState<'Linear' | 'Log'>('Log')
+  const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
+  const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear')
+  const [timePeriod, setTimePeriod] = useState<'1W' | '1M' | '3M' | '6M' | '1Y' | '2Y' | '3Y' | '5Y' | 'All' | 'Full'>('All')
+  const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
+  const [showResidual, setShowResidual] = useState<'Hide' | 'Show'>('Show')
+
+  // Function to handle double-click reset to full view
+  const handleDoubleClickReset = () => {
+    console.log('Double click detected, current period:', timePeriod)
+    
+    // Always force a refresh by toggling between All and Full states
+    if (timePeriod === 'All') {
+      console.log('Switching to Full')
+      setTimePeriod('Full')
+    } else if (timePeriod === 'Full') {
+      console.log('Switching to All')  
+      setTimePeriod('All')
+    } else {
+      console.log('Switching to All from', timePeriod)
+      setTimePeriod('All')
+    }
+  }
+
+  // Filter data based on time period
+  const filteredData = useMemo(() => {
+    if (timePeriod === 'All' || timePeriod === 'Full' || data.length === 0) return data
+    
+    const now = Date.now()
+    const days = {
+      '1W': 7, '1M': 30, '3M': 90, 
+      '6M': 180, '1Y': 365, '2Y': 730,
+      '3Y': 1095, '5Y': 1825
+    }
+    
+    const cutoffTime = now - days[timePeriod as keyof typeof days] * 24 * 60 * 60 * 1000
+    return data.filter(point => point.timestamp >= cutoffTime)
+  }, [data, timePeriod])
+
+  // Filter price data based on same time period
+  const filteredPriceData = useMemo(() => {
+    if (!priceData || timePeriod === 'All' || timePeriod === 'Full' || priceData.length === 0) return priceData || []
+    
+    const now = Date.now()
+    const days = {
+      '1W': 7, '1M': 30, '3M': 90, 
+      '6M': 180, '1Y': 365, '2Y': 730,
+      '3Y': 1095, '5Y': 1825
+    }
+    
+    const cutoffTime = now - days[timePeriod as keyof typeof days] * 24 * 60 * 60 * 1000
+    return priceData.filter(point => point.timestamp >= cutoffTime)
+  }, [priceData, timePeriod])
+
+  // Calculate merged price-hashrate data for residual analysis
+  const mergedData = useMemo(() => {
+    if (!priceData || !data || priceData.length === 0 || data.length === 0) {
       return []
     }
 
     const merged: Array<{
-      date: Date,
       timestamp: number,
       hashrate: number,
       price: number,
       daysFromGenesis: number
     }> = []
 
-    priceData.forEach(pricePoint => {
+    filteredPriceData.forEach(pricePoint => {
       const priceDate = new Date(pricePoint.timestamp).toDateString()
-      const correspondingHashrate = hashrateData.find(hashratePoint => {
+      const correspondingHashrate = filteredData.find(hashratePoint => {
         const hashrateDate = new Date(hashratePoint.timestamp).toDateString()
         return priceDate === hashrateDate
       })
 
       if (correspondingHashrate && pricePoint.value > 0 && correspondingHashrate.value > 0) {
-        const date = new Date(pricePoint.timestamp)
-        const hashrate = correspondingHashrate.value
-        const price = pricePoint.value
-        const daysFromGenesis = getDaysFromGenesis(pricePoint.timestamp)
-
         merged.push({
-          date,
           timestamp: pricePoint.timestamp,
-          hashrate,
-          price,
-          daysFromGenesis
+          hashrate: correspondingHashrate.value,
+          price: pricePoint.value,
+          daysFromGenesis: getDaysFromGenesis(pricePoint.timestamp)
         })
       }
     })
 
     return merged.sort((a, b) => a.timestamp - b.timestamp)
-  }, [priceData, hashrateData])
+  }, [filteredData, filteredPriceData, data, priceData])
 
-  // Filter data based on time period
-  const filteredAnalysisData = useMemo(() => {
-    if (timePeriod === 'All' || analysisData.length === 0) return analysisData
+  // Calculate power law regression - always from complete dataset when both scales are log
+  const powerLawData = useMemo(() => {
+    if (showPowerLaw === 'Hide' || data.length < 10) return null
     
-    const now = Date.now()
-    const days = {
-      '1M': 30, '3M': 90, '6M': 180, 
-      '1Y': 365, '2Y': 730, '3Y': 1095
+    try {
+      // Always use ALL data for power law calculation
+      const { a, b, r2 } = fitPowerLaw(data)
+      return { a, b, r2 }
+    } catch (error) {
+      console.error('Power law calculation failed:', error)
+      return null
     }
-    
-    const cutoffTime = now - days[timePeriod] * 24 * 60 * 60 * 1000
-    return analysisData.filter(point => point.timestamp >= cutoffTime)
-  }, [analysisData, timePeriod])
+  }, [data, showPowerLaw])
 
-  // Calculate power law and residuals
-  const powerLawAndResiduals = useMemo(() => {
-    if (analysisData.length < 10) return null
+  // Calculate price power law and residuals
+  const priceResidualData = useMemo(() => {
+    if (showResidual === 'Hide' || mergedData.length < 10 || !priceData) return null
 
     try {
-      // Calculate power law using hashrate vs price
-      const priceHashrateData = analysisData.map(d => ({ x: d.hashrate / 1e15, y: d.price }))
-      const { a, b, r2 } = fitPowerLaw(priceHashrateData)
+      // Calculate power law using hashrate vs price on ALL data (not filtered)
+      const allMergedData: Array<{hashrate: number, price: number, timestamp: number}> = []
+      
+      if (priceData && data) {
+        priceData.forEach(pricePoint => {
+          const priceDate = new Date(pricePoint.timestamp).toDateString()
+          const correspondingHashrate = data.find(hashratePoint => {
+            const hashrateDate = new Date(hashratePoint.timestamp).toDateString()
+            return priceDate === hashrateDate
+          })
 
-      // Calculate residuals as percentage deviation
-      const residuals = analysisData.map(d => {
+          if (correspondingHashrate && pricePoint.value > 0 && correspondingHashrate.value > 0) {
+            allMergedData.push({
+              timestamp: pricePoint.timestamp,
+              hashrate: correspondingHashrate.value,
+              price: pricePoint.value
+            })
+          }
+        })
+      }
+
+      if (allMergedData.length < 10) return null
+
+      const { a, b, r2 } = fitPricePowerLaw(allMergedData)
+
+      // Calculate residuals for filtered data
+      const residuals = mergedData.map(d => {
         const hashrateInPH = d.hashrate / 1e15
         const expectedPrice = a * Math.pow(hashrateInPH, b)
         const actualPrice = d.price
         const residualPercent = ((actualPrice - expectedPrice) / expectedPrice) * 100
         
         return {
-          ...d,
+          timestamp: d.timestamp,
           residual: residualPercent,
           expectedPrice
         }
@@ -198,106 +1105,270 @@ export default function PowerLawResidualHashratePriceChart({
 
       return { 
         powerLaw: { a, b, r2 }, 
-        residuals: residuals.filter(r => filteredAnalysisData.some(f => f.timestamp === r.timestamp))
+        residuals
       }
     } catch (error) {
-      console.error('Power law residual calculation failed:', error)
+      console.error('Price power law residual calculation failed:', error)
       return null
     }
-  }, [analysisData, filteredAnalysisData])
+  }, [mergedData, data, priceData, showResidual])
 
-  const chartData = useMemo(() => {
-    if (filteredAnalysisData.length === 0) return []
+  // Calculate ATH and 1YL points
+  const athData = useMemo(() => calculateATH(filteredData), [filteredData])
+  const oylData = useMemo(() => calculate1YL(filteredData), [filteredData])
+
+  // Prepare Plotly data
+  const plotlyData = useMemo(() => {
+    if (filteredData.length === 0) return []
 
     const traces: any[] = []
 
     // Determine X values based on time scale
     let xValues: (number | Date)[]
     if (timeScale === 'Log') {
-      xValues = filteredAnalysisData.map(d => d.daysFromGenesis)
+      xValues = filteredData.map(d => getDaysFromGenesis(d.timestamp))
     } else {
-      xValues = filteredAnalysisData.map(d => d.date)
+      // For linear time scale, ensure we have proper Date objects
+      xValues = filteredData.map(d => {
+        const date = new Date(d.timestamp)
+        // Validate the date
+        if (isNaN(date.getTime())) {
+          console.warn('Invalid timestamp:', d.timestamp)
+          return new Date()
+        }
+        return date
+      })
     }
 
-    // Price trace on primary y-axis
+    const yValues = filteredData.map(d => d.value)
+
+    // Calculate Y-axis range for main chart
+    const yMinData = Math.min(...yValues)
+    const yMaxData = Math.max(...yValues)
+    
+    const athInView = athData !== null
+    
+    let yMinChart: number, yMaxChart: number
+    
+    if (hashrateScale === 'Log') {
+      yMinChart = yMinData * 0.8
+      yMaxChart = yMaxData * (athInView ? 1.50 : 1.05)
+    } else {
+      yMinChart = 0
+      yMaxChart = yMaxData * (athInView ? 1.15 : 1.05)
+    }
+
+    // Add price background trace if price data is available
+    if (filteredPriceData && filteredPriceData.length > 0) {
+      let priceXValues: (number | Date)[]
+      if (timeScale === 'Log') {
+        priceXValues = filteredPriceData.map(d => getDaysFromGenesis(d.timestamp))
+      } else {
+        priceXValues = filteredPriceData.map(d => {
+          const date = new Date(d.timestamp)
+          if (isNaN(date.getTime())) {
+            console.warn('Invalid price timestamp:', d.timestamp)
+            return new Date()
+          }
+          return date
+        })
+      }
+
+      const priceYValues = filteredPriceData.map(d => d.value)
+
+      traces.push({
+        x: priceXValues,
+        y: priceYValues,
+        mode: 'lines',
+        type: 'scatter',
+        name: 'Kaspa Price',
+        line: { 
+          color: 'rgba(156, 163, 175, 0.4)', // Gray color with transparency
+          width: 1 
+        },
+        yaxis: 'y2', // Use secondary y-axis
+        xaxis: 'x',
+        connectgaps: true,
+        showlegend: false,
+        hovertemplate: timeScale === 'Linear' 
+          ? '<b>%{fullData.name}</b><br>Price: $%{y:.4f}<extra></extra>'
+          : '%{text}<br><b>%{fullData.name}</b><br>Price: $%{y:.4f}<extra></extra>',
+        hoverinfo: 'none',
+        text: filteredPriceData.map(d => new Date(d.timestamp).toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        })),
+      })
+    }
+
+    // For log scale: add invisible baseline using regular scatter
+    if (hashrateScale === 'Log') {
+      traces.push({
+        x: xValues,
+        y: Array(xValues.length).fill(yMinChart),
+        mode: 'lines',
+        type: 'scatter',
+        name: 'baseline',
+        line: { color: 'rgba(0,0,0,0)', width: 0 },
+        showlegend: false, // Hide from legend
+        hoverinfo: 'skip',
+        xaxis: 'x',
+        yaxis: 'y'
+      })
+    }
+
+    // Main hashrate trace using regular scatter for gradient support
     traces.push({
       x: xValues,
-      y: filteredAnalysisData.map(d => d.price),
+      y: yValues,
       mode: 'lines',
-      type: 'scatter',
-      name: 'Kaspa Price',
-      yaxis: 'y',
+      type: 'scatter', // Changed from scattergl to scatter for gradient support
+      name: 'Kaspa Hashrate',
       line: { 
         color: '#5B6CFF', 
         width: 2 
       },
-      fill: priceScale === 'Log' ? undefined : 'tozeroy',
-      fillcolor: 'rgba(91, 108, 255, 0.1)',
-      hovertemplate: timeScale === 'Linear' 
-        ? '<b>Price</b><br>Price: %{y}<br><extra></extra>'
-        : '%{text}<br><b>Price</b><br>Price: %{y}<extra></extra>',
-      text: filteredAnalysisData.map(d => d.date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
-      })),
-    })
-
-    // Hashrate trace on secondary y-axis
-    traces.push({
-      x: xValues,
-      y: filteredAnalysisData.map(d => d.hashrate),
-      mode: 'lines',
-      type: 'scatter',
-      name: 'Network Hashrate',
-      yaxis: 'y2',
-      line: { 
-        color: '#F59E0B', 
-        width: 2,
-        dash: 'dot'
+      fill: hashrateScale === 'Log' ? 'tonexty' : 'tozeroy',
+      fillgradient: {
+        type: "vertical",
+        colorscale: [
+          [0, "rgba(13, 13, 26, 0.01)"],  // Top: transparent
+          [1, "rgba(91, 108, 255, 0.6)"]   // Bottom: full opacity
+        ]
       },
+      connectgaps: true,
+      xaxis: 'x',
+      yaxis: 'y',
       hovertemplate: timeScale === 'Linear' 
-        ? '<b>Hashrate</b><br>Hashrate: %{y}<br><extra></extra>'
-        : '%{text}<br><b>Hashrate</b><br>Hashrate: %{y}<extra></extra>',
-      text: filteredAnalysisData.map(d => d.date.toLocaleDateString('en-US', { 
+        ? '<b>%{fullData.name}</b><br>Hashrate: %{y}<extra></extra>'
+        : '%{text}<br><b>%{fullData.name}</b><br>Hashrate: %{y}<extra></extra>',
+      hoverinfo: 'none',
+      text: filteredData.map(d => new Date(d.timestamp).toLocaleDateString('en-US', { 
         year: 'numeric', 
-        month: 'short', 
+        month: 'long', 
         day: 'numeric' 
       })),
     })
 
-    // Power law trend line for price if enabled
-    if (showPowerLaw === 'Show' && powerLawAndResiduals?.powerLaw) {
-      const { a, b } = powerLawAndResiduals.powerLaw
-      const powerLawPrices = filteredAnalysisData.map(d => {
-        const hashrateInPH = d.hashrate / 1e15
-        return a * Math.pow(hashrateInPH, b)
-      })
+    // Add power law if enabled - display on all scale combinations
+    if (powerLawData) {
+      // Use ALL data for power law calculation, but only show the portion that fits the current view
+      const allDaysFromGenesis = data.map(d => getDaysFromGenesis(d.timestamp))
+      const yFit = allDaysFromGenesis.map(x => powerLawData.a * Math.pow(x, powerLawData.b))
+      
+      // Filter to match the current time period view
+      const filteredIndices = data.map((d, index) => ({...d, originalIndex: index}))
+        .filter(d => filteredData.some(fd => fd.timestamp === d.timestamp))
+        .map(d => d.originalIndex)
+      
+      const viewXFit = filteredIndices.map(i => allDaysFromGenesis[i])
+      const viewYFit = filteredIndices.map(i => yFit[i])
+      
+      let fitX: (number | Date)[]
+      if (timeScale === 'Log') {
+        fitX = viewXFit
+      } else {
+        // For linear time scale, use actual dates
+        fitX = filteredIndices.map(i => new Date(data[i].timestamp))
+      }
 
       traces.push({
-        x: xValues,
-        y: powerLawPrices,
+        x: fitX,
+        y: viewYFit,
         mode: 'lines',
         type: 'scatter',
-        name: `Power Law Trend (R²=${powerLawAndResiduals.powerLaw.r2.toFixed(3)})`,
-        yaxis: 'y',
+        name: 'Power Law',
         line: { 
-          color: '#EF4444', 
+          color: '#ff8c00', 
           width: 2,
-          dash: 'dash'
+          dash: 'solid'
         },
-        hovertemplate: '<b>Power Law</b><br>Expected: %{y}<extra></extra>',
+        connectgaps: true,
+        showlegend: true,
+        xaxis: 'x',
+        yaxis: 'y',
+        hovertemplate: '<b>%{fullData.name}</b><br>Fit: %{y}<extra></extra>',
       })
     }
 
-    // Residual oscillator on bottom subplot
-    if (powerLawAndResiduals?.residuals) {
-      const residuals = powerLawAndResiduals.residuals.map(r => r.residual)
+    // Add High marker using regular scatter (markers work better with scatter type)
+    if (athData) {
+      let athX: number | Date
+      if (timeScale === 'Log') {
+        athX = athData.daysFromGenesis
+      } else {
+        athX = athData.date
+      }
       
+      traces.push({
+        x: [athX],
+        y: [athData.hashrate],
+        mode: 'markers+text',
+        type: 'scatter', // Use regular scatter for markers
+        name: 'High & Low',
+        legendgroup: 'markers',
+        marker: {
+          color: '#ffffff',
+          size: 8,
+          line: { color: '#5B6CFF', width: 2 }
+        },
+        text: [`High ${formatHashrate(athData.hashrate)}`],
+        textposition: 'top left',
+        textfont: { color: '#ffffff', size: 11 },
+        showlegend: true,
+        xaxis: 'x',
+        yaxis: 'y',
+        hovertemplate: `<b>High</b><br>Hashrate: ${formatHashrate(athData.hashrate)}<br>Date: ${athData.date.toLocaleDateString()}<extra></extra>`,
+      })
+    }
+
+    // Add Low marker using regular scatter
+    if (oylData) {
+      let oylX: number | Date
+      if (timeScale === 'Log') {
+        oylX = oylData.daysFromGenesis
+      } else {
+        oylX = oylData.date
+      }
+      
+      traces.push({
+        x: [oylX],
+        y: [oylData.hashrate],
+        mode: 'markers+text',
+        type: 'scatter', // Use regular scatter for markers
+        name: 'Low',
+        legendgroup: 'markers',
+        marker: {
+          color: '#ffffff',
+          size: 8,
+          line: { color: '#5B6CFF', width: 2 }
+        },
+        text: [`Low ${formatHashrate(oylData.hashrate)}`],
+        textposition: 'bottom left',
+        textfont: { color: '#ffffff', size: 11 },
+        showlegend: false,
+        xaxis: 'x',
+        yaxis: 'y',
+        hovertemplate: `<b>Low</b><br>Hashrate: ${formatHashrate(oylData.hashrate)}<br>Date: ${oylData.date.toLocaleDateString()}<extra></extra>`,
+      })
+    }
+
+    // Add residual oscillator if enabled and data is available
+    if (showResidual === 'Show' && priceResidualData?.residuals && priceResidualData.residuals.length > 0) {
+      let residualXValues: (number | Date)[]
+      if (timeScale === 'Log') {
+        residualXValues = priceResidualData.residuals.map(r => getDaysFromGenesis(r.timestamp))
+      } else {
+        residualXValues = priceResidualData.residuals.map(r => new Date(r.timestamp))
+      }
+
+      const residualValues = priceResidualData.residuals.map(r => r.residual)
+
       // Main residual line
       traces.push({
-        x: xValues,
-        y: residuals,
+        x: residualXValues,
+        y: residualValues,
         mode: 'lines',
         type: 'scatter',
         name: 'Power Law Residual (%)',
@@ -314,8 +1385,8 @@ export default function PowerLawResidualHashratePriceChart({
 
       // Zero line for residuals
       traces.push({
-        x: xValues,
-        y: Array(xValues.length).fill(0),
+        x: residualXValues,
+        y: Array(residualXValues.length).fill(0),
         mode: 'lines',
         type: 'scatter',
         name: 'Fair Value Line',
@@ -329,521 +1400,14 @@ export default function PowerLawResidualHashratePriceChart({
         hoverinfo: 'skip',
         showlegend: false
       })
-
-      // Overbought/Oversold zones
-      traces.push({
-        x: xValues,
-        y: Array(xValues.length).fill(50),
-        mode: 'lines',
-        type: 'scatter',
-        name: 'Overvalued (+50%)',
-        yaxis: 'y3',
-        xaxis: 'x',
-        line: { 
-          color: 'rgba(34, 197, 94, 0.6)', 
-          width: 1,
-          dash: 'dot'
-        },
-        hoverinfo: 'skip',
-        showlegend: false
-      })
-
-      traces.push({
-        x: xValues,
-        y: Array(xValues.length).fill(-50),
-        mode: 'lines',
-        type: 'scatter',
-        name: 'Undervalued (-50%)',
-        yaxis: 'y3',
-        xaxis: 'x',
-        line: { 
-          color: 'rgba(239, 68, 68, 0.6)', 
-          width: 1,
-          dash: 'dot'
-        },
-        hoverinfo: 'skip',
-        showlegend: false
-      })
-
-      // Moving average for residuals
-      if (showMovingAverage === 'Show' && residuals.length > movingAverageWindow) {
-        const movingAvg = calculateMovingAverage(residuals, movingAverageWindow)
-        
-        traces.push({
-          x: xValues,
-          y: movingAvg,
-          mode: 'lines',
-          type: 'scatter',
-          name: `${movingAverageWindow}D MA Residual`,
-          yaxis: 'y3',
-          xaxis: 'x',
-          line: { 
-            color: '#EC4899', 
-            width: 3
-          },
-          hovertemplate: `<b>${movingAverageWindow}D MA</b><br>Average: %{y:.1f}%<extra></extra>`
-        })
-      }
     }
 
     return traces
-  }, [filteredAnalysisData, timeScale, priceScale, hashrateScale, showPowerLaw, powerLawAndResiduals, showMovingAverage, movingAverageWindow])
+  }, [filteredData, filteredPriceData, timeScale, hashrateScale, priceScale, powerLawData, athData, oylData, showResidual, priceResidualData])
 
-  const layout: any = {
-    height: 800,
-    plot_bgcolor: 'rgba(0,0,0,0)',
-    paper_bgcolor: 'rgba(0,0,0,0)',
-    font: { color: '#9CA3AF', family: 'Inter, ui-sans-serif, system-ui, sans-serif' },
-    hovermode: 'x unified',
-    showlegend: true,
-    margin: { l: 60, r: 80, t: 40, b: 80 },
-    title: {
-      text: 'Kaspa Price & Hashrate with Power Law Residual Oscillator',
-      font: { size: 16, color: '#FFFFFF' },
-      x: 0.5,
-      xanchor: 'center'
-    },
-    hoverlabel: {
-      bgcolor: 'rgba(15, 20, 25, 0.95)',
-      bordercolor: 'rgba(91, 108, 255, 0.5)',
-      font: { color: '#e2e8f0', size: 11 }
-    },
-    legend: {
-      orientation: "h",
-      yanchor: "bottom",
-      y: -0.15,
-      xanchor: "center",
-      x: 0.5,
-      bgcolor: 'rgba(0,0,0,0)',
-      bordercolor: 'rgba(0,0,0,0)',
-      font: { size: 10, color: '#9CA3AF' }
-    },
-    // Price Y-axis (left)
-    yaxis: {
-      title: { 
-        text: 'Price (USD)', 
-        font: { size: 14, color: '#5B6CFF' }
-      },
-      type: priceScale === 'Log' ? 'log' : 'linear',
-      side: 'left',
-      position: 0,
-      gridcolor: '#363650',
-      gridwidth: 1,
-      color: '#5B6CFF',
-      tickfont: { size: 11, color: '#5B6CFF' },
-      linecolor: '#5B6CFF',
-      zerolinecolor: '#363650',
-      domain: [0.35, 1], // Top 65% of the chart
-      tickformat: priceScale === 'Log' ? '' : '.4f'
-    },
-    // Hashrate Y-axis (right)
-    yaxis2: {
-      title: { 
-        text: 'Network Hashrate (H/s)', 
-        font: { size: 14, color: '#F59E0B' }
-      },
-      type: hashrateScale === 'Log' ? 'log' : 'linear',
-      side: 'right',
-      overlaying: 'y',
-      gridcolor: 'rgba(0,0,0,0)', // Hide grid for secondary axis
-      color: '#F59E0B',
-      tickfont: { size: 11, color: '#F59E0B' },
-      linecolor: '#F59E0B',
-      domain: [0.35, 1] // Top 65% of the chart
-    },
-    // Residual Y-axis (bottom)
-    yaxis3: {
-      title: { 
-        text: 'Power Law Residual (%)', 
-        font: { size: 14, color: '#8B5CF6' }
-      },
-      type: 'linear',
-      side: 'left',
-      gridcolor: '#363650',
-      gridwidth: 1,
-      color: '#8B5CF6',
-      tickfont: { size: 11, color: '#8B5CF6' },
-      linecolor: '#8B5CF6',
-      zerolinecolor: '#6B7280',
-      zerolinewidth: 2,
-      domain: [0, 0.25], // Bottom 25% of the chart
-      tickformat: '.0f',
-      ticksuffix: '%'
-    },
-    // X-axis configuration
-    xaxis: {
-      title: { 
-        text: timeScale === 'Log' ? 'Days Since Genesis (Log Scale)' : 'Date', 
-        font: { size: 14, color: '#FFFFFF' }
-      },
-      type: timeScale === 'Log' ? 'log' : 'date',
-      gridcolor: '#363650',
-      gridwidth: 1,
-      color: '#9CA3AF',
-      tickfont: { size: 11, color: '#9CA3AF' },
-      linecolor: '#363650',
-      tickformat: timeScale === 'Log' ? '' : '%b %Y',
-      domain: [0, 1] // Full width
-    }
-  }
+  // Plotly layout
+  const plotlyLayout = useMemo(() => {
+    if (filteredData.length === 0) return {}
 
-  if (filteredAnalysisData.length === 0) {
-    return (
-      <div className={`bg-[#1A1A2E] rounded-xl p-6 ${className}`}>
-        <div className="flex items-center justify-center h-80">
-          <div className="text-center">
-            <div className="text-red-400 text-lg font-medium mb-2">No Data Available</div>
-            <div className="text-[#6B7280] text-sm">Unable to correlate price and hashrate data</div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className={`space-y-6 ${className}`}>
-      {/* Controls */}
-      <div className="flex flex-wrap gap-4 items-center justify-between">
-        <div className="flex flex-wrap gap-2">
-          {/* Price Scale Control */}
-          <div className="relative group">
-            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-              <svg className="w-3.5 h-3.5 text-[#5B6CFF]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
-              </svg>
-              <span className="text-[#A0A0B8] text-xs">Price:</span>
-              <span className="font-medium text-[#FFFFFF] text-xs">{priceScale}</span>
-              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div className="absolute top-full mt-1 left-0 w-48 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
-              <div className="p-1.5">
-                {['Linear', 'Log'].map((scale) => (
-                  <div 
-                    key={scale}
-                    onClick={() => setPriceScale(scale as 'Linear' | 'Log')}
-                    className={`flex items-center space-x-2.5 p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                      priceScale === scale ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
-                    }`}
-                  >
-                    <span className={`text-xs font-medium ${
-                      priceScale === scale ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                    }`}>
-                      {scale} Price
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Hashrate Scale Control */}
-          <div className="relative group">
-            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-              <svg className="w-3.5 h-3.5 text-[#F59E0B]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M14.27,4.73L19.27,9.73C19.65,10.11 19.65,10.74 19.27,11.12L14.27,16.12C13.89,16.5 13.26,16.5 12.88,16.12C12.5,15.74 12.5,15.11 12.88,14.73L16.16,11.45H8.91L12.19,14.73C12.57,15.11 12.57,15.74 12.19,16.12C11.81,16.5 11.18,16.5 10.8,16.12L5.8,11.12C5.42,10.74 5.42,10.11 5.8,9.73L10.8,4.73C11.18,4.35 11.81,4.35 12.19,4.73C12.57,5.11 12.57,5.74 12.19,6.12L8.91,9.4H16.16L12.88,6.12C12.5,5.74 12.5,5.11 12.88,4.73C13.26,4.35 13.89,4.35 14.27,4.73Z"/>
-              </svg>
-              <span className="text-[#A0A0B8] text-xs">Hashrate:</span>
-              <span className="font-medium text-[#FFFFFF] text-xs">{hashrateScale}</span>
-              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div className="absolute top-full mt-1 left-0 w-48 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
-              <div className="p-1.5">
-                {['Linear', 'Log'].map((scale) => (
-                  <div 
-                    key={scale}
-                    onClick={() => setHashrateScale(scale as 'Linear' | 'Log')}
-                    className={`flex items-center space-x-2.5 p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                      hashrateScale === scale ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
-                    }`}
-                  >
-                    <span className={`text-xs font-medium ${
-                      hashrateScale === scale ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                    }`}>
-                      {scale} Hashrate
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Time Scale Control */}
-          <div className="relative group">
-            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
-              </svg>
-              <span className="text-[#A0A0B8] text-xs">Time:</span>
-              <span className="font-medium text-[#FFFFFF] text-xs">{timeScale}</span>
-              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div className="absolute top-full mt-1 left-0 w-48 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
-              <div className="p-1.5">
-                {['Linear', 'Log'].map((scale) => (
-                  <div 
-                    key={scale}
-                    onClick={() => setTimeScale(scale as 'Linear' | 'Log')}
-                    className={`flex items-center space-x-2.5 p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                      timeScale === scale ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
-                    }`}
-                  >
-                    <span className={`text-xs font-medium ${
-                      timeScale === scale ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                    }`}>
-                      {scale} Time
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Power Law Control */}
-          <div className="relative group">
-            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
-              </svg>
-              <span className="text-[#A0A0B8] text-xs">Power Law:</span>
-              <span className="font-medium text-[#FFFFFF] text-xs">{showPowerLaw}</span>
-              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div className="absolute top-full mt-1 left-0 w-48 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
-              <div className="p-1.5">
-                {['Hide', 'Show'].map((option) => (
-                  <div 
-                    key={option}
-                    onClick={() => setShowPowerLaw(option as 'Hide' | 'Show')}
-                    className={`flex items-center space-x-2.5 p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                      showPowerLaw === option ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
-                    }`}
-                  >
-                    <span className={`text-xs font-medium ${
-                      showPowerLaw === option ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                    }`}>
-                      {option} Power Law
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Moving Average Control */}
-          <div className="relative group">
-            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-              <svg className="w-3.5 h-3.5 text-[#EC4899]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
-              </svg>
-              <span className="text-[#A0A0B8] text-xs">MA:</span>
-              <span className="font-medium text-[#FFFFFF] text-xs">{showMovingAverage}</span>
-              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div className="absolute top-full mt-1 left-0 w-48 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
-              <div className="p-1.5">
-                {['Hide', 'Show'].map((option) => (
-                  <div 
-                    key={option}
-                    onClick={() => setShowMovingAverage(option as 'Hide' | 'Show')}
-                    className={`flex items-center space-x-2.5 p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                      showMovingAverage === option ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
-                    }`}
-                  >
-                    <span className={`text-xs font-medium ${
-                      showMovingAverage === option ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                    }`}>
-                      {option} Moving Average
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Moving Average Window Control */}
-          {showMovingAverage === 'Show' && (
-            <div className="relative group">
-              <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-                <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
-                </svg>
-                <span className="text-[#A0A0B8] text-xs">Window:</span>
-                <span className="font-medium text-[#FFFFFF] text-xs">{movingAverageWindow}D</span>
-                <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              <div className="absolute top-full mt-1 left-0 w-32 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
-                <div className="p-1.5">
-                  {[7, 14, 30, 90].map((window) => (
-                    <div 
-                      key={window}
-                      onClick={() => setMovingAverageWindow(window as 7 | 14 | 30 | 90)}
-                      className={`flex items-center space-x-2.5 p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                        movingAverageWindow === window ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
-                      }`}
-                    >
-                      <span className={`text-xs font-medium ${
-                        movingAverageWindow === window ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                      }`}>
-                        {window} Days
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Time Period Controls */}
-        <div className="flex items-center gap-2">
-          {(['1M', '3M', '6M', '1Y'] as const).map((period) => (
-            <button
-              key={period}
-              onClick={() => setTimePeriod(period)}
-              className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                timePeriod === period
-                  ? 'bg-[#5B6CFF] text-white'
-                  : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
-              }`}
-            >
-              {period}
-            </button>
-          ))}
-          
-          {/* Max Time Dropdown */}
-          <div className="relative group">
-            <button 
-              className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                timePeriod === 'All' || timePeriod === '2Y' || timePeriod === '3Y'
-                  ? 'bg-[#5B6CFF] text-white'
-                  : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
-              }`}
-            >
-              <span>Max</span>
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div className="absolute top-full mt-1 right-0 w-32 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
-              <div className="p-1.5">
-                {(['2Y', '3Y', 'All'] as const).map((period) => (
-                  <div 
-                    key={period}
-                    onClick={() => setTimePeriod(period)}
-                    className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                      timePeriod === period ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
-                    }`}
-                  >
-                    <span className={`text-xs font-medium ${
-                      timePeriod === period ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                    }`}>
-                      {period === 'All' ? 'All Time' : period === '2Y' ? '2 Years' : '3 Years'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Chart */}
-      <div style={{ height: '800px' }} className="w-full">
-        <Plot
-          data={chartData}
-          layout={layout}
-          style={{ width: '100%', height: '100%' }}
-          config={{
-            displayModeBar: false,
-            responsive: true,
-            doubleClick: 'autosize',
-            scrollZoom: true,
-            editable: false,
-            staticPlot: false,
-            showTips: false,
-            autosizable: true,
-            frameMargins: 0,
-            toImageButtonOptions: {
-              format: 'png',
-              filename: 'combined_price_hashrate_residual_chart',
-              height: 800,
-              width: 1200,
-              scale: 1
-            }
-          }}
-          useResizeHandler={true}
-          revision={filteredAnalysisData.length}
-        />
-      </div>
-
-      {/* Chart Explanation */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-[#1A1A2E] rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Main Chart (Top)</h3>
-          <div className="space-y-3 text-sm text-[#A0A0B8]">
-            <div className="flex items-start">
-              <span className="text-[#5B6CFF] font-semibold mr-2">📈</span>
-              <span><strong className="text-[#5B6CFF]">Blue Line:</strong> Kaspa price (left axis)</span>
-            </div>
-            <div className="flex items-start">
-              <span className="text-[#F59E0B] font-semibold mr-2">⚡</span>
-              <span><strong className="text-[#F59E0B]">Orange Dotted:</strong> Network hashrate (right axis)</span>
-            </div>
-            <div className="flex items-start">
-              <span className="text-[#EF4444] font-semibold mr-2">📐</span>
-              <span><strong className="text-[#EF4444]">Red Dashed:</strong> Power law expected price</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-[#1A1A2E] rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Residual Oscillator (Bottom)</h3>
-          <div className="space-y-3 text-sm text-[#A0A0B8]">
-            <div className="flex items-start">
-              <span className="text-[#8B5CF6] font-semibold mr-2">📊</span>
-              <span><strong className="text-[#8B5CF6]">Purple Area:</strong> % deviation from power law</span>
-            </div>
-            <div className="flex items-start">
-              <span className="text-[#EC4899] font-semibold mr-2">📈</span>
-              <span><strong className="text-[#EC4899]">Pink Line:</strong> Moving average trend</span>
-            </div>
-            <div className="flex items-start">
-              <span className="text-[#6B7280] font-semibold mr-2">⚖️</span>
-              <span><strong>Gray Line:</strong> Fair value (0% deviation)</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-[#1A1A2E] rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Trading Signals</h3>
-          <div className="space-y-3 text-sm text-[#A0A0B8]">
-            <div className="flex items-start">
-              <span className="text-green-400 font-semibold mr-2">🟢</span>
-              <span><strong>Above +50%:</strong> Potential overvaluation</span>
-            </div>
-            <div className="flex items-start">
-              <span className="text-blue-400 font-semibold mr-2">🔵</span>
-              <span><strong>±25% Range:</strong> Fair value zone</span>
-            </div>
-            <div className="flex items-start">
-              <span className="text-red-400 font-semibold mr-2">🔴</span>
-              <span><strong>Below -50%:</strong> Potential undervaluation</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
+    const yValues = filteredData.map(d => d.value)
+    const yMinData = Math.min(...yValues)
