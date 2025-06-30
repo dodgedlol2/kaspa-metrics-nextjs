@@ -17,10 +17,24 @@
       })
     }
 
-    if (oylData'use client'
-import React, { useState, useMemo } from 'react'
-import dynamic from 'next/dynamic'
-import { KaspaMetric } from '@/lib/sheets'
+    if (oylData) {
+      const oylX = timeScale === 'Log' ? oylData.daysFromGenesis : oylData.date
+      traces.push({
+        x: [oylX],
+        y: [oylData.hashrate],
+        mode: 'markers+text',
+        type: 'scatter',
+        name: '1-Year Low',
+        legendgroup: 'markers',
+        marker: { color: '#EF4444', size: 10, line: { color: '#FFFFFF', width: 2 } },
+        text: [`1YL: ${formatHashrate(oylData.hashrate)}`],
+        textposition: 'bottom center',
+        textfont: { color: '#EF4444', size: 11, family: 'Inter' },
+        showlegend: true,
+        hovertemplate: '<b>1-Year Low</b><br>%{customdata}<br><b>Date:</b> %{x}<extra></extra>',
+        customdata: [formatHashrate(oylData.hashrate)],
+      })
+    }
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false })
 
