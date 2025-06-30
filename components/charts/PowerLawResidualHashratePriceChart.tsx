@@ -9,10 +9,18 @@ interface DataPoint {
   value: number
 }
 
-interface PowerLawResidualChartProps {
+interface CombinedPriceHashrateResidualChartProps {
   priceData: DataPoint[]
   hashrateData: DataPoint[]
   className?: string
+}
+
+// Kaspa genesis date - November 7, 2021
+const GENESIS_DATE = new Date('2021-11-07T00:00:00.000Z').getTime()
+
+// Calculate days from genesis for a timestamp
+function getDaysFromGenesis(timestamp: number): number {
+  return Math.max(1, Math.floor((timestamp - GENESIS_DATE) / (24 * 60 * 60 * 1000)) + 1)
 }
 
 function fitPowerLaw(data: Array<{x: number, y: number}>) {
@@ -62,11 +70,55 @@ function calculateMovingAverage(data: number[], windowSize: number): number[] {
   return result
 }
 
-export default function PowerLawResidualChart({ priceData, hashrateData, className = '' }: PowerLawResidualChartProps) {
+// Enhanced currency formatting
+function formatCurrency(value: number): string {
+  if (value >= 1) {
+    if (value >= 1000) return `$${(value/1000).toFixed(1)}k`
+    else if (value >= 100) return `$${value.toFixed(0)}`
+    else if (value >= 10) return `$${value.toFixed(1)}`
+    else return `$${value.toFixed(2)}`
+  } else if (value >= 0.01) {
+    return `$${value.toFixed(3)}`
+  } else if (value >= 0.001) {
+    return `$${value.toFixed(4)}`
+  } else if (value >= 0.0001) {
+    return `$${value.toFixed(5)}`
+  } else {
+    return `$${value.toExponential(1)}`
+  }
+}
+
+// Enhanced hashrate formatting
+function formatHashrate(value: number): string {
+  if (value >= 1e18) {
+    return `${(value/1e18).toFixed(2)} EH/s`
+  } else if (value >= 1e15) {
+    return `${(value/1e15).toFixed(2)} PH/s`
+  } else if (value >= 1e12) {
+    return `${(value/1e12).toFixed(2)} TH/s`
+  } else if (value >= 1e9) {
+    return `${(value/1e9).toFixed(2)} GH/s`
+  } else if (value >= 1e6) {
+    return `${(value/1e6).toFixed(2)} MH/s`
+  } else if (value >= 1e3) {
+    return `${(value/1e3).toFixed(2)} KH/s`
+  } else {
+    return `${value.toFixed(2)} H/s`
+  }
+}
+
+export default function CombinedPriceHashrateResidualChart({ 
+  priceData, 
+  hashrateData, 
+  className = '' 
+}: CombinedPriceHashrateResidualChartProps) {
+  const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
+  const [hashrateScale, setHashrateScale] = useState<'Linear' | 'Log'>('Log')
+  const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear')
   const [timePeriod, setTimePeriod] = useState<'1M' | '3M' | '6M' | '1Y' | '2Y' | '3Y' | 'All'>('All')
+  const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
   const [showMovingAverage, setShowMovingAverage] = useState<'Hide' | 'Show'>('Show')
   const [movingAverageWindow, setMovingAverageWindow] = useState<7 | 14 | 30 | 90>(30)
-  const [showZones, setShowZones] = useState<'Hide' | 'Show'>('Show')
 
   const analysisData = useMemo(() => {
     if (!priceData || !hashrateData || priceData.length === 0 || hashrateData.length === 0) {
@@ -75,8 +127,10 @@ export default function PowerLawResidualChart({ priceData, hashrateData, classNa
 
     const merged: Array<{
       date: Date,
+      timestamp: number,
       hashrate: number,
-      price: number
+      price: number,
+      daysFromGenesis: number
     }> = []
 
     priceData.forEach(pricePoint => {
@@ -88,54 +142,26 @@ export default function PowerLawResidualChart({ priceData, hashrateData, classNa
 
       if (correspondingHashrate && pricePoint.value > 0 && correspondingHashrate.value > 0) {
         const date = new Date(pricePoint.timestamp)
-        const hashrate = correspondingHashrate.value / 1e15
+        const hashrate = correspondingHashrate.value
         const price = pricePoint.value
+        const daysFromGenesis = getDaysFromGenesis(pricePoint.timestamp)
 
         merged.push({
           date,
+          timestamp: pricePoint.timestamp,
           hashrate,
-          price
+          price,
+          daysFromGenesis
         })
       }
     })
 
-    return merged.sort((a, b) => a.date.getTime() - b.date.getTime())
+    return merged.sort((a, b) => a.timestamp - b.timestamp)
   }, [priceData, hashrateData])
 
-  // Calculate power law and residuals
-  const residualData = useMemo(() => {
-    if (analysisData.length < 10) return []
-
-    try {
-      // Calculate power law using all available data
-      const priceHashrateData = analysisData.map(d => ({ x: d.hashrate, y: d.price }))
-      const { a, b } = fitPowerLaw(priceHashrateData)
-
-      // Calculate residuals as percentage deviation
-      const residuals = analysisData.map(d => {
-        const expectedPrice = a * Math.pow(d.hashrate, b)
-        const actualPrice = d.price
-        const residualPercent = ((actualPrice - expectedPrice) / expectedPrice) * 100
-        
-        return {
-          date: d.date,
-          residual: residualPercent,
-          actualPrice,
-          expectedPrice,
-          hashrate: d.hashrate
-        }
-      })
-
-      return residuals
-    } catch (error) {
-      console.error('Power law residual calculation failed:', error)
-      return []
-    }
-  }, [analysisData])
-
   // Filter data based on time period
-  const filteredResidualData = useMemo(() => {
-    if (timePeriod === 'All' || residualData.length === 0) return residualData
+  const filteredAnalysisData = useMemo(() => {
+    if (timePeriod === 'All' || analysisData.length === 0) return analysisData
     
     const now = Date.now()
     const days = {
@@ -144,148 +170,235 @@ export default function PowerLawResidualChart({ priceData, hashrateData, classNa
     }
     
     const cutoffTime = now - days[timePeriod] * 24 * 60 * 60 * 1000
-    return residualData.filter(point => point.date.getTime() >= cutoffTime)
-  }, [residualData, timePeriod])
+    return analysisData.filter(point => point.timestamp >= cutoffTime)
+  }, [analysisData, timePeriod])
+
+  // Calculate power law and residuals
+  const powerLawAndResiduals = useMemo(() => {
+    if (analysisData.length < 10) return null
+
+    try {
+      // Calculate power law using hashrate vs price
+      const priceHashrateData = analysisData.map(d => ({ x: d.hashrate / 1e15, y: d.price }))
+      const { a, b, r2 } = fitPowerLaw(priceHashrateData)
+
+      // Calculate residuals as percentage deviation
+      const residuals = analysisData.map(d => {
+        const hashrateInPH = d.hashrate / 1e15
+        const expectedPrice = a * Math.pow(hashrateInPH, b)
+        const actualPrice = d.price
+        const residualPercent = ((actualPrice - expectedPrice) / expectedPrice) * 100
+        
+        return {
+          ...d,
+          residual: residualPercent,
+          expectedPrice
+        }
+      })
+
+      return { 
+        powerLaw: { a, b, r2 }, 
+        residuals: residuals.filter(r => filteredAnalysisData.some(f => f.timestamp === r.timestamp))
+      }
+    } catch (error) {
+      console.error('Power law residual calculation failed:', error)
+      return null
+    }
+  }, [analysisData, filteredAnalysisData])
 
   const chartData = useMemo(() => {
-    if (filteredResidualData.length === 0) return []
+    if (filteredAnalysisData.length === 0) return []
 
     const traces: any[] = []
 
-    // Main residual line
-    const dates = filteredResidualData.map(d => d.date.toISOString())
-    const residuals = filteredResidualData.map(d => d.residual)
+    // Determine X values based on time scale
+    let xValues: (number | Date)[]
+    if (timeScale === 'Log') {
+      xValues = filteredAnalysisData.map(d => d.daysFromGenesis)
+    } else {
+      xValues = filteredAnalysisData.map(d => d.date)
+    }
 
-    // Color coding for the line based on residual values
-    const colors = residuals.map(residual => {
-      if (residual >= 100) return '#10B981' // Green for high overvaluation
-      if (residual >= 50) return '#059669' // Dark green for moderate overvaluation
-      if (residual >= 25) return '#0891B2' // Cyan for mild overvaluation
-      if (residual >= -25) return '#6366F1' // Blue for fair value range
-      if (residual >= -50) return '#8B5CF6' // Purple for mild undervaluation
-      if (residual >= -75) return '#A855F7' // Light purple for moderate undervaluation
-      return '#C084FC' // Lightest purple for high undervaluation
-    })
-
+    // Price trace on primary y-axis
     traces.push({
-      x: dates,
-      y: residuals,
-      mode: 'markers+lines',
+      x: xValues,
+      y: filteredAnalysisData.map(d => d.price),
+      mode: 'lines',
       type: 'scatter',
-      name: 'Power Law Residual (%)',
+      name: 'Kaspa Price',
+      yaxis: 'y',
       line: { 
         color: '#5B6CFF', 
-        width: 2,
-        shape: 'linear'
+        width: 2 
       },
-      marker: {
-        color: colors,
-        size: 4,
-        opacity: 0.8,
-        line: { width: 0.5, color: 'rgba(255, 255, 255, 0.3)' }
-      },
-      hovertemplate: 'Date: %{x}<br>Residual: %{y:.1f}%<br>%{text}<extra></extra>',
-      text: filteredResidualData.map(d => {
-        const status = d.residual > 0 ? 'Overvalued' : 'Undervalued'
-        return `${status} by ${Math.abs(d.residual).toFixed(1)}%<br>Price: $${d.actualPrice.toFixed(4)}<br>Expected: $${d.expectedPrice.toFixed(4)}`
-      })
+      fill: priceScale === 'Log' ? undefined : 'tozeroy',
+      fillcolor: 'rgba(91, 108, 255, 0.1)',
+      hovertemplate: timeScale === 'Linear' 
+        ? '<b>Price</b><br>Price: %{y}<br><extra></extra>'
+        : '%{text}<br><b>Price</b><br>Price: %{y}<extra></extra>',
+      text: filteredAnalysisData.map(d => d.date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      })),
     })
 
-    // Moving average
-    if (showMovingAverage === 'Show' && residuals.length > movingAverageWindow) {
-      const movingAvg = calculateMovingAverage(residuals, movingAverageWindow)
-      
+    // Hashrate trace on secondary y-axis
+    traces.push({
+      x: xValues,
+      y: filteredAnalysisData.map(d => d.hashrate),
+      mode: 'lines',
+      type: 'scatter',
+      name: 'Network Hashrate',
+      yaxis: 'y2',
+      line: { 
+        color: '#F59E0B', 
+        width: 2,
+        dash: 'dot'
+      },
+      hovertemplate: timeScale === 'Linear' 
+        ? '<b>Hashrate</b><br>Hashrate: %{y}<br><extra></extra>'
+        : '%{text}<br><b>Hashrate</b><br>Hashrate: %{y}<extra></extra>',
+      text: filteredAnalysisData.map(d => d.date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      })),
+    })
+
+    // Power law trend line for price if enabled
+    if (showPowerLaw === 'Show' && powerLawAndResiduals?.powerLaw) {
+      const { a, b } = powerLawAndResiduals.powerLaw
+      const powerLawPrices = filteredAnalysisData.map(d => {
+        const hashrateInPH = d.hashrate / 1e15
+        return a * Math.pow(hashrateInPH, b)
+      })
+
       traces.push({
-        x: dates,
-        y: movingAvg,
+        x: xValues,
+        y: powerLawPrices,
         mode: 'lines',
         type: 'scatter',
-        name: `${movingAverageWindow}-Day Moving Average`,
+        name: `Power Law Trend (R²=${powerLawAndResiduals.powerLaw.r2.toFixed(3)})`,
+        yaxis: 'y',
         line: { 
-          color: '#F59E0B', 
-          width: 3,
-          dash: 'solid'
+          color: '#EF4444', 
+          width: 2,
+          dash: 'dash'
         },
-        hovertemplate: `${movingAverageWindow}-Day MA: %{y:.1f}%<extra></extra>`
+        hovertemplate: '<b>Power Law</b><br>Expected: %{y}<extra></extra>',
       })
     }
 
-    // Overbought/Oversold zones
-    if (showZones === 'Show') {
-      // Extreme overvaluation zone (>100%)
+    // Residual oscillator on bottom subplot
+    if (powerLawAndResiduals?.residuals) {
+      const residuals = powerLawAndResiduals.residuals.map(r => r.residual)
+      
+      // Main residual line
       traces.push({
-        x: dates,
-        y: Array(dates.length).fill(100),
+        x: xValues,
+        y: residuals,
         mode: 'lines',
         type: 'scatter',
-        name: 'Extreme Overvaluation (+100%)',
-        line: { color: 'rgba(239, 68, 68, 0.6)', width: 1, dash: 'dash' },
-        hoverinfo: 'skip',
-        showlegend: true
+        name: 'Power Law Residual (%)',
+        yaxis: 'y3',
+        xaxis: 'x',
+        line: { 
+          color: '#8B5CF6', 
+          width: 2
+        },
+        fill: 'tozeroy',
+        fillcolor: residuals.map(r => r > 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)'),
+        hovertemplate: '<b>Residual</b><br>Deviation: %{y:.1f}%<extra></extra>',
       })
 
-      // Moderate overvaluation zone (>50%)
+      // Zero line for residuals
       traces.push({
-        x: dates,
-        y: Array(dates.length).fill(50),
+        x: xValues,
+        y: Array(xValues.length).fill(0),
         mode: 'lines',
         type: 'scatter',
-        name: 'Moderate Overvaluation (+50%)',
-        line: { color: 'rgba(245, 158, 11, 0.6)', width: 1, dash: 'dot' },
+        name: 'Fair Value Line',
+        yaxis: 'y3',
+        xaxis: 'x',
+        line: { 
+          color: '#6B7280', 
+          width: 1,
+          dash: 'solid'
+        },
         hoverinfo: 'skip',
-        showlegend: true
+        showlegend: false
       })
 
-      // Fair value zone (0%)
+      // Overbought/Oversold zones
       traces.push({
-        x: dates,
-        y: Array(dates.length).fill(0),
+        x: xValues,
+        y: Array(xValues.length).fill(50),
         mode: 'lines',
         type: 'scatter',
-        name: 'Fair Value (0%)',
-        line: { color: 'rgba(156, 163, 175, 0.8)', width: 2, dash: 'solid' },
+        name: 'Overvalued (+50%)',
+        yaxis: 'y3',
+        xaxis: 'x',
+        line: { 
+          color: 'rgba(34, 197, 94, 0.6)', 
+          width: 1,
+          dash: 'dot'
+        },
         hoverinfo: 'skip',
-        showlegend: true
+        showlegend: false
       })
 
-      // Moderate undervaluation zone (-50%)
       traces.push({
-        x: dates,
-        y: Array(dates.length).fill(-50),
+        x: xValues,
+        y: Array(xValues.length).fill(-50),
         mode: 'lines',
         type: 'scatter',
-        name: 'Moderate Undervaluation (-50%)',
-        line: { color: 'rgba(139, 92, 246, 0.6)', width: 1, dash: 'dot' },
+        name: 'Undervalued (-50%)',
+        yaxis: 'y3',
+        xaxis: 'x',
+        line: { 
+          color: 'rgba(239, 68, 68, 0.6)', 
+          width: 1,
+          dash: 'dot'
+        },
         hoverinfo: 'skip',
-        showlegend: true
+        showlegend: false
       })
 
-      // Extreme undervaluation zone (-75%)
-      traces.push({
-        x: dates,
-        y: Array(dates.length).fill(-75),
-        mode: 'lines',
-        type: 'scatter',
-        name: 'Extreme Undervaluation (-75%)',
-        line: { color: 'rgba(168, 85, 247, 0.6)', width: 1, dash: 'dash' },
-        hoverinfo: 'skip',
-        showlegend: true
-      })
+      // Moving average for residuals
+      if (showMovingAverage === 'Show' && residuals.length > movingAverageWindow) {
+        const movingAvg = calculateMovingAverage(residuals, movingAverageWindow)
+        
+        traces.push({
+          x: xValues,
+          y: movingAvg,
+          mode: 'lines',
+          type: 'scatter',
+          name: `${movingAverageWindow}D MA Residual`,
+          yaxis: 'y3',
+          xaxis: 'x',
+          line: { 
+            color: '#EC4899', 
+            width: 3
+          },
+          hovertemplate: `<b>${movingAverageWindow}D MA</b><br>Average: %{y:.1f}%<extra></extra>`
+        })
+      }
     }
 
     return traces
-  }, [filteredResidualData, showMovingAverage, movingAverageWindow, showZones])
+  }, [filteredAnalysisData, timeScale, priceScale, hashrateScale, showPowerLaw, powerLawAndResiduals, showMovingAverage, movingAverageWindow])
 
   const layout: any = {
-    height: 500,
+    height: 800,
     plot_bgcolor: 'rgba(0,0,0,0)',
     paper_bgcolor: 'rgba(0,0,0,0)',
     font: { color: '#9CA3AF', family: 'Inter, ui-sans-serif, system-ui, sans-serif' },
     hovermode: 'x unified',
     showlegend: true,
-    margin: { l: 60, r: 20, t: 40, b: 60 },
+    margin: { l: 60, r: 80, t: 40, b: 80 },
     title: {
-      text: 'Power Law Residual: Price Deviation from Hashrate Trend',
+      text: 'Kaspa Price & Hashrate with Power Law Residual Oscillator',
       font: { size: 16, color: '#FFFFFF' },
       x: 0.5,
       xanchor: 'center'
@@ -298,63 +411,89 @@ export default function PowerLawResidualChart({ priceData, hashrateData, classNa
     legend: {
       orientation: "h",
       yanchor: "bottom",
-      y: -0.3,
+      y: -0.15,
       xanchor: "center",
       x: 0.5,
       bgcolor: 'rgba(0,0,0,0)',
       bordercolor: 'rgba(0,0,0,0)',
       font: { size: 10, color: '#9CA3AF' }
     },
+    // Price Y-axis (left)
     yaxis: {
       title: { 
-        text: 'Power Law Residual (%)', 
-        font: { size: 14, color: '#FFFFFF' }
+        text: 'Price (USD)', 
+        font: { size: 14, color: '#5B6CFF' }
       },
+      type: priceScale === 'Log' ? 'log' : 'linear',
+      side: 'left',
+      position: 0,
       gridcolor: '#363650',
       gridwidth: 1,
-      color: '#9CA3AF',
-      tickfont: { size: 11, color: '#9CA3AF' },
-      linecolor: '#363650',
+      color: '#5B6CFF',
+      tickfont: { size: 11, color: '#5B6CFF' },
+      linecolor: '#5B6CFF',
+      zerolinecolor: '#363650',
+      domain: [0.35, 1], // Top 65% of the chart
+      tickformat: priceScale === 'Log' ? '' : '.4f'
+    },
+    // Hashrate Y-axis (right)
+    yaxis2: {
+      title: { 
+        text: 'Network Hashrate (H/s)', 
+        font: { size: 14, color: '#F59E0B' }
+      },
+      type: hashrateScale === 'Log' ? 'log' : 'linear',
+      side: 'right',
+      overlaying: 'y',
+      gridcolor: 'rgba(0,0,0,0)', // Hide grid for secondary axis
+      color: '#F59E0B',
+      tickfont: { size: 11, color: '#F59E0B' },
+      linecolor: '#F59E0B',
+      domain: [0.35, 1] // Top 65% of the chart
+    },
+    // Residual Y-axis (bottom)
+    yaxis3: {
+      title: { 
+        text: 'Power Law Residual (%)', 
+        font: { size: 14, color: '#8B5CF6' }
+      },
+      type: 'linear',
+      side: 'left',
+      gridcolor: '#363650',
+      gridwidth: 1,
+      color: '#8B5CF6',
+      tickfont: { size: 11, color: '#8B5CF6' },
+      linecolor: '#8B5CF6',
       zerolinecolor: '#6B7280',
       zerolinewidth: 2,
+      domain: [0, 0.25], // Bottom 25% of the chart
       tickformat: '.0f',
       ticksuffix: '%'
     },
+    // X-axis configuration
     xaxis: {
       title: { 
-        text: 'Date', 
+        text: timeScale === 'Log' ? 'Days Since Genesis (Log Scale)' : 'Date', 
         font: { size: 14, color: '#FFFFFF' }
       },
+      type: timeScale === 'Log' ? 'log' : 'date',
       gridcolor: '#363650',
       gridwidth: 1,
       color: '#9CA3AF',
       tickfont: { size: 11, color: '#9CA3AF' },
       linecolor: '#363650',
-      type: 'date',
-      tickformat: '%b %Y'
-    },
-    annotations: [
-      {
-        text: `Positive values indicate overvaluation relative to network security<br>Negative values indicate undervaluation relative to network security`,
-        showarrow: false,
-        x: 0.5,
-        y: -0.15,
-        xref: 'paper',
-        yref: 'paper',
-        xanchor: 'center',
-        yanchor: 'top',
-        font: { size: 10, color: '#6B7280' }
-      }
-    ]
+      tickformat: timeScale === 'Log' ? '' : '%b %Y',
+      domain: [0, 1] // Full width
+    }
   }
 
-  if (filteredResidualData.length === 0) {
+  if (filteredAnalysisData.length === 0) {
     return (
       <div className={`bg-[#1A1A2E] rounded-xl p-6 ${className}`}>
         <div className="flex items-center justify-center h-80">
           <div className="text-center">
             <div className="text-red-400 text-lg font-medium mb-2">No Data Available</div>
-            <div className="text-[#6B7280] text-sm">Unable to calculate power law residuals</div>
+            <div className="text-[#6B7280] text-sm">Unable to correlate price and hashrate data</div>
           </div>
         </div>
       </div>
@@ -366,44 +505,101 @@ export default function PowerLawResidualChart({ priceData, hashrateData, classNa
       {/* Controls */}
       <div className="flex flex-wrap gap-4 items-center justify-between">
         <div className="flex flex-wrap gap-2">
-          {/* Moving Average Control */}
+          {/* Price Scale Control */}
+          <div className="relative group">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#5B6CFF]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
+              </svg>
+              <span className="text-[#A0A0B8] text-xs">Price:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{priceScale}</span>
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-48 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                {['Linear', 'Log'].map((scale) => (
+                  <div 
+                    key={scale}
+                    onClick={() => setTimeScale(scale as 'Linear' | 'Log')}
+                    className={`flex items-center space-x-2.5 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                      timeScale === scale ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
+                    }`}
+                  >
+                    <span className={`text-xs font-medium ${
+                      timeScale === scale ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                    }`}>
+                      {scale} Time
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Power Law Control */}
           <div className="relative group">
             <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
               <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
               </svg>
-              <span className="text-[#A0A0B8] text-xs">Moving Avg:</span>
+              <span className="text-[#A0A0B8] text-xs">Power Law:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{showPowerLaw}</span>
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-48 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                {['Hide', 'Show'].map((option) => (
+                  <div 
+                    key={option}
+                    onClick={() => setShowPowerLaw(option as 'Hide' | 'Show')}
+                    className={`flex items-center space-x-2.5 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                      showPowerLaw === option ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
+                    }`}
+                  >
+                    <span className={`text-xs font-medium ${
+                      showPowerLaw === option ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                    }`}>
+                      {option} Power Law
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Moving Average Control */}
+          <div className="relative group">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#EC4899]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
+              </svg>
+              <span className="text-[#A0A0B8] text-xs">MA:</span>
               <span className="font-medium text-[#FFFFFF] text-xs">{showMovingAverage}</span>
               <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+            <div className="absolute top-full mt-1 left-0 w-48 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
               <div className="p-1.5">
-                <div 
-                  onClick={() => setShowMovingAverage('Hide')}
-                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
-                    showMovingAverage === 'Hide' ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
-                  }`}
-                >
-                  <div className="flex-1">
-                    <div className={`font-medium text-xs ${showMovingAverage === 'Hide' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
-                      Hide Moving Average
-                    </div>
+                {['Hide', 'Show'].map((option) => (
+                  <div 
+                    key={option}
+                    onClick={() => setShowMovingAverage(option as 'Hide' | 'Show')}
+                    className={`flex items-center space-x-2.5 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                      showMovingAverage === option ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
+                    }`}
+                  >
+                    <span className={`text-xs font-medium ${
+                      showMovingAverage === option ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                    }`}>
+                      {option} Moving Average
+                    </span>
                   </div>
-                </div>
-                <div 
-                  onClick={() => setShowMovingAverage('Show')}
-                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
-                    showMovingAverage === 'Show' ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
-                  }`}
-                >
-                  <div className="flex-1">
-                    <div className={`font-medium text-xs ${showMovingAverage === 'Show' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
-                      Show Moving Average
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           </div>
@@ -421,7 +617,7 @@ export default function PowerLawResidualChart({ priceData, hashrateData, classNa
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              <div className="absolute top-full mt-1 left-0 w-48 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="absolute top-full mt-1 left-0 w-32 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
                 <div className="p-1.5">
                   {[7, 14, 30, 90].map((window) => (
                     <div 
@@ -442,48 +638,6 @@ export default function PowerLawResidualChart({ priceData, hashrateData, classNa
               </div>
             </div>
           )}
-
-          {/* Zones Control */}
-          <div className="relative group">
-            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12,18.5A6.5,6.5 0 0,1 5.5,12A6.5,6.5 0 0,1 12,5.5A6.5,6.5 0 0,1 18.5,12A6.5,6.5 0 0,1 12,18.5M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
-              </svg>
-              <span className="text-[#A0A0B8] text-xs">Zones:</span>
-              <span className="font-medium text-[#FFFFFF] text-xs">{showZones}</span>
-              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
-              <div className="p-1.5">
-                <div 
-                  onClick={() => setShowZones('Hide')}
-                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
-                    showZones === 'Hide' ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
-                  }`}
-                >
-                  <div className="flex-1">
-                    <div className={`font-medium text-xs ${showZones === 'Hide' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
-                      Hide Reference Zones
-                    </div>
-                  </div>
-                </div>
-                <div 
-                  onClick={() => setShowZones('Show')}
-                  className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
-                    showZones === 'Show' ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
-                  }`}
-                >
-                  <div className="flex-1">
-                    <div className={`font-medium text-xs ${showZones === 'Show' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
-                      Show Reference Zones
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Time Period Controls */}
@@ -540,7 +694,7 @@ export default function PowerLawResidualChart({ priceData, hashrateData, classNa
       </div>
 
       {/* Chart */}
-      <div style={{ height: '500px' }} className="w-full">
+      <div style={{ height: '800px' }} className="w-full">
         <Plot
           data={chartData}
           layout={layout}
@@ -557,16 +711,139 @@ export default function PowerLawResidualChart({ priceData, hashrateData, classNa
             frameMargins: 0,
             toImageButtonOptions: {
               format: 'png',
-              filename: 'power_law_residual_chart',
-              height: 650,
+              filename: 'combined_price_hashrate_residual_chart',
+              height: 800,
               width: 1200,
               scale: 1
             }
           }}
           useResizeHandler={true}
-          revision={filteredResidualData.length}
+          revision={filteredAnalysisData.length}
         />
+      </div>
+
+      {/* Chart Explanation */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="bg-[#1A1A2E] rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Main Chart (Top)</h3>
+          <div className="space-y-3 text-sm text-[#A0A0B8]">
+            <div className="flex items-start">
+              <span className="text-[#5B6CFF] font-semibold mr-2">📈</span>
+              <span><strong className="text-[#5B6CFF]">Blue Line:</strong> Kaspa price (left axis)</span>
+            </div>
+            <div className="flex items-start">
+              <span className="text-[#F59E0B] font-semibold mr-2">⚡</span>
+              <span><strong className="text-[#F59E0B]">Orange Dotted:</strong> Network hashrate (right axis)</span>
+            </div>
+            <div className="flex items-start">
+              <span className="text-[#EF4444] font-semibold mr-2">📐</span>
+              <span><strong className="text-[#EF4444]">Red Dashed:</strong> Power law expected price</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-[#1A1A2E] rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Residual Oscillator (Bottom)</h3>
+          <div className="space-y-3 text-sm text-[#A0A0B8]">
+            <div className="flex items-start">
+              <span className="text-[#8B5CF6] font-semibold mr-2">📊</span>
+              <span><strong className="text-[#8B5CF6]">Purple Area:</strong> % deviation from power law</span>
+            </div>
+            <div className="flex items-start">
+              <span className="text-[#EC4899] font-semibold mr-2">📈</span>
+              <span><strong className="text-[#EC4899]">Pink Line:</strong> Moving average trend</span>
+            </div>
+            <div className="flex items-start">
+              <span className="text-[#6B7280] font-semibold mr-2">⚖️</span>
+              <span><strong>Gray Line:</strong> Fair value (0% deviation)</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-[#1A1A2E] rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Trading Signals</h3>
+          <div className="space-y-3 text-sm text-[#A0A0B8]">
+            <div className="flex items-start">
+              <span className="text-green-400 font-semibold mr-2">🟢</span>
+              <span><strong>Above +50%:</strong> Potential overvaluation</span>
+            </div>
+            <div className="flex items-start">
+              <span className="text-blue-400 font-semibold mr-2">🔵</span>
+              <span><strong>±25% Range:</strong> Fair value zone</span>
+            </div>
+            <div className="flex items-start">
+              <span className="text-red-400 font-semibold mr-2">🔴</span>
+              <span><strong>Below -50%:</strong> Potential undervaluation</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
 }
+                    onClick={() => setPriceScale(scale as 'Linear' | 'Log')}
+                    className={`flex items-center space-x-2.5 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                      priceScale === scale ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
+                    }`}
+                  >
+                    <span className={`text-xs font-medium ${
+                      priceScale === scale ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                    }`}>
+                      {scale} Price
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Hashrate Scale Control */}
+          <div className="relative group">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#F59E0B]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14.27,4.73L19.27,9.73C19.65,10.11 19.65,10.74 19.27,11.12L14.27,16.12C13.89,16.5 13.26,16.5 12.88,16.12C12.5,15.74 12.5,15.11 12.88,14.73L16.16,11.45H8.91L12.19,14.73C12.57,15.11 12.57,15.74 12.19,16.12C11.81,16.5 11.18,16.5 10.8,16.12L5.8,11.12C5.42,10.74 5.42,10.11 5.8,9.73L10.8,4.73C11.18,4.35 11.81,4.35 12.19,4.73C12.57,5.11 12.57,5.74 12.19,6.12L8.91,9.4H16.16L12.88,6.12C12.5,5.74 12.5,5.11 12.88,4.73C13.26,4.35 13.89,4.35 14.27,4.73Z"/>
+              </svg>
+              <span className="text-[#A0A0B8] text-xs">Hashrate:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{hashrateScale}</span>
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-48 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                {['Linear', 'Log'].map((scale) => (
+                  <div 
+                    key={scale}
+                    onClick={() => setHashrateScale(scale as 'Linear' | 'Log')}
+                    className={`flex items-center space-x-2.5 p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                      hashrateScale === scale ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
+                    }`}
+                  >
+                    <span className={`text-xs font-medium ${
+                      hashrateScale === scale ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
+                    }`}>
+                      {scale} Hashrate
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Time Scale Control */}
+          <div className="relative group">
+            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+              </svg>
+              <span className="text-[#A0A0B8] text-xs">Time:</span>
+              <span className="font-medium text-[#FFFFFF] text-xs">{timeScale}</span>
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full mt-1 left-0 w-48 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+              <div className="p-1.5">
+                {['Linear', 'Log'].map((scale) => (
+                  <div 
+                    key={scale}
