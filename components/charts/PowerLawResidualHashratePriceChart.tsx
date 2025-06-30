@@ -497,7 +497,7 @@ export default function PowerLawResidualHashratePriceChart({ data, priceData, he
             </div>
           </div>
 
-          {/* Price Scale Control */}
+          {/* Residual Control */}
           {filteredPriceData && filteredPriceData.length > 0 && (
             <div className="relative group">
               <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
@@ -544,106 +544,6 @@ export default function PowerLawResidualHashratePriceChart({ data, priceData, he
           ))}
           
           {/* Max Time Dropdown */}
-          <div className="relative group">
-            <button 
-              className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                timePeriod === 'All' || timePeriod === 'Full' || timePeriod === '2Y' || timePeriod === '3Y' || timePeriod === '5Y'
-                  ? 'bg-[#5B6CFF] text-white'
-                  : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
-              }`}
-            >
-              <span>Max</span>
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div className="absolute top-full mt-1 right-0 w-32 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20">
-              <div className="p-1.5">
-                {(['2Y', '3Y', '5Y', 'All'] as const).map((period) => (
-                  <div 
-                    key={period}
-                    onClick={() => setTimePeriod(period)}
-                    className={`p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                      timePeriod === period ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
-                    }`}
-                  >
-                    <span className={`text-xs font-medium ${
-                      timePeriod === period ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                    }`}>
-                      {period === 'All' ? 'All Time' : period}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Chart */}
-      <div style={{ height: `${height}px` }} className="w-full">
-        <Plot
-          data={plotlyData}
-          layout={plotlyLayout}
-          style={{ width: '100%', height: '100%' }}
-          config={{
-            displayModeBar: false,
-            responsive: true,
-            doubleClick: 'autosize',
-            scrollZoom: true,
-            editable: false
-          }}
-          useResizeHandler={true}
-        />
-      </div>
-    </div>
-  )
-{/* Residual Control */}
-          {filteredPriceData && filteredPriceData.length > 0 && (
-            <div className="relative group">
-              <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-                <span className="text-[#A0A0B8] text-xs">Residual:</span>
-                <span className="font-medium text-[#FFFFFF] text-xs">{showResidual}</span>
-              </button>
-              <div className="absolute top-full mt-1 left-0 w-48 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20">
-                <div className="p-1.5">
-                  {['Hide', 'Show'].map((option) => (
-                    <div 
-                      key={option}
-                      onClick={() => setShowResidual(option as 'Hide' | 'Show')}
-                      className={`p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                        showResidual === option ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
-                      }`}
-                    >
-                      <span className={`text-xs font-medium ${
-                        showResidual === option ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                      }`}>
-                        {option} Residual
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Time Period Controls */}
-        <div className="flex items-center gap-2">
-          {(['1M', '3M', '6M', '1Y'] as const).map((period) => (
-            <button
-              key={period}
-              onClick={() => setTimePeriod(period)}
-              className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                timePeriod === period
-                  ? 'bg-[#5B6CFF] text-white'
-                  : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
-              }`}
-            >
-              {period}
-            </button>
-          ))}
-          
           <div className="relative group">
             <button 
               className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
