@@ -341,7 +341,7 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
   }, [filteredAnalysisData, showTrajectory, colorBy, timeScale, showPowerLaw, powerLaw3D])
 
   const layout: any = {
-    height: 900,
+    height: 600,
     plot_bgcolor: 'rgba(0,0,0,0)',
     paper_bgcolor: 'rgba(0,0,0,0)',
     font: { color: '#9CA3AF', family: 'Inter, ui-sans-serif, system-ui, sans-serif' },
@@ -537,7 +537,7 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
         </div>
       </div>
 
-      <div style={{ height: '600px' }} className="w-full">
+      <div style={{ height: '900px' }} className="w-full">
         <Plot
           data={chartData}
           layout={layout}
