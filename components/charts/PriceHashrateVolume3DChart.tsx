@@ -827,7 +827,7 @@ export default function PriceHashrateVolume3DChart({ priceData, hashrateData, vo
         </div>
       </div>
 
-      <div style={{ height: '600px' }} className="w-full">
+      <div style={{ height: '900px' }} className="w-full">
         <Plot
           data={chartData}
           layout={layout}
