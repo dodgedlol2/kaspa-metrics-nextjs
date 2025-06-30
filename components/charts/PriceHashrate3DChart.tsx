@@ -256,25 +256,35 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
         max: Math.max(...filteredAnalysisData.map(d => d.daysSinceGenesis))
       }
       
-      // DEBUG: Let's be 100% explicit about what we're doing
-      console.log('Power law coefficients:', { A, B, C, r2 })
-      console.log('Hashrate range:', hashrateRange)
-      console.log('Days range:', daysRange)
+      // PURE MATHEMATICAL LINE GENERATION IN LOG₁₀ SPACE
+      // Power law: Price = A × Hashrate^B × Days^C
+      // In log₁₀: log₁₀(Price) = log₁₀(A) + B×log₁₀(Hashrate) + C×log₁₀(Days)
+      const log10A = Math.log10(A)
       
-      // COMPLETELY DIFFERENT APPROACH: Generate line in actual coordinate space
-      // Then let Plotly handle ALL the log transformations
+      // Define line endpoints in log₁₀ space
+      const log10HashrateMin = Math.log10(hashrateRange.min)
+      const log10HashrateMax = Math.log10(hashrateRange.max)
+      const log10DaysMin = Math.log10(daysRange.min)
+      const log10DaysMax = Math.log10(daysRange.max)
+      
+      // Generate perfectly straight line in log₁₀ coordinates
       const linePoints = []
       const numPoints = 100
       
       for (let i = 0; i <= numPoints; i++) {
         const t = i / numPoints
         
-        // Simple linear interpolation in ACTUAL VALUE space
-        const hashrate = hashrateRange.min + (hashrateRange.max - hashrateRange.min) * t
-        const days = daysRange.min + (daysRange.max - daysRange.min) * t
+        // Linear interpolation in LOG₁₀ space (guarantees straight line)
+        const log10Hashrate = log10HashrateMin + (log10HashrateMax - log10HashrateMin) * t
+        const log10Days = log10DaysMin + (log10DaysMax - log10DaysMin) * t
         
-        // Calculate price using power law - this should be the ONLY calculation
-        const price = A * Math.pow(hashrate, B) * Math.pow(days, C)
+        // Calculate log₁₀(Price) using the linear equation in log space
+        const log10Price = log10A + B * log10Hashrate + C * log10Days
+        
+        // Convert back to actual values for Plotly
+        const hashrate = Math.pow(10, log10Hashrate)
+        const days = Math.pow(10, log10Days)
+        const price = Math.pow(10, log10Price)
         
         linePoints.push({
           hashrate: hashrate,
@@ -283,14 +293,11 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
         })
       }
       
-      console.log('First few line points:', linePoints.slice(0, 3))
-      console.log('Last few line points:', linePoints.slice(-3))
-      
-      // Add power law line - let Plotly handle ALL coordinate transformations
+      // Add power law as a single straight line
       allTraces.push({
         x: linePoints.map(p => p.hashrate),
         y: linePoints.map(p => p.predictedPrice),
-        z: linePoints.map(p => p.days), // NO MANUAL LOG TRANSFORMATION
+        z: linePoints.map(p => timeScale === 'Log' ? Math.log10(Math.max(1, p.days)) : p.days),
         mode: 'lines',
         type: 'scatter3d',
         name: `3D Power Law Line (R²=${r2.toFixed(3)})`,
@@ -301,8 +308,9 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
         hovertemplate: 
           'Hashrate: %{x:.1f} PH/s<br>' +
           'Predicted Price: $%{y:.2f}<br>' +
-          'Days Since Genesis: %{z}<br>' +
+          'Days Since Genesis: %{text}<br>' +
           '<extra>Power Law Line</extra>',
+        text: linePoints.map(p => `${Math.round(p.days)} days`),
         showlegend: true
       })
       
@@ -312,7 +320,7 @@ export default function PriceHashrate3DChart({ priceData, hashrateData, classNam
       allTraces.push({
         x: [midPoint.hashrate * 1.2],
         y: [midPoint.predictedPrice * 1.5],
-        z: [midPoint.days], // NO MANUAL LOG TRANSFORMATION
+        z: [timeScale === 'Log' ? Math.log10(Math.max(1, midPoint.days)) : midPoint.days],
         mode: 'markers+text',
         type: 'scatter3d',
         marker: { size: 0, opacity: 0 },
