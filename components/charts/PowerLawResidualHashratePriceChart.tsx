@@ -9,7 +9,7 @@ interface DataPoint {
   value: number
 }
 
-interface CombinedPriceHashrateResidualChartProps {
+interface PowerLawResidualHashratePriceChartProps {
   priceData: DataPoint[]
   hashrateData: DataPoint[]
   className?: string
@@ -107,7 +107,7 @@ function formatHashrate(value: number): string {
   }
 }
 
-export default function CombinedPriceHashrateResidualChart({ 
+export default function PowerLawResidualHashratePriceChart({ 
   priceData, 
   hashrateData, 
   className = '' 
