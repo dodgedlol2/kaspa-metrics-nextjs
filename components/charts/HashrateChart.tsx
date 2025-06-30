@@ -8,6 +8,7 @@ const Plot = dynamic(() => import('react-plotly.js'), { ssr: false })
 
 interface HashrateChartProps {
   data: KaspaMetric[]
+  priceData?: KaspaMetric[] // Add optional price data
   height?: number
 }
 
@@ -131,6 +132,24 @@ function formatHashrate(value: number, forceUnit?: string): string {
   }
 }
 
+// Enhanced currency formatting
+function formatCurrency(value: number): string {
+  if (value >= 1) {
+    if (value >= 1000) return `$${(value/1000).toFixed(1)}k`
+    else if (value >= 100) return `$${value.toFixed(0)}`
+    else if (value >= 10) return `$${value.toFixed(1)}`
+    else return `$${value.toFixed(2)}`
+  } else if (value >= 0.01) {
+    return `$${value.toFixed(3)}`
+  } else if (value >= 0.001) {
+    return `$${value.toFixed(4)}`
+  } else if (value >= 0.0001) {
+    return `$${value.toFixed(5)}`
+  } else {
+    return `$${value.toExponential(1)}`
+  }
+}
+
 // Generate log ticks with PH/s formatting
 function generateLogTicks(dataMin: number, dataMax: number) {
   const logMin = Math.floor(Math.log10(dataMin))
@@ -202,7 +221,7 @@ function generateLinearTicks(dataMin: number, dataMax: number, numTicks: number 
   return ticks
 }
 
-export default function HashrateChart({ data, height = 600 }: HashrateChartProps) {
+export default function HashrateChart({ data, priceData, height = 600 }: HashrateChartProps) {
   const [hashrateScale, setHashrateScale] = useState<'Linear' | 'Log'>('Log')
   const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear')
   const [timePeriod, setTimePeriod] = useState<'1W' | '1M' | '3M' | '6M' | '1Y' | '2Y' | '3Y' | '5Y' | 'All' | 'Full'>('All')
@@ -239,6 +258,21 @@ export default function HashrateChart({ data, height = 600 }: HashrateChartProps
     const cutoffTime = now - days[timePeriod as keyof typeof days] * 24 * 60 * 60 * 1000
     return data.filter(point => point.timestamp >= cutoffTime)
   }, [data, timePeriod])
+
+  // Filter price data based on same time period
+  const filteredPriceData = useMemo(() => {
+    if (!priceData || timePeriod === 'All' || timePeriod === 'Full' || priceData.length === 0) return priceData || []
+    
+    const now = Date.now()
+    const days = {
+      '1W': 7, '1M': 30, '3M': 90, 
+      '6M': 180, '1Y': 365, '2Y': 730,
+      '3Y': 1095, '5Y': 1825
+    }
+    
+    const cutoffTime = now - days[timePeriod as keyof typeof days] * 24 * 60 * 60 * 1000
+    return priceData.filter(point => point.timestamp >= cutoffTime)
+  }, [priceData, timePeriod])
 
   // Calculate power law regression - always from complete dataset when both scales are log
   const powerLawData = useMemo(() => {
@@ -310,6 +344,49 @@ export default function HashrateChart({ data, height = 600 }: HashrateChartProps
     } else {
       yMinChart = 0
       yMaxChart = yMaxData * (athInView ? 1.15 : 1.05)
+    }
+
+    // Add price background trace if price data is available
+    if (filteredPriceData && filteredPriceData.length > 0) {
+      let priceXValues: (number | Date)[]
+      if (timeScale === 'Log') {
+        priceXValues = filteredPriceData.map(d => getDaysFromGenesis(d.timestamp))
+      } else {
+        priceXValues = filteredPriceData.map(d => {
+          const date = new Date(d.timestamp)
+          if (isNaN(date.getTime())) {
+            console.warn('Invalid price timestamp:', d.timestamp)
+            return new Date()
+          }
+          return date
+        })
+      }
+
+      const priceYValues = filteredPriceData.map(d => d.value)
+
+      traces.push({
+        x: priceXValues,
+        y: priceYValues,
+        mode: 'lines',
+        type: 'scatter',
+        name: 'Kaspa Price',
+        line: { 
+          color: 'rgba(156, 163, 175, 0.4)', // Gray color with transparency
+          width: 1 
+        },
+        yaxis: 'y2', // Use secondary y-axis
+        connectgaps: true,
+        showlegend: false,
+        hovertemplate: timeScale === 'Linear' 
+          ? '<b>%{fullData.name}</b><br>Price: $%{y:.4f}<extra></extra>'
+          : '%{text}<br><b>%{fullData.name}</b><br>Price: $%{y:.4f}<extra></extra>',
+        hoverinfo: 'none',
+        text: filteredPriceData.map(d => new Date(d.timestamp).toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        })),
+      })
     }
 
     // For log scale: add invisible baseline using regular scatter
@@ -455,7 +532,7 @@ export default function HashrateChart({ data, height = 600 }: HashrateChartProps
     }
 
     return traces
-  }, [filteredData, timeScale, hashrateScale, powerLawData, athData, oylData])
+  }, [filteredData, filteredPriceData, timeScale, hashrateScale, powerLawData, athData, oylData])
 
   // Plotly layout
   const plotlyLayout = useMemo(() => {
@@ -493,7 +570,26 @@ export default function HashrateChart({ data, height = 600 }: HashrateChartProps
       yTickText = linearTicks.map(val => formatHashrate(val))
     }
 
-    // Create base layout with increased left margin
+    // Calculate price Y-axis range and ticks if price data exists
+    let priceYTickVals: number[] | undefined
+    let priceYTickText: string[] | undefined
+    let priceYRange: [number, number] | undefined
+
+    if (filteredPriceData && filteredPriceData.length > 0) {
+      const priceValues = filteredPriceData.map(d => d.value)
+      const priceMin = Math.min(...priceValues)
+      const priceMax = Math.max(...priceValues)
+      
+      // Set price range with some padding
+      priceYRange = [priceMin * 0.95, priceMax * 1.05]
+      
+      // Generate price ticks
+      const priceTicks = generateLinearTicks(priceYRange[0], priceYRange[1], 6)
+      priceYTickVals = priceTicks
+      priceYTickText = priceTicks.map(val => formatCurrency(val))
+    }
+
+    // Create base layout with increased left margin and right margin for price axis
     const layout: any = {
       height: height,
       plot_bgcolor: 'rgba(0,0,0,0)',
@@ -501,7 +597,7 @@ export default function HashrateChart({ data, height = 600 }: HashrateChartProps
       font: { color: '#9CA3AF', family: 'Inter, ui-sans-serif, system-ui, sans-serif' },
       hovermode: 'x unified',
       showlegend: true,
-      margin: { l: 80, r: 20, t: 20, b: 50 }, // Increased left margin from 50 to 80
+      margin: { l: 80, r: filteredPriceData && filteredPriceData.length > 0 ? 80 : 20, t: 20, b: 50 }, // Increased right margin when price data exists
       hoverlabel: {
         bgcolor: 'rgba(15, 20, 25, 0.95)',
         bordercolor: 'rgba(91, 108, 255, 0.5)',
@@ -583,7 +679,7 @@ export default function HashrateChart({ data, height = 600 }: HashrateChartProps
       }
     }
 
-    // Configure Y-axis with custom ticks
+    // Configure primary Y-axis (hashrate)
     layout.yaxis = {
       title: { text: 'Hashrate (H/s)' },
       type: hashrateScale === 'Log' ? 'log' : 'linear',
@@ -612,8 +708,25 @@ export default function HashrateChart({ data, height = 600 }: HashrateChartProps
       }
     }
 
+    // Configure secondary Y-axis (price) if price data exists
+    if (filteredPriceData && filteredPriceData.length > 0 && priceYRange && priceYTickVals && priceYTickText) {
+      layout.yaxis2 = {
+        title: { text: 'Price (USD)', standoff: 20 },
+        type: 'linear',
+        overlaying: 'y',
+        side: 'right',
+        showgrid: false, // Don't show grid for secondary axis
+        color: '#9CA3AF',
+        range: priceYRange,
+        tickmode: 'array',
+        tickvals: priceYTickVals,
+        ticktext: priceYTickText,
+        showspikes: false,
+      }
+    }
+
     return layout
-  }, [filteredData, timeScale, hashrateScale, athData, height])
+  }, [filteredData, filteredPriceData, timeScale, hashrateScale, athData, height])
 
   return (
     <div className="space-y-6">
