@@ -1,11 +1,12 @@
-import { getCurrentMetrics, getHashrateData } from '@/lib/sheets'
+import { getCurrentMetrics, getHashrateData, getPriceData } from '@/lib/sheets'
 import HashrateChart from '@/components/charts/HashrateChart'
 
 export default async function HashratePage() {
-  // Fetch real data from Google Sheets
-  const [metrics, hashrateData] = await Promise.all([
+  // Fetch real data from Google Sheets - now including price data
+  const [metrics, hashrateData, priceData] = await Promise.all([
     getCurrentMetrics(),
-    getHashrateData()
+    getHashrateData(),
+    getPriceData() // Add price data fetch
   ])
   
   return (
@@ -15,9 +16,13 @@ export default async function HashratePage() {
           Kaspa Network Hashrate
         </h1>
       </div>
-      {/* Clean Hashrate Chart - No borders, no containers */}
+      {/* Clean Hashrate Chart with Price Background - No borders, no containers */}
       <div className="mb-8">
-        <HashrateChart data={hashrateData} height={650} />
+        <HashrateChart 
+          data={hashrateData} 
+          priceData={priceData} 
+          height={650} 
+        />
       </div>
     </div>
   )
