@@ -598,87 +598,7 @@ export default function PowerLawResidualHashratePriceChart({ data, priceData, he
       </div>
     </div>
   )
-}2A2A3E] transition-all duration-200">
-                <span className="text-[#A0A0B8] text-xs">Price:</span>
-                <span className="font-medium text-[#FFFFFF] text-xs">{priceScale}</span>
-              </button>
-              <div className="absolute top-full mt-1 left-0 w-48 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20">
-                <div className="p-1.5">
-                  {['Linear', 'Log'].map((scale) => (
-                    <div 
-                      key={scale}
-                      onClick={() => setPriceScale(scale as 'Linear' | 'Log')}
-                      className={`p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                        priceScale === scale ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
-                      }`}
-                    >
-                      <span className={`text-xs font-medium ${
-                        priceScale === scale ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                      }`}>
-                        {scale} Price
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Time Scale Control */}
-          <div className="relative group">
-            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-              <span className="text-[#A0A0B8] text-xs">Time:</span>
-              <span className="font-medium text-[#FFFFFF] text-xs">{timeScale}</span>
-            </button>
-            <div className="absolute top-full mt-1 left-0 w-48 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20">
-              <div className="p-1.5">
-                {['Linear', 'Log'].map((scale) => (
-                  <div 
-                    key={scale}
-                    onClick={() => setTimeScale(scale as 'Linear' | 'Log')}
-                    className={`p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                      timeScale === scale ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
-                    }`}
-                  >
-                    <span className={`text-xs font-medium ${
-                      timeScale === scale ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                    }`}>
-                      {scale} Time
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Power Law Control */}
-          <div className="relative group">
-            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-              <span className="text-[#A0A0B8] text-xs">Power Law:</span>
-              <span className="font-medium text-[#FFFFFF] text-xs">{showPowerLaw}</span>
-            </button>
-            <div className="absolute top-full mt-1 left-0 w-48 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20">
-              <div className="p-1.5">
-                {['Hide', 'Show'].map((option) => (
-                  <div 
-                    key={option}
-                    onClick={() => setShowPowerLaw(option as 'Hide' | 'Show')}
-                    className={`p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                      showPowerLaw === option ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
-                    }`}
-                  >
-                    <span className={`text-xs font-medium ${
-                      showPowerLaw === option ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                    }`}>
-                      {option} Power Law
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-           {/* Residual Control */}
+{/* Residual Control */}
           {filteredPriceData && filteredPriceData.length > 0 && (
             <div className="relative group">
               <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
@@ -724,7 +644,6 @@ export default function PowerLawResidualHashratePriceChart({ data, priceData, he
             </button>
           ))}
           
-          {/* Max Time Dropdown */}
           <div className="relative group">
             <button 
               className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
