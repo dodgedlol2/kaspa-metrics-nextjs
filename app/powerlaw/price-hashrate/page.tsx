@@ -2,6 +2,7 @@ import React from 'react'
 import PriceHashrateChart from '@/components/charts/PriceHashrateChart'
 import PriceHashrate3DChart from '@/components/charts/PriceHashrate3DChart'
 import PriceHashrateVolume3DChart from '@/components/charts/PriceHashrateVolume3DChart'
+import PowerLawResidualHashratePriceChart from '@/components/charts/PowerLawResidualHashratePriceChart'
 import { getPriceData, getHashrateData, getVolumeData } from '@/lib/sheets'
 
 export default async function PriceHashratePage() {
@@ -35,6 +36,71 @@ export default async function PriceHashratePage() {
           hashrateData={hashrateData} 
           className="mb-8" 
         />
+
+        {/* NEW: Power Law Residual Chart Section */}
+        <div className="mb-8">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-white mb-2">
+              Power Law Residual Analysis
+            </h2>
+            <p className="text-[#A0A0B8]">
+              Track price deviations from the power law trend to identify market over/undervaluation periods
+            </p>
+          </div>
+          
+          <PowerLawResidualHashratePriceChart 
+            priceData={priceData} 
+            hashrateData={hashrateData} 
+            className="mb-6" 
+          />
+          
+          {/* Power Law Residual Explanation */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div className="bg-[#1A1A2E] rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Understanding Residual Analysis</h3>
+              <div className="space-y-3 text-sm text-[#A0A0B8]">
+                <div className="flex items-start">
+                  <span className="text-[#5B6CFF] font-semibold mr-2">📊</span>
+                  <span><strong>Residual Calculation:</strong> (Actual Price - Expected Price) / Expected Price × 100%</span>
+                </div>
+                <div className="flex items-start">
+                  <span className="text-[#5B6CFF] font-semibold mr-2">📈</span>
+                  <span><strong>Positive Values:</strong> Price is above the power law trend (overvalued)</span>
+                </div>
+                <div className="flex items-start">
+                  <span className="text-[#5B6CFF] font-semibold mr-2">📉</span>
+                  <span><strong>Negative Values:</strong> Price is below the power law trend (undervalued)</span>
+                </div>
+                <div className="flex items-start">
+                  <span className="text-[#5B6CFF] font-semibold mr-2">⚖️</span>
+                  <span><strong>Zero Line:</strong> Price perfectly follows the power law relationship</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-[#1A1A2E] rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Trading Signal Interpretation</h3>
+              <div className="space-y-3 text-sm text-[#A0A0B8]">
+                <div className="flex items-start">
+                  <span className="text-green-400 font-semibold mr-2">🟢</span>
+                  <span><strong>+100% or Higher:</strong> Extreme overvaluation - potential sell signal</span>
+                </div>
+                <div className="flex items-start">
+                  <span className="text-yellow-400 font-semibold mr-2">🟡</span>
+                  <span><strong>+25% to +50%:</strong> Moderate overvaluation - consider taking profits</span>
+                </div>
+                <div className="flex items-start">
+                  <span className="text-blue-400 font-semibold mr-2">🔵</span>
+                  <span><strong>-25% to +25%:</strong> Fair value range - hold or DCA strategy</span>
+                </div>
+                <div className="flex items-start">
+                  <span className="text-purple-400 font-semibold mr-2">🟣</span>
+                  <span><strong>-50% to -75%:</strong> Significant undervaluation - potential buy signal</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Power Law Theory Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
