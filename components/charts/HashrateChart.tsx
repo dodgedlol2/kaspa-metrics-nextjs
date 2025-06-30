@@ -109,10 +109,12 @@ function calculate1YL(data: KaspaMetric[]) {
   }
 }
 
-// Enhanced hashrate formatting
-function formatHashrate(value: number): string {
+// Enhanced hashrate formatting with accurate PH/s conversion
+function formatHashrate(value: number, forceUnit?: string): string {
   // Hashrate is typically measured in H/s (hashes per second)
-  if (value >= 1e18) {
+  if (forceUnit === 'PH/s' || (!forceUnit && value >= 1e15)) {
+    return `${(value/1e15).toFixed(2)} PH/s`
+  } else if (value >= 1e18) {
     return `${(value/1e18).toFixed(2)} EH/s`
   } else if (value >= 1e15) {
     return `${(value/1e15).toFixed(2)} PH/s`
@@ -129,7 +131,7 @@ function formatHashrate(value: number): string {
   }
 }
 
-// Generate log ticks
+// Generate log ticks with PH/s formatting
 function generateLogTicks(dataMin: number, dataMax: number) {
   const logMin = Math.floor(Math.log10(dataMin))
   const logMax = Math.ceil(Math.log10(dataMax))
@@ -164,6 +166,40 @@ function generateLogTicks(dataMin: number, dataMax: number) {
   }
   
   return { majorTicks, intermediateTicks, minorTicks }
+}
+
+// Generate linear ticks with appropriate spacing
+function generateLinearTicks(dataMin: number, dataMax: number, numTicks: number = 8) {
+  const range = dataMax - dataMin
+  const rawStep = range / (numTicks - 1)
+  
+  // Find a nice step size
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)))
+  const normalizedStep = rawStep / magnitude
+  
+  let niceStep: number
+  if (normalizedStep <= 1) {
+    niceStep = 1
+  } else if (normalizedStep <= 2) {
+    niceStep = 2
+  } else if (normalizedStep <= 5) {
+    niceStep = 5
+  } else {
+    niceStep = 10
+  }
+  
+  const step = niceStep * magnitude
+  const niceMin = Math.floor(dataMin / step) * step
+  const niceMax = Math.ceil(dataMax / step) * step
+  
+  const ticks: number[] = []
+  for (let i = niceMin; i <= niceMax + step/2; i += step) {
+    if (i >= 0) { // Only include non-negative values
+      ticks.push(i)
+    }
+  }
+  
+  return ticks
 }
 
 export default function HashrateChart({ data, height = 600 }: HashrateChartProps) {
@@ -440,7 +476,7 @@ export default function HashrateChart({ data, height = 600 }: HashrateChartProps
       yMaxChart = yMaxData * (athInView ? 1.15 : 1.05)
     }
 
-    // Generate custom ticks for Y-axis if log scale
+    // Generate custom ticks for Y-axis
     let yTickVals: number[] | undefined
     let yTickText: string[] | undefined
     let yMinorTicks: number[] = []
@@ -450,9 +486,14 @@ export default function HashrateChart({ data, height = 600 }: HashrateChartProps
       yTickVals = [...majorTicks, ...intermediateTicks].sort((a, b) => a - b)
       yTickText = yTickVals.map(val => formatHashrate(val))
       yMinorTicks = minorTicks
+    } else {
+      // For linear scale, generate appropriate ticks
+      const linearTicks = generateLinearTicks(yMinChart, yMaxChart)
+      yTickVals = linearTicks
+      yTickText = linearTicks.map(val => formatHashrate(val))
     }
 
-    // Create base layout
+    // Create base layout with increased left margin
     const layout: any = {
       height: height,
       plot_bgcolor: 'rgba(0,0,0,0)',
@@ -460,7 +501,7 @@ export default function HashrateChart({ data, height = 600 }: HashrateChartProps
       font: { color: '#9CA3AF', family: 'Inter, ui-sans-serif, system-ui, sans-serif' },
       hovermode: 'x unified',
       showlegend: true,
-      margin: { l: 50, r: 20, t: 20, b: 50 },
+      margin: { l: 80, r: 20, t: 20, b: 50 }, // Increased left margin from 50 to 80
       hoverlabel: {
         bgcolor: 'rgba(15, 20, 25, 0.95)',
         bordercolor: 'rgba(91, 108, 255, 0.5)',
@@ -542,7 +583,7 @@ export default function HashrateChart({ data, height = 600 }: HashrateChartProps
       }
     }
 
-    // Configure Y-axis
+    // Configure Y-axis with custom ticks
     layout.yaxis = {
       title: { text: 'Hashrate (H/s)' },
       type: hashrateScale === 'Log' ? 'log' : 'linear',
@@ -553,14 +594,15 @@ export default function HashrateChart({ data, height = 600 }: HashrateChartProps
         ? [Math.log10(yMinChart), Math.log10(yMaxChart)]
         : [yMinChart, yMaxChart],
       // Remove horizontal crosshair line
-      showspikes: false
+      showspikes: false,
+      // Custom tick configuration
+      tickmode: 'array',
+      tickvals: yTickVals,
+      ticktext: yTickText,
     }
 
     // Add log-specific Y-axis configuration
-    if (hashrateScale === 'Log' && yTickVals && yTickText) {
-      layout.yaxis.tickmode = 'array'
-      layout.yaxis.tickvals = yTickVals
-      layout.yaxis.ticktext = yTickText
+    if (hashrateScale === 'Log') {
       layout.yaxis.minor = {
         showgrid: true,
         gridwidth: 0.5,
