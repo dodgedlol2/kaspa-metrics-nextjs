@@ -6,9 +6,11 @@ import { KaspaMetric } from '@/lib/sheets'
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false })
 
 interface HashrateChartProps {
-  data: KaspaMetric[]
+  data?: KaspaMetric[]
+  hashrateData?: KaspaMetric[]
   priceData?: KaspaMetric[]
   height?: number
+  className?: string
 }
 
 const GENESIS_DATE = new Date('2021-11-07T00:00:00.000Z').getTime()
@@ -104,7 +106,16 @@ function formatCurrency(value: number): string {
   return `$${value.toExponential(1)}`
 }
 
-export default function PowerLawResidualHashratePriceChart({ data, priceData, height = 800 }: HashrateChartProps) {
+export default function PowerLawResidualHashratePriceChart({ 
+  data, 
+  hashrateData, 
+  priceData, 
+  height = 800,
+  className 
+}: HashrateChartProps) {
+  // Use hashrateData if provided, otherwise fall back to data
+  const actualHashrateData = hashrateData || data || []
+
   const [hashrateScale, setHashrateScale] = useState<'Linear' | 'Log'>('Log')
   const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
   const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear')
@@ -113,13 +124,13 @@ export default function PowerLawResidualHashratePriceChart({ data, priceData, he
   const [showResidual, setShowResidual] = useState<'Hide' | 'Show'>('Show')
 
   const filteredData = useMemo(() => {
-    if (timePeriod === 'All' || timePeriod === 'Full' || data.length === 0) return data
+    if (timePeriod === 'All' || timePeriod === 'Full' || actualHashrateData.length === 0) return actualHashrateData
     
     const now = Date.now()
     const days = { '1W': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 365, '2Y': 730, '3Y': 1095, '5Y': 1825 }
     const cutoffTime = now - days[timePeriod as keyof typeof days] * 24 * 60 * 60 * 1000
-    return data.filter(point => point.timestamp >= cutoffTime)
-  }, [data, timePeriod])
+    return actualHashrateData.filter(point => point.timestamp >= cutoffTime)
+  }, [actualHashrateData, timePeriod])
 
   const filteredPriceData = useMemo(() => {
     if (!priceData || timePeriod === 'All' || timePeriod === 'Full' || priceData.length === 0) return priceData || []
@@ -131,7 +142,7 @@ export default function PowerLawResidualHashratePriceChart({ data, priceData, he
   }, [priceData, timePeriod])
 
   const mergedData = useMemo(() => {
-    if (!priceData || !data || priceData.length === 0 || data.length === 0) return []
+    if (!priceData || !actualHashrateData || priceData.length === 0 || actualHashrateData.length === 0) return []
 
     const merged: Array<{ timestamp: number, hashrate: number, price: number }> = []
     filteredPriceData.forEach(pricePoint => {
@@ -151,17 +162,17 @@ export default function PowerLawResidualHashratePriceChart({ data, priceData, he
     })
 
     return merged.sort((a, b) => a.timestamp - b.timestamp)
-  }, [filteredData, filteredPriceData, data, priceData])
+  }, [filteredData, filteredPriceData, actualHashrateData, priceData])
 
   const powerLawData = useMemo(() => {
-    if (showPowerLaw === 'Hide' || data.length < 10) return null
+    if (showPowerLaw === 'Hide' || actualHashrateData.length < 10) return null
     try {
-      return fitPowerLaw(data)
+      return fitPowerLaw(actualHashrateData)
     } catch (error) {
       console.error('Power law calculation failed:', error)
       return null
     }
-  }, [data, showPowerLaw])
+  }, [actualHashrateData, showPowerLaw])
 
   const priceResidualData = useMemo(() => {
     if (showResidual === 'Hide' || mergedData.length < 10 || !priceData) return null
@@ -169,10 +180,10 @@ export default function PowerLawResidualHashratePriceChart({ data, priceData, he
     try {
       const allMergedData: Array<{hashrate: number, price: number}> = []
       
-      if (priceData && data) {
+      if (priceData && actualHashrateData) {
         priceData.forEach(pricePoint => {
           const priceDate = new Date(pricePoint.timestamp).toDateString()
-          const correspondingHashrate = data.find(hashratePoint => {
+          const correspondingHashrate = actualHashrateData.find(hashratePoint => {
             const hashrateDate = new Date(hashratePoint.timestamp).toDateString()
             return priceDate === hashrateDate
           })
@@ -207,7 +218,7 @@ export default function PowerLawResidualHashratePriceChart({ data, priceData, he
       console.error('Price power law residual calculation failed:', error)
       return null
     }
-  }, [mergedData, data, priceData, showResidual])
+  }, [mergedData, actualHashrateData, priceData, showResidual])
 
   const athData = useMemo(() => calculateATH(filteredData), [filteredData])
   const oylData = useMemo(() => calculate1YL(filteredData), [filteredData])
@@ -265,10 +276,10 @@ export default function PowerLawResidualHashratePriceChart({ data, priceData, he
 
     // Power law trace
     if (powerLawData) {
-      const allDaysFromGenesis = data.map(d => getDaysFromGenesis(d.timestamp))
+      const allDaysFromGenesis = actualHashrateData.map(d => getDaysFromGenesis(d.timestamp))
       const yFit = allDaysFromGenesis.map(x => powerLawData.a * Math.pow(x, powerLawData.b))
       
-      const filteredIndices = data.map((d, index) => ({...d, originalIndex: index}))
+      const filteredIndices = actualHashrateData.map((d, index) => ({...d, originalIndex: index}))
         .filter(d => filteredData.some(fd => fd.timestamp === d.timestamp))
         .map(d => d.originalIndex)
       
@@ -279,7 +290,7 @@ export default function PowerLawResidualHashratePriceChart({ data, priceData, he
       if (timeScale === 'Log') {
         fitX = viewXFit
       } else {
-        fitX = filteredIndices.map(i => new Date(data[i].timestamp))
+        fitX = filteredIndices.map(i => new Date(actualHashrateData[i].timestamp))
       }
 
       traces.push({
@@ -467,7 +478,7 @@ export default function PowerLawResidualHashratePriceChart({ data, priceData, he
   }, [filteredData, filteredPriceData, timeScale, hashrateScale, priceScale, height, showResidual, priceResidualData])
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${className || ''}`}>
       <div className="flex flex-wrap gap-4 items-center justify-between">
         <div className="flex flex-wrap gap-2">
           {/* Hashrate Scale Control */}
