@@ -58,33 +58,6 @@ function fitPricePowerLaw(data: Array<{hashrate: number, price: number}>) {
   return { a: Math.exp(intercept), b: slope }
 }
 
-function calculateATH(data: KaspaMetric[]) {
-  if (data.length === 0) return null
-  const athPoint = data.reduce((max, point) => point.value > max.value ? point : max)
-  return {
-    hashrate: athPoint.value,
-    date: new Date(athPoint.timestamp),
-    timestamp: athPoint.timestamp,
-    daysFromGenesis: getDaysFromGenesis(athPoint.timestamp)
-  }
-}
-
-function calculate1YL(data: KaspaMetric[]) {
-  if (data.length === 0) return null
-  const oneYearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000)
-  const recentData = data.filter(point => point.timestamp >= oneYearAgo)
-  
-  const targetData = recentData.length === 0 ? data : recentData
-  const oylPoint = targetData.reduce((min, point) => point.value < min.value ? point : min)
-  
-  return {
-    hashrate: oylPoint.value,
-    date: new Date(oylPoint.timestamp),
-    timestamp: oylPoint.timestamp,
-    daysFromGenesis: getDaysFromGenesis(oylPoint.timestamp)
-  }
-}
-
 function formatHashrate(value: number): string {
   if (value >= 1e18) return `${(value/1e18).toFixed(2)} EH/s`
   if (value >= 1e15) return `${(value/1e15).toFixed(2)} PH/s`
@@ -121,7 +94,6 @@ export default function PowerLawResidualHashratePriceChart({
   const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear')
   const [timePeriod, setTimePeriod] = useState<'1W' | '1M' | '3M' | '6M' | '1Y' | '2Y' | '3Y' | '5Y' | 'All' | 'Full'>('All')
   const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
-  const [showResidual, setShowResidual] = useState<'Hide' | 'Show'>('Show')
 
   const filteredData = useMemo(() => {
     if (timePeriod === 'All' || timePeriod === 'Full' || actualHashrateData.length === 0) return actualHashrateData
@@ -175,7 +147,7 @@ export default function PowerLawResidualHashratePriceChart({
   }, [actualHashrateData, showPowerLaw])
 
   const priceResidualData = useMemo(() => {
-    if (showResidual === 'Hide' || mergedData.length < 10 || !priceData) return null
+    if (mergedData.length < 10 || !priceData) return null
 
     try {
       const allMergedData: Array<{hashrate: number, price: number}> = []
@@ -218,10 +190,7 @@ export default function PowerLawResidualHashratePriceChart({
       console.error('Price power law residual calculation failed:', error)
       return null
     }
-  }, [mergedData, actualHashrateData, priceData, showResidual])
-
-  const athData = useMemo(() => calculateATH(filteredData), [filteredData])
-  const oylData = useMemo(() => calculate1YL(filteredData), [filteredData])
+  }, [mergedData, actualHashrateData, priceData])
 
   const plotlyData = useMemo(() => {
     if (filteredData.length === 0) return []
@@ -255,7 +224,7 @@ export default function PowerLawResidualHashratePriceChart({
         line: { color: 'rgba(156, 163, 175, 0.4)', width: 1 },
         yaxis: 'y2',
         connectgaps: true,
-        showlegend: false,
+        showlegend: true,
         hovertemplate: '<b>Price</b><br>%{customdata}<br><b>Date:</b> %{x}<extra></extra>',
         customdata: filteredPriceData.map(d => formatCurrency(d.value)),
       })
@@ -307,46 +276,8 @@ export default function PowerLawResidualHashratePriceChart({
       })
     }
 
-    // High and Low markers
-    if (athData) {
-      const athX = timeScale === 'Log' ? athData.daysFromGenesis : athData.date
-      traces.push({
-        x: [athX],
-        y: [athData.hashrate],
-        mode: 'markers+text',
-        type: 'scatter',
-        name: 'All-Time High',
-        marker: { color: '#10B981', size: 10, line: { color: '#FFFFFF', width: 2 } },
-        text: [`ATH: ${formatHashrate(athData.hashrate)}`],
-        textposition: 'top center',
-        textfont: { color: '#10B981', size: 11, family: 'Inter' },
-        showlegend: true,
-        hovertemplate: '<b>All-Time High</b><br>%{customdata}<br><b>Date:</b> %{x}<extra></extra>',
-        customdata: [formatHashrate(athData.hashrate)],
-      })
-    }
-
-    if (oylData) {
-      const oylX = timeScale === 'Log' ? oylData.daysFromGenesis : oylData.date
-      traces.push({
-        x: [oylX],
-        y: [oylData.hashrate],
-        mode: 'markers+text',
-        type: 'scatter',
-        name: '1-Year Low',
-        legendgroup: 'markers',
-        marker: { color: '#EF4444', size: 10, line: { color: '#FFFFFF', width: 2 } },
-        text: [`1YL: ${formatHashrate(oylData.hashrate)}`],
-        textposition: 'bottom center',
-        textfont: { color: '#EF4444', size: 11, family: 'Inter' },
-        showlegend: true,
-        hovertemplate: '<b>1-Year Low</b><br>%{customdata}<br><b>Date:</b> %{x}<extra></extra>',
-        customdata: [formatHashrate(oylData.hashrate)],
-      })
-    }
-
     // Residual oscillator
-    if (showResidual === 'Show' && priceResidualData?.residuals && priceResidualData.residuals.length > 0) {
+    if (priceResidualData?.residuals && priceResidualData.residuals.length > 0) {
       let residualXValues: (number | Date)[]
       if (timeScale === 'Log') {
         residualXValues = priceResidualData.residuals.map(r => getDaysFromGenesis(r.timestamp))
@@ -383,12 +314,12 @@ export default function PowerLawResidualHashratePriceChart({
     }
 
     return traces
-  }, [filteredData, filteredPriceData, timeScale, powerLawData, athData, oylData, showResidual, priceResidualData, actualHashrateData])
+  }, [filteredData, filteredPriceData, timeScale, powerLawData, priceResidualData, actualHashrateData])
 
   const plotlyLayout = useMemo(() => {
     if (filteredData.length === 0) return {}
 
-    const mainChartDomain = showResidual === 'Show' && priceResidualData?.residuals ? [0.35, 1] : [0, 1]
+    const mainChartDomain = priceResidualData?.residuals ? [0.35, 1] : [0, 1]
     const residualDomain = [0, 0.25]
 
     const layout: any = {
@@ -470,7 +401,7 @@ export default function PowerLawResidualHashratePriceChart({
     }
 
     // Residual Y-axis
-    if (showResidual === 'Show' && priceResidualData?.residuals) {
+    if (priceResidualData?.residuals) {
       layout.yaxis3 = {
         title: { text: 'Price Residual (%)', font: { size: 14, color: '#8B5CF6' } },
         type: 'linear',
@@ -488,7 +419,7 @@ export default function PowerLawResidualHashratePriceChart({
     }
 
     return layout
-  }, [filteredData, filteredPriceData, timeScale, hashrateScale, priceScale, height, showResidual, priceResidualData])
+  }, [filteredData, filteredPriceData, timeScale, hashrateScale, priceScale, height, priceResidualData])
 
   return (
     <div className={`space-y-6 ${className || ''}`}>
@@ -549,7 +480,10 @@ export default function PowerLawResidualHashratePriceChart({
                     <div 
                       key={option.value}
                       onClick={() => setPriceScale(option.value as 'Linear' | 'Log')}
-                      >
+                      className={`p-2 rounded-md cursor-pointer transition-all duration-150 ${
+                        priceScale === option.value ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
+                      }`}
+                    >
                       <div className={`text-xs font-medium ${
                         priceScale === option.value ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
                       }`}>
@@ -632,43 +566,6 @@ export default function PowerLawResidualHashratePriceChart({
               </div>
             </div>
           </div>
-
-          {/* Residual Control */}
-          {filteredPriceData && filteredPriceData.length > 0 && (
-            <div className="relative group">
-              <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                </svg>
-                <span className="text-[#A0A0B8] text-xs">Residual:</span>
-                <span className="font-medium text-[#FFFFFF] text-xs">{showResidual}</span>
-              </button>
-              <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/95 backdrop-blur-sm border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20">
-                <div className="p-2">
-                  <div className="text-xs text-[#A0A0B8] mb-2 px-2">Price vs Hashrate Residual Oscillator</div>
-                  {[
-                    { value: 'Hide', desc: 'Hide the residual oscillator chart' },
-                    { value: 'Show', desc: 'Show price deviation from power law trend' }
-                  ].map((option) => (
-                    <div 
-                      key={option.value}
-                      onClick={() => setShowResidual(option.value as 'Hide' | 'Show')}
-                      className={`p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                        showResidual === option.value ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
-                      }`}
-                    >
-                      <div className={`text-xs font-medium ${
-                        showResidual === option.value ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                      }`}>
-                        {option.value} Residual
-                      </div>
-                      <div className="text-xs text-[#A0A0B8] mt-0.5">{option.desc}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Time Period Controls */}
