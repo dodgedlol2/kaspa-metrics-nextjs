@@ -94,7 +94,6 @@ export default function PowerLawResidualHashratePriceChart({
   const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear')
   const [timePeriod, setTimePeriod] = useState<'1W' | '1M' | '3M' | '6M' | '1Y' | '2Y' | '3Y' | '5Y' | 'All' | 'Full'>('All')
 
-
   const filteredData = useMemo(() => {
     if (timePeriod === 'All' || timePeriod === 'Full' || actualHashrateData.length === 0) return actualHashrateData
     
@@ -135,8 +134,6 @@ export default function PowerLawResidualHashratePriceChart({
 
     return merged.sort((a, b) => a.timestamp - b.timestamp)
   }, [filteredData, filteredPriceData, actualHashrateData, priceData])
-
-
 
   const priceResidualData = useMemo(() => {
     if (mergedData.length < 10 || !priceData) return null
@@ -236,39 +233,6 @@ export default function PowerLawResidualHashratePriceChart({
       hovertemplate: '<b>Hashrate</b><br>%{customdata}<br><b>Date:</b> %{x}<extra></extra>',
       customdata: yValues.map(v => formatHashrate(v)),
     })
-
-    // Power law trace - commented out
-    /*
-    if (powerLawData) {
-      const allDaysFromGenesis = actualHashrateData.map(d => getDaysFromGenesis(d.timestamp))
-      const yFit = allDaysFromGenesis.map(x => powerLawData.a * Math.pow(x, powerLawData.b))
-      
-      const filteredIndices = actualHashrateData.map((d, index) => ({...d, originalIndex: index}))
-        .filter(d => filteredData.some(fd => fd.timestamp === d.timestamp))
-        .map(d => d.originalIndex)
-      
-      const viewXFit = filteredIndices.map(i => allDaysFromGenesis[i])
-      const viewYFit = filteredIndices.map(i => yFit[i])
-      
-      let fitX: (number | Date)[]
-      if (timeScale === 'Log') {
-        fitX = viewXFit
-      } else {
-        fitX = filteredIndices.map(i => new Date(actualHashrateData[i].timestamp))
-      }
-
-      traces.push({
-        x: fitX,
-        y: viewYFit,
-        mode: 'lines',
-        type: 'scatter',
-        name: 'Power Law Trend',
-        line: { color: '#ff8c00', width: 2, dash: 'dot' },
-        hovertemplate: '<b>Power Law</b><br>%{customdata}<br><b>Date:</b> %{x}<extra></extra>',
-        customdata: viewYFit.map(v => formatHashrate(v)),
-      })
-    }
-    */
 
     // Residual oscillator
     if (priceResidualData?.residuals && priceResidualData.residuals.length > 0) {
@@ -525,43 +489,6 @@ export default function PowerLawResidualHashratePriceChart({
               </div>
             </div>
           </div>
-
-          {/* Power Law Control - Removed */}
-          {/*
-          <div className="relative group">
-            <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-              </svg>
-              <span className="text-[#A0A0B8] text-xs">Power Law:</span>
-              <span className="font-medium text-[#FFFFFF] text-xs">{showPowerLaw}</span>
-            </button>
-            <div className="absolute top-full mt-1 left-0 w-56 bg-[#0F0F1A]/95 backdrop-blur-sm border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20">
-              <div className="p-2">
-                <div className="text-xs text-[#A0A0B8] mb-2 px-2">Power Law Regression Line</div>
-                {[
-                  { value: 'Hide', desc: 'Hide the power law trend line' },
-                  { value: 'Show', desc: 'Show fitted power law trend' }
-                ].map((option) => (
-                  <div 
-                    key={option.value}
-                    onClick={() => setShowPowerLaw(option.value as 'Hide' | 'Show')}
-                    className={`p-2 rounded-md cursor-pointer transition-all duration-150 ${
-                      showPowerLaw === option.value ? 'bg-[#5B6CFF]/20' : 'hover:bg-[#1A1A2E]/80'
-                    }`}
-                  >
-                    <div className={`text-xs font-medium ${
-                      showPowerLaw === option.value ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'
-                    }`}>
-                      {option.value} Power Law
-                    </div>
-                    <div className="text-xs text-[#A0A0B8] mt-0.5">{option.desc}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          */
         </div>
 
         {/* Time Period Controls */}
