@@ -93,7 +93,7 @@ export default function PowerLawResidualHashratePriceChart({
   const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
   const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear')
   const [timePeriod, setTimePeriod] = useState<'1W' | '1M' | '3M' | '6M' | '1Y' | '2Y' | '3Y' | '5Y' | 'All' | 'Full'>('All')
-  const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
+
 
   const filteredData = useMemo(() => {
     if (timePeriod === 'All' || timePeriod === 'Full' || actualHashrateData.length === 0) return actualHashrateData
@@ -136,15 +136,7 @@ export default function PowerLawResidualHashratePriceChart({
     return merged.sort((a, b) => a.timestamp - b.timestamp)
   }, [filteredData, filteredPriceData, actualHashrateData, priceData])
 
-  const powerLawData = useMemo(() => {
-    if (showPowerLaw === 'Hide' || actualHashrateData.length < 10) return null
-    try {
-      return fitPowerLaw(actualHashrateData)
-    } catch (error) {
-      console.error('Power law calculation failed:', error)
-      return null
-    }
-  }, [actualHashrateData, showPowerLaw])
+
 
   const priceResidualData = useMemo(() => {
     if (mergedData.length < 10 || !priceData) return null
@@ -245,7 +237,8 @@ export default function PowerLawResidualHashratePriceChart({
       customdata: yValues.map(v => formatHashrate(v)),
     })
 
-    // Power law trace
+    // Power law trace - commented out
+    /*
     if (powerLawData) {
       const allDaysFromGenesis = actualHashrateData.map(d => getDaysFromGenesis(d.timestamp))
       const yFit = allDaysFromGenesis.map(x => powerLawData.a * Math.pow(x, powerLawData.b))
@@ -275,6 +268,7 @@ export default function PowerLawResidualHashratePriceChart({
         customdata: viewYFit.map(v => formatHashrate(v)),
       })
     }
+    */
 
     // Residual oscillator
     if (priceResidualData?.residuals && priceResidualData.residuals.length > 0) {
@@ -314,7 +308,7 @@ export default function PowerLawResidualHashratePriceChart({
     }
 
     return traces
-  }, [filteredData, filteredPriceData, timeScale, powerLawData, priceResidualData, actualHashrateData])
+  }, [filteredData, filteredPriceData, timeScale, priceResidualData, actualHashrateData])
 
   const plotlyLayout = useMemo(() => {
     if (filteredData.length === 0) return {}
@@ -532,7 +526,8 @@ export default function PowerLawResidualHashratePriceChart({
             </div>
           </div>
 
-          {/* Power Law Control */}
+          {/* Power Law Control - Removed */}
+          {/*
           <div className="relative group">
             <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -566,6 +561,7 @@ export default function PowerLawResidualHashratePriceChart({
               </div>
             </div>
           </div>
+          */
         </div>
 
         {/* Time Period Controls */}
