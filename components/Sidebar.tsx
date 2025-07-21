@@ -162,113 +162,12 @@ const navigation = [
       },
       {
         name: 'Addresses',
+        href: '/network/addresses',
         icon: (
           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
             <path d="M16,4C18.21,4 20,5.79 20,8C20,10.21 18.21,12 16,12C13.79,12 12,10.21 12,8C12,5.79 13.79,4 16,4M16,14C18.67,14 24,15.33 24,18V20H8V18C8,15.33 13.33,14 16,14M8.5,6A2.5,2.5 0 0,1 11,8.5A2.5,2.5 0 0,1 8.5,11A2.5,2.5 0 0,1 6,8.5A2.5,2.5 0 0,1 8.5,6M8.5,13C10.83,13 15.5,14.17 15.5,16.5V18H1.5V16.5C1.5,14.17 6.17,13 8.5,13Z"/>
           </svg>
-        ),
-        children: [
-          {
-            name: 'Distribution Overview',
-            href: '/network/addresses/overview',
-            icon: (
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,5V19H5V5H19M6.5,11.5H9.5V8.5H6.5V11.5M14.5,15.5H17.5V12.5H14.5V15.5M10.5,7.5H13.5V10.5H10.5V7.5Z"/>
-              </svg>
-            )
-          },
-          {
-            name: 'Distribution Tiers',
-            icon: (
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M3,3H21C21.53,3 22,3.47 22,4V20C22,20.53 21.53,21 21,21H3C2.47,21 2,20.53 2,20V4C2,3.47 2.47,3 3,3M20,8H4V6H20V8M20,18H4V10H20V18M6,12V16H10V12H6M18,14H12V12H18V14M18,16H12V15H18V16Z"/>
-              </svg>
-            ),
-            children: [
-              {
-                name: '1-100 KAS',
-                href: '/network/addresses/distribution/1-100',
-                icon: (
-                  <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z"/>
-                  </svg>
-                )
-              },
-              {
-                name: '100-1K KAS',
-                href: '/network/addresses/distribution/100-1k',
-                icon: (
-                  <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z"/>
-                  </svg>
-                )
-              },
-              {
-                name: '1K-10K KAS',
-                href: '/network/addresses/distribution/1k-10k',
-                icon: (
-                  <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z"/>
-                  </svg>
-                )
-              },
-              {
-                name: '10K-100K KAS',
-                href: '/network/addresses/distribution/10k-100k',
-                icon: (
-                  <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z"/>
-                  </svg>
-                )
-              },
-              {
-                name: '100K-1M KAS',
-                href: '/network/addresses/distribution/100k-1m',
-                icon: (
-                  <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z"/>
-                  </svg>
-                )
-              },
-              {
-                name: '1M-10M KAS',
-                href: '/network/addresses/distribution/1m-10m',
-                icon: (
-                  <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z"/>
-                  </svg>
-                )
-              },
-              {
-                name: '10M-100M KAS',
-                href: '/network/addresses/distribution/10m-100m',
-                icon: (
-                  <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z"/>
-                  </svg>
-                )
-              },
-              {
-                name: '100M-1B KAS',
-                href: '/network/addresses/distribution/100m-1b',
-                icon: (
-                  <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z"/>
-                  </svg>
-                )
-              },
-              {
-                name: '1B+ KAS',
-                href: '/network/addresses/distribution/1b-plus',
-                icon: (
-                  <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z"/>
-                  </svg>
-                )
-              }
-            ]
-          }
-        ]
+        )
       }
     ]
   },
@@ -286,7 +185,7 @@ const navigation = [
         href: '/premium/alerts',
         icon: (
           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M21,19V20H3V19L5,17V11C5,7.9 7.03,5.17 10,4.29C10,4.19 10,4.1 10,4A2,2 0 0,1 12,2A2,2 0 0,1 14,4C14,4.19 14,4.29 14,4.29C16.97,5.17 19,7.9 19,11V17L21,19M14,21A2,2 0 0,1 12,23A2,2 0 0,1 10,21"/>
+            <path d="M21,19V20H3V19L5,17V11C5,7.9 7.03,5.17 10,4.29C10,4.19 10,4.1 10,4A2,2 0 0,1 12,2A2,2 0 0,1 14,4C14,4.1 14,4.19 14,4.29C16.97,5.17 19,7.9 19,11V17L21,19M14,21A2,2 0 0,1 12,23A2,2 0 0,1 10,21"/>
           </svg>
         )
       },
@@ -326,87 +225,95 @@ export default function Sidebar() {
 
   const isActive = (href: string) => pathname === href
 
-  // Helper function to render menu items recursively
-  const renderMenuItem = (item: any, level = 0) => {
-    const paddingLeft = level * 4 + (level > 0 ? 6 : 0) // Increase padding for nested levels
-    const textSize = level === 0 ? 'text-xs' : level === 1 ? 'text-xs' : 'text-[11px]'
-    const iconSize = level === 0 ? 'w-4 h-4' : level === 1 ? 'w-3 h-3' : 'w-2.5 h-2.5'
-
-    return (
-      <div key={item.name}>
-        {item.href ? (
-          <Link
-            href={item.href}
-            className={`group flex items-center py-2 rounded-lg ${textSize} font-medium transition-all duration-200 ${
-              isActive(item.href)
-                ? 'bg-[#5B6CFF] text-white shadow-lg shadow-[#5B6CFF]/25'
-                : 'text-[#A0A0B8] hover:bg-[#1A1A2E] hover:text-white'
-            }`}
-            style={{ paddingLeft: `${paddingLeft + 10}px` }}
-          >
-            <span className={`mr-2.5 transition-colors duration-200 ${iconSize} ${
-              isActive(item.href) ? 'text-white' : 'text-[#6366F1] group-hover:text-[#5B6CFF]'
-            }`}>
-              {item.icon}
-            </span>
-            {item.name}
-          </Link>
-        ) : (
-          <div>
-            <button
-              onClick={() => toggleSection(item.name)}
-              className={`group w-full flex items-center justify-between py-2 rounded-lg ${textSize} font-medium transition-all duration-200 ${
-                item.premium 
-                  ? 'text-[#F59E0B] hover:bg-[#1A1A2E]/80' 
-                  : 'text-[#A0A0B8] hover:bg-[#1A1A2E] hover:text-white'
-              }`}
-              style={{ paddingLeft: `${paddingLeft + 10}px` }}
-            >
-              <div className="flex items-center">
-                <span className={`mr-2.5 transition-colors duration-200 ${iconSize} ${
-                  item.premium 
-                    ? 'text-[#F59E0B]' 
-                    : 'text-[#6366F1] group-hover:text-[#5B6CFF]'
-                }`}>
-                  {item.icon}
-                </span>
-                <span className="flex items-center">
-                  {item.name}
-                  {item.premium && (
-                    <span className="ml-1.5 px-1 py-0.5 text-[9px] font-bold bg-gradient-to-r from-[#F59E0B] to-[#EAB308] text-black rounded-md">
-                      PRO
-                    </span>
-                  )}
-                </span>
-              </div>
-              <svg 
-                className={`w-3 h-3 transition-transform duration-200 ${
-                  expandedSections.includes(item.name) ? 'rotate-90' : ''
-                } ${item.premium ? 'text-[#F59E0B]' : 'text-[#6B7280]'}`}
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-            
-            {expandedSections.includes(item.name) && item.children && (
-              <div className={`mt-1 space-y-1 ${level > 0 ? 'border-l border-[#2D2D45]/30' : ''}`} style={{ marginLeft: `${paddingLeft + 24}px` }}>
-                {item.children.map((child: any) => renderMenuItem(child, level + 1))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    )
-  }
-
   return (
     <div className="w-60 bg-[#0F0F1A]/80 backdrop-blur-xl border-r border-[#2D2D45]/30 h-full overflow-y-auto">
       <div className="p-3">
         <nav className="space-y-1">
-          {navigation.map((item) => renderMenuItem(item))}
+          {navigation.map((item) => (
+            <div key={item.name}>
+              {item.href ? (
+                <Link
+                  href={item.href}
+                  className={`group flex items-center px-2.5 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
+                    isActive(item.href)
+                      ? 'bg-[#5B6CFF] text-white shadow-lg shadow-[#5B6CFF]/25'
+                      : 'text-[#A0A0B8] hover:bg-[#1A1A2E] hover:text-white'
+                  }`}
+                >
+                  <span className={`mr-2.5 transition-colors duration-200 ${
+                    isActive(item.href) ? 'text-white' : 'text-[#6366F1] group-hover:text-[#5B6CFF]'
+                  }`}>
+                    {item.icon}
+                  </span>
+                  {item.name}
+                </Link>
+              ) : (
+                <div>
+                  <button
+                    onClick={() => toggleSection(item.name)}
+                    className={`group w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
+                      item.premium 
+                        ? 'text-[#F59E0B] hover:bg-[#1A1A2E]/80' 
+                        : 'text-[#A0A0B8] hover:bg-[#1A1A2E] hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      <span className={`mr-2.5 transition-colors duration-200 ${
+                        item.premium 
+                          ? 'text-[#F59E0B]' 
+                          : 'text-[#6366F1] group-hover:text-[#5B6CFF]'
+                      }`}>
+                        {item.icon}
+                      </span>
+                      <span className="flex items-center">
+                        {item.name}
+                        {item.premium && (
+                          <span className="ml-1.5 px-1 py-0.5 text-[9px] font-bold bg-gradient-to-r from-[#F59E0B] to-[#EAB308] text-black rounded-md">
+                            PRO
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <svg 
+                      className={`w-3 h-3 transition-transform duration-200 ${
+                        expandedSections.includes(item.name) ? 'rotate-90' : ''
+                      } ${item.premium ? 'text-[#F59E0B]' : 'text-[#6B7280]'}`}
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                  
+                  {expandedSections.includes(item.name) && item.children && (
+                    <div className="ml-6 mt-1 space-y-1 border-l border-[#2D2D45]/30 pl-3">
+                      {item.children.map((child) => (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          className={`group flex items-center px-2.5 py-1.5 rounded-lg text-xs transition-all duration-200 ${
+                            isActive(child.href)
+                              ? 'bg-[#5B6CFF]/20 text-[#5B6CFF] font-medium border-l-2 border-[#5B6CFF] ml-[-1px]'
+                              : 'text-[#9CA3AF] hover:bg-[#1A1A2E]/60 hover:text-white'
+                          }`}
+                        >
+                          <span className={`mr-2.5 transition-colors duration-200 ${
+                            isActive(child.href) 
+                              ? 'text-[#5B6CFF]' 
+                              : 'text-[#6B7280] group-hover:text-[#6366F1]'
+                          }`}>
+                            {child.icon}
+                          </span>
+                          {child.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
         </nav>
       </div>
 
