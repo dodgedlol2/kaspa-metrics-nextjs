@@ -65,52 +65,7 @@ function fitPowerLaw(data: KaspaMetric[]) {
   return { a, b, r2 }
 }
 
-// Calculate ATH (All-Time High) data
-function calculateATH(data: KaspaMetric[]) {
-  if (data.length === 0) return null
-  
-  const athPoint = data.reduce((max, point) => 
-    point.value > max.value ? point : max
-  )
-  
-  return {
-    addresses: athPoint.value,
-    date: new Date(athPoint.timestamp),
-    timestamp: athPoint.timestamp,
-    daysFromGenesis: getDaysFromGenesis(athPoint.timestamp)
-  }
-}
-
-// Calculate 1YL (One Year Low) data
-function calculate1YL(data: KaspaMetric[]) {
-  if (data.length === 0) return null
-  
-  const oneYearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000)
-  const recentData = data.filter(point => point.timestamp >= oneYearAgo)
-  
-  if (recentData.length === 0) {
-    const minPoint = data.reduce((min, point) => 
-      point.value < min.value ? point : min
-    )
-    return {
-      addresses: minPoint.value,
-      date: new Date(minPoint.timestamp),
-      timestamp: minPoint.timestamp,
-      daysFromGenesis: getDaysFromGenesis(minPoint.timestamp)
-    }
-  }
-  
-  const oylPoint = recentData.reduce((min, point) => 
-    point.value < min.value ? point : min
-  )
-  
-  return {
-    addresses: oylPoint.value,
-    date: new Date(oylPoint.timestamp),
-    timestamp: oylPoint.timestamp,
-    daysFromGenesis: getDaysFromGenesis(oylPoint.timestamp)
-  }
-}
+// Remove ATH and Low calculation functions - not needed for address distribution
 
 // Enhanced address count formatting with appropriate units
 function formatAddressCount(value: number, forceUnit?: string): string {
@@ -282,10 +237,6 @@ export default function AddressDistributionChart({ data, priceData, height = 600
     }
   }, [data, showPowerLaw])
 
-  // Calculate ATH and 1YL points
-  const athData = useMemo(() => calculateATH(filteredData), [filteredData])
-  const oylData = useMemo(() => calculate1YL(filteredData), [filteredData])
-
   // Prepare Plotly data
   const plotlyData = useMemo(() => {
     if (filteredData.length === 0) return []
@@ -328,16 +279,14 @@ export default function AddressDistributionChart({ data, priceData, height = 600
     const yMinData = Math.min(...yValues)
     const yMaxData = Math.max(...yValues)
     
-    const athInView = athData !== null
-    
     let yMinChart: number, yMaxChart: number
     
     if (addressScale === 'Log') {
       yMinChart = yMinData * 0.8
-      yMaxChart = yMaxData * (athInView ? 1.50 : 1.05)
+      yMaxChart = yMaxData * 1.05
     } else {
       yMinChart = 0
-      yMaxChart = yMaxData * (athInView ? 1.15 : 1.05)
+      yMaxChart = yMaxData * 1.05
     }
 
     // Add price background trace if price data is available
@@ -467,66 +416,8 @@ export default function AddressDistributionChart({ data, priceData, height = 600
       })
     }
 
-    // Add High marker using regular scatter (markers work better with scatter type)
-    if (athData) {
-      let athX: number | Date
-      if (timeScale === 'Log') {
-        athX = athData.daysFromGenesis
-      } else {
-        athX = athData.date
-      }
-      
-      traces.push({
-        x: [athX],
-        y: [athData.addresses],
-        mode: 'markers+text',
-        type: 'scatter', // Use regular scatter for markers
-        name: 'High & Low',
-        legendgroup: 'markers',
-        marker: {
-          color: '#ffffff',
-          size: 8,
-          line: { color: '#5B6CFF', width: 2 }
-        },
-        text: [`High ${formatAddressCount(athData.addresses)}`],
-        textposition: 'top left',
-        textfont: { color: '#ffffff', size: 11 },
-        showlegend: true,
-        hovertemplate: `<b>High</b><br>Addresses: ${formatAddressCount(athData.addresses)}<br>Date: ${athData.date.toLocaleDateString()}<extra></extra>`,
-      })
-    }
-
-    // Add Low marker using regular scatter
-    if (oylData) {
-      let oylX: number | Date
-      if (timeScale === 'Log') {
-        oylX = oylData.daysFromGenesis
-      } else {
-        oylX = oylData.date
-      }
-      
-      traces.push({
-        x: [oylX],
-        y: [oylData.addresses],
-        mode: 'markers+text',
-        type: 'scatter', // Use regular scatter for markers
-        name: 'Low',
-        legendgroup: 'markers',
-        marker: {
-          color: '#ffffff',
-          size: 8,
-          line: { color: '#5B6CFF', width: 2 }
-        },
-        text: [`Low ${formatAddressCount(oylData.addresses)}`],
-        textposition: 'bottom left',
-        textfont: { color: '#ffffff', size: 11 },
-        showlegend: false,
-        hovertemplate: `<b>Low</b><br>Addresses: ${formatAddressCount(oylData.addresses)}<br>Date: ${oylData.date.toLocaleDateString()}<extra></extra>`,
-      })
-    }
-
     return traces
-  }, [filteredData, filteredPriceData, timeScale, addressScale, priceScale, powerLawData, athData, oylData, tierName])
+  }, [filteredData, filteredPriceData, timeScale, addressScale, priceScale, powerLawData, tierName])
 
   // Plotly layout
   const plotlyLayout = useMemo(() => {
@@ -535,16 +426,15 @@ export default function AddressDistributionChart({ data, priceData, height = 600
     const yValues = filteredData.map(d => d.value)
     const yMinData = Math.min(...yValues)
     const yMaxData = Math.max(...yValues)
-    const athInView = athData !== null
     
     let yMinChart: number, yMaxChart: number
     
     if (addressScale === 'Log') {
       yMinChart = yMinData * 0.8
-      yMaxChart = yMaxData * (athInView ? 1.50 : 1.05)
+      yMaxChart = yMaxData * 1.05
     } else {
       yMinChart = 0
-      yMaxChart = yMaxData * (athInView ? 1.15 : 1.05)
+      yMaxChart = yMaxData * 1.05
     }
 
     // Generate custom ticks for Y-axis
@@ -745,7 +635,7 @@ export default function AddressDistributionChart({ data, priceData, height = 600
     }
 
     return layout
-  }, [filteredData, filteredPriceData, timeScale, addressScale, priceScale, athData, height])
+  }, [filteredData, filteredPriceData, timeScale, addressScale, priceScale, height])
 
   return (
     <div className="space-y-6">
