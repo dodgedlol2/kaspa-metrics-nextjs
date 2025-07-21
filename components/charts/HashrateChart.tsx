@@ -462,7 +462,7 @@ export default function HashrateChart({ data, priceData, height = 600 }: Hashrat
         y: viewYFit,
         mode: 'lines',
         type: 'scatter',
-        name: 'Power Law',
+        name: `Power Law (R² ${powerLawData.r2.toFixed(2)})`,
         line: { 
           color: '#ff8c00', 
           width: 2,
