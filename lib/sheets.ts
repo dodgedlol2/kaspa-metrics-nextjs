@@ -7,6 +7,7 @@ const SHEETS_CONFIG = {
   price: process.env.PRICE_SHEET_ID!,
   volume: process.env.VOLUME_SHEET_ID!,
   marketcap: process.env.MARKETCAP_SHEET_ID!,
+  addresses: '1Nl8SI-x2lSdSvz5jAFBuWwidk-5L8P_UNoRUb7UNVuQ', // Address distribution sheet
 }
 
 // Create JWT auth
@@ -166,6 +167,303 @@ export async function getMarketCapData(): Promise<KaspaMetric[]> {
       .sort((a, b) => a.timestamp - b.timestamp)
   } catch (error) {
     console.error('Error fetching market cap data:', error)
+    return []
+  }
+}
+
+// NEW: Fetch address distribution data for 1-100 KAS
+export async function getAddressDistribution1to100Data(): Promise<KaspaMetric[]> {
+  try {
+    const doc = new GoogleSpreadsheet(SHEETS_CONFIG.addresses, serviceAccountAuth)
+    await doc.loadInfo()
+    
+    const sheet = doc.sheetsByTitle['all_kaspa_address_buckets']
+    if (!sheet) {
+      console.error('Sheet "all_kaspa_address_buckets" not found')
+      return []
+    }
+    
+    const rows = await sheet.getRows()
+    
+    return rows
+      .map(row => {
+        const date = row.get('Date')
+        const addressCount = parseFloat(row.get('Addresses Holding 1-100 KAS'))
+        
+        return {
+          date: date,
+          value: addressCount,
+          timestamp: new Date(date).getTime()
+        }
+      })
+      .filter(item => !isNaN(item.value) && item.value > 0)
+      .sort((a, b) => a.timestamp - b.timestamp)
+  } catch (error) {
+    console.error('Error fetching 1-100 KAS address distribution data:', error)
+    return []
+  }
+}
+
+// NEW: Fetch address distribution data for 100-1K KAS
+export async function getAddressDistribution100to1kData(): Promise<KaspaMetric[]> {
+  try {
+    const doc = new GoogleSpreadsheet(SHEETS_CONFIG.addresses, serviceAccountAuth)
+    await doc.loadInfo()
+    
+    const sheet = doc.sheetsByTitle['all_kaspa_address_buckets']
+    if (!sheet) {
+      console.error('Sheet "all_kaspa_address_buckets" not found')
+      return []
+    }
+    
+    const rows = await sheet.getRows()
+    
+    return rows
+      .map(row => {
+        const date = row.get('Date')
+        const addressCount = parseFloat(row.get('Addresses Holding 100-1K KAS'))
+        
+        return {
+          date: date,
+          value: addressCount,
+          timestamp: new Date(date).getTime()
+        }
+      })
+      .filter(item => !isNaN(item.value) && item.value > 0)
+      .sort((a, b) => a.timestamp - b.timestamp)
+  } catch (error) {
+    console.error('Error fetching 100-1K KAS address distribution data:', error)
+    return []
+  }
+}
+
+// NEW: Fetch address distribution data for 1K-10K KAS
+export async function getAddressDistribution1kto10kData(): Promise<KaspaMetric[]> {
+  try {
+    const doc = new GoogleSpreadsheet(SHEETS_CONFIG.addresses, serviceAccountAuth)
+    await doc.loadInfo()
+    
+    const sheet = doc.sheetsByTitle['all_kaspa_address_buckets']
+    if (!sheet) {
+      console.error('Sheet "all_kaspa_address_buckets" not found')
+      return []
+    }
+    
+    const rows = await sheet.getRows()
+    
+    return rows
+      .map(row => {
+        const date = row.get('Date')
+        const addressCount = parseFloat(row.get('Addresses Holding 1K-10K KAS'))
+        
+        return {
+          date: date,
+          value: addressCount,
+          timestamp: new Date(date).getTime()
+        }
+      })
+      .filter(item => !isNaN(item.value) && item.value > 0)
+      .sort((a, b) => a.timestamp - b.timestamp)
+  } catch (error) {
+    console.error('Error fetching 1K-10K KAS address distribution data:', error)
+    return []
+  }
+}
+
+// NEW: Fetch address distribution data for 10K-100K KAS
+export async function getAddressDistribution10kto100kData(): Promise<KaspaMetric[]> {
+  try {
+    const doc = new GoogleSpreadsheet(SHEETS_CONFIG.addresses, serviceAccountAuth)
+    await doc.loadInfo()
+    
+    const sheet = doc.sheetsByTitle['all_kaspa_address_buckets']
+    if (!sheet) {
+      console.error('Sheet "all_kaspa_address_buckets" not found')
+      return []
+    }
+    
+    const rows = await sheet.getRows()
+    
+    return rows
+      .map(row => {
+        const date = row.get('Date')
+        const addressCount = parseFloat(row.get('Addresses Holding 10K-100K KAS'))
+        
+        return {
+          date: date,
+          value: addressCount,
+          timestamp: new Date(date).getTime()
+        }
+      })
+      .filter(item => !isNaN(item.value) && item.value > 0)
+      .sort((a, b) => a.timestamp - b.timestamp)
+  } catch (error) {
+    console.error('Error fetching 10K-100K KAS address distribution data:', error)
+    return []
+  }
+}
+
+// NEW: Fetch address distribution data for 100K-1M KAS
+export async function getAddressDistribution100kto1mData(): Promise<KaspaMetric[]> {
+  try {
+    const doc = new GoogleSpreadsheet(SHEETS_CONFIG.addresses, serviceAccountAuth)
+    await doc.loadInfo()
+    
+    const sheet = doc.sheetsByTitle['all_kaspa_address_buckets']
+    if (!sheet) {
+      console.error('Sheet "all_kaspa_address_buckets" not found')
+      return []
+    }
+    
+    const rows = await sheet.getRows()
+    
+    return rows
+      .map(row => {
+        const date = row.get('Date')
+        const addressCount = parseFloat(row.get('Addresses Holding 100K-1M KAS'))
+        
+        return {
+          date: date,
+          value: addressCount,
+          timestamp: new Date(date).getTime()
+        }
+      })
+      .filter(item => !isNaN(item.value) && item.value > 0)
+      .sort((a, b) => a.timestamp - b.timestamp)
+  } catch (error) {
+    console.error('Error fetching 100K-1M KAS address distribution data:', error)
+    return []
+  }
+}
+
+// NEW: Fetch address distribution data for 1M-10M KAS
+export async function getAddressDistribution1mto10mData(): Promise<KaspaMetric[]> {
+  try {
+    const doc = new GoogleSpreadsheet(SHEETS_CONFIG.addresses, serviceAccountAuth)
+    await doc.loadInfo()
+    
+    const sheet = doc.sheetsByTitle['all_kaspa_address_buckets']
+    if (!sheet) {
+      console.error('Sheet "all_kaspa_address_buckets" not found')
+      return []
+    }
+    
+    const rows = await sheet.getRows()
+    
+    return rows
+      .map(row => {
+        const date = row.get('Date')
+        const addressCount = parseFloat(row.get('Addresses Holding 1M-10M KAS'))
+        
+        return {
+          date: date,
+          value: addressCount,
+          timestamp: new Date(date).getTime()
+        }
+      })
+      .filter(item => !isNaN(item.value) && item.value > 0)
+      .sort((a, b) => a.timestamp - b.timestamp)
+  } catch (error) {
+    console.error('Error fetching 1M-10M KAS address distribution data:', error)
+    return []
+  }
+}
+
+// NEW: Fetch address distribution data for 10M-100M KAS
+export async function getAddressDistribution10mto100mData(): Promise<KaspaMetric[]> {
+  try {
+    const doc = new GoogleSpreadsheet(SHEETS_CONFIG.addresses, serviceAccountAuth)
+    await doc.loadInfo()
+    
+    const sheet = doc.sheetsByTitle['all_kaspa_address_buckets']
+    if (!sheet) {
+      console.error('Sheet "all_kaspa_address_buckets" not found')
+      return []
+    }
+    
+    const rows = await sheet.getRows()
+    
+    return rows
+      .map(row => {
+        const date = row.get('Date')
+        const addressCount = parseFloat(row.get('Addresses Holding 10M-100M KAS'))
+        
+        return {
+          date: date,
+          value: addressCount,
+          timestamp: new Date(date).getTime()
+        }
+      })
+      .filter(item => !isNaN(item.value) && item.value > 0)
+      .sort((a, b) => a.timestamp - b.timestamp)
+  } catch (error) {
+    console.error('Error fetching 10M-100M KAS address distribution data:', error)
+    return []
+  }
+}
+
+// NEW: Fetch address distribution data for 100M-1B KAS
+export async function getAddressDistribution100mto1bData(): Promise<KaspaMetric[]> {
+  try {
+    const doc = new GoogleSpreadsheet(SHEETS_CONFIG.addresses, serviceAccountAuth)
+    await doc.loadInfo()
+    
+    const sheet = doc.sheetsByTitle['all_kaspa_address_buckets']
+    if (!sheet) {
+      console.error('Sheet "all_kaspa_address_buckets" not found')
+      return []
+    }
+    
+    const rows = await sheet.getRows()
+    
+    return rows
+      .map(row => {
+        const date = row.get('Date')
+        const addressCount = parseFloat(row.get('Addresses Holding 100M-1B KAS'))
+        
+        return {
+          date: date,
+          value: addressCount,
+          timestamp: new Date(date).getTime()
+        }
+      })
+      .filter(item => !isNaN(item.value) && item.value > 0)
+      .sort((a, b) => a.timestamp - b.timestamp)
+  } catch (error) {
+    console.error('Error fetching 100M-1B KAS address distribution data:', error)
+    return []
+  }
+}
+
+// NEW: Fetch address distribution data for 1B+ KAS
+export async function getAddressDistribution1bPlusData(): Promise<KaspaMetric[]> {
+  try {
+    const doc = new GoogleSpreadsheet(SHEETS_CONFIG.addresses, serviceAccountAuth)
+    await doc.loadInfo()
+    
+    const sheet = doc.sheetsByTitle['all_kaspa_address_buckets']
+    if (!sheet) {
+      console.error('Sheet "all_kaspa_address_buckets" not found')
+      return []
+    }
+    
+    const rows = await sheet.getRows()
+    
+    return rows
+      .map(row => {
+        const date = row.get('Date')
+        const addressCount = parseFloat(row.get('Addresses Holding 1B+ KAS'))
+        
+        return {
+          date: date,
+          value: addressCount,
+          timestamp: new Date(date).getTime()
+        }
+      })
+      .filter(item => !isNaN(item.value) && item.value > 0)
+      .sort((a, b) => a.timestamp - b.timestamp)
+  } catch (error) {
+    console.error('Error fetching 1B+ KAS address distribution data:', error)
     return []
   }
 }
