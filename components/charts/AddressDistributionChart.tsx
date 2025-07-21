@@ -170,9 +170,9 @@ function generateLinearTicks(dataMin: number, dataMax: number, numTicks: number 
 }
 
 export default function AddressDistributionChart({ data, priceData, height = 600, tierName, tierRange }: AddressDistributionChartProps) {
-  const [addressScale, setAddressScale] = useState<'Linear' | 'Log'>('Linear')
-  const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
-  const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear')
+  const [addressScale, setAddressScale] = useState<'Linear' | 'Log'>('Log') // Default to Log
+  const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Linear') // Default to Linear
+  const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear') // Default to Linear
   const [timePeriod, setTimePeriod] = useState<'1W' | '1M' | '3M' | '6M' | '1Y' | '2Y' | '3Y' | '5Y' | 'All' | 'Full'>('All')
   const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
 
