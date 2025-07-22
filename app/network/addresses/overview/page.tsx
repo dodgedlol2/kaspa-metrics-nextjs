@@ -1,7 +1,19 @@
 import { getPriceData } from '@/lib/sheets'
 
+// TypeScript interfaces for API response
+interface ApiTier {
+  tier: number
+  count: number
+  amount: number
+}
+
+interface DistributionResponse {
+  timestamp: number
+  tiers: ApiTier[]
+}
+
 // Function to fetch distribution data from Kaspa API
-async function getDistributionData() {
+async function getDistributionData(): Promise<DistributionResponse | null> {
   try {
     const response = await fetch('https://api.kaspa.org/addresses/distribution?limit=1', {
       headers: {
@@ -14,8 +26,8 @@ async function getDistributionData() {
       throw new Error('Failed to fetch distribution data')
     }
     
-    const data = await response.json()
-    return data[0] // Get the latest entryy
+    const data: DistributionResponse[] = await response.json()
+    return data[0] // Get the latest entry
   } catch (error) {
     console.error('Error fetching distribution data:', error)
     return null
@@ -49,7 +61,7 @@ export default async function AddressDistributionOverviewPage() {
 
   // Combine API data with tier mapping
   const tierStats = tierMapping.map(tierInfo => {
-    const apiTier = distributionData?.tiers?.find(t => t.tier === tierInfo.tier)
+    const apiTier = distributionData?.tiers?.find((t: ApiTier) => t.tier === tierInfo.tier)
     
     return {
       ...tierInfo,
