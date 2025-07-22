@@ -15,7 +15,7 @@ async function getDistributionData() {
     }
     
     const data = await response.json()
-    return data[0] // Get the latest entry
+    return data[0] // Get the latest entryy
   } catch (error) {
     console.error('Error fetching distribution data:', error)
     return null
