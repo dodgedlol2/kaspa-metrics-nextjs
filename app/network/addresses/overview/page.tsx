@@ -94,12 +94,18 @@ export default async function AddressDistributionOverviewPage() {
   // Combine API data with tier mapping
   const tierStats = tierMapping.map(tierInfo => {
     const apiTier = distributionData?.tiers?.find((t: ApiTier) => t.tier === tierInfo.tier)
+    const kasAmount = (apiTier?.amount || 0) / 100000000 // Convert from sompi to KAS
+    
+    // Debug logging for development
+    if (process.env.NODE_ENV === 'development' && apiTier) {
+      console.log(`Tier ${tierInfo.tier} (${tierInfo.category}): ${apiTier.amount} sompi = ${kasAmount} KAS`)
+    }
     
     return {
       ...tierInfo,
       currentCount: apiTier?.count || 0,
-      totalKAS: (apiTier?.amount || 0) / 100000000, // Convert from sompi to KAS
-      totalUSD: ((apiTier?.amount || 0) / 100000000) * currentPrice
+      totalKAS: kasAmount,
+      totalUSD: kasAmount * currentPrice
     }
   }).filter(tier => tier.currentCount > 0) // Only show tiers with addresses
 
@@ -127,7 +133,12 @@ export default async function AddressDistributionOverviewPage() {
     if (num >= 1000000000) return `${(num/1000000000).toFixed(2)}B KAS`
     if (num >= 1000000) return `${(num/1000000).toFixed(1)}M KAS`
     if (num >= 1000) return `${(num/1000).toFixed(0)}K KAS`
-    return `${num.toFixed(0)} KAS`
+    if (num >= 1) return `${num.toFixed(0)} KAS`
+    if (num >= 0.01) return `${num.toFixed(2)} KAS`
+    if (num >= 0.001) return `${num.toFixed(3)} KAS`
+    if (num >= 0.0001) return `${num.toFixed(4)} KAS`
+    if (num > 0) return `${num.toFixed(8)} KAS`
+    return '0 KAS'
   }
 
   const formatTimestamp = (timestamp: number) => {
