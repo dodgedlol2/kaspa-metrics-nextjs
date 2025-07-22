@@ -94,12 +94,9 @@ export default async function AddressDistributionOverviewPage() {
   // Combine API data with tier mapping
   const tierStats = tierMapping.map(tierInfo => {
     const apiTier = distributionData?.tiers?.find((t: ApiTier) => t.tier === tierInfo.tier)
-    const kasAmount = (apiTier?.amount || 0) / 100000000 // Convert from sompi to KAS
     
-    // Debug logging for development
-    if (process.env.NODE_ENV === 'development' && apiTier) {
-      console.log(`Tier ${tierInfo.tier} (${tierInfo.category}): ${apiTier.amount} sompi = ${kasAmount} KAS`)
-    }
+    // The API returns amounts already in KAS, no conversion needed!
+    const kasAmount = apiTier?.amount || 0
     
     return {
       ...tierInfo,
