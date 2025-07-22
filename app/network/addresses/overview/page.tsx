@@ -79,15 +79,15 @@ export default async function AddressDistributionOverviewPage() {
   // Map API tiers to our tier structure (matching KasFYI naming)
   const tierMapping = [
     { tier: 0, name: '0.0001 - 1', range: '[0.0001 - 1)', icon: '🦐', category: 'Shrimp', color: 'from-gray-400 to-gray-500' },
-    { tier: 1, name: '1 - 10', range: '[1 - 10)', icon: '🦀', category: 'Crab', color: 'from-orange-500 to-red-500' },
-    { tier: 2, name: '10 - 100', range: '[10 - 100)', icon: '🦑', category: 'Octopus', color: 'from-purple-500 to-pink-500' },
-    { tier: 3, name: '100 - 1K', range: '[100 - 1K)', icon: '🐟', category: 'Fish', color: 'from-blue-500 to-cyan-500' },
-    { tier: 4, name: '1K - 10K', range: '[1K - 10K)', icon: '🐬', category: 'Dolphin', color: 'from-cyan-500 to-teal-500' },
-    { tier: 5, name: '10K - 100K', range: '[10K - 100K)', icon: '🦈', category: 'Shark', color: 'from-teal-500 to-green-500' },
-    { tier: 6, name: '100K - 1M', range: '[100K - 1M)', icon: '🐳', category: 'Whale', color: 'from-green-500 to-emerald-500' },
-    { tier: 7, name: '1M - 10M', range: '[1M - 10M)', icon: '🐋', category: 'Humpback', color: 'from-emerald-500 to-blue-600' },
-    { tier: 8, name: '10M - 100M', range: '[10M - 100M)', icon: '🦕', category: 'Leviathan', color: 'from-blue-600 to-indigo-500' },
-    { tier: 9, name: '100M - 1B', range: '[100M - 1B)', icon: '🐙', category: 'Kraken', color: 'from-indigo-500 to-purple-600' },
+    { tier: 1, name: '1 - 10', range: '[1 - 10)', icon: '🐟', category: 'Fish', color: 'from-blue-500 to-cyan-500' },
+    { tier: 2, name: '10 - 100', range: '[10 - 100)', icon: '🐙', category: 'Octopus', color: 'from-purple-500 to-pink-500' },
+    { tier: 3, name: '100 - 1K', range: '[100 - 1K)', icon: '🦀', category: 'Crab', color: 'from-orange-500 to-red-500' },
+    { tier: 4, name: '1K - 10K', range: '[1K - 10K)', icon: '🦑', category: 'Octopus', color: 'from-cyan-500 to-teal-500' },
+    { tier: 5, name: '10K - 100K', range: '[10K - 100K)', icon: '🐟', category: 'Fish', color: 'from-teal-500 to-green-500' },
+    { tier: 6, name: '100K - 1M', range: '[100K - 1M)', icon: '🐬', category: 'Dolphin', color: 'from-green-500 to-emerald-500' },
+    { tier: 7, name: '1M - 10M', range: '[1M - 10M)', icon: '🦈', category: 'Shark', color: 'from-emerald-500 to-blue-600' },
+    { tier: 8, name: '10M - 100M', range: '[10M - 100M)', icon: '🐳', category: 'Whale', color: 'from-blue-600 to-indigo-500' },
+    { tier: 9, name: '100M - 1B', range: '[100M - 1B)', icon: '🐋', category: 'Humpback', color: 'from-indigo-500 to-purple-600' },
     { tier: 10, name: '1B+', range: '[1B+)', icon: '🔱', category: 'Aquaman', color: 'from-purple-600 to-pink-600' }
   ]
 
