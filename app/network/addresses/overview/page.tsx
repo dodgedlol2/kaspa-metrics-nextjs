@@ -1,172 +1,63 @@
-import { 
-  getPriceData,
-  getAddressDistribution1to100Data,
-  getAddressDistribution100to1kData,
-  getAddressDistribution1kto10kData,
-  getAddressDistribution10kto100kData,
-  getAddressDistribution100kto1mData,
-  getAddressDistribution1mto10mData,
-  getAddressDistribution10mto100mData,
-  getAddressDistribution100mto1bData,
-  getAddressDistribution1bPlusData
-} from '@/lib/sheets'
+import { getPriceData } from '@/lib/sheets'
+
+// Function to fetch distribution data from Kaspa API
+async function getDistributionData() {
+  try {
+    const response = await fetch('https://api.kaspa.org/addresses/distribution?limit=1', {
+      headers: {
+        'accept': 'application/json'
+      },
+      next: { revalidate: 180 } // Cache for 3 minutes (API cache time)
+    })
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch distribution data')
+    }
+    
+    const data = await response.json()
+    return data[0] // Get the latest entry
+  } catch (error) {
+    console.error('Error fetching distribution data:', error)
+    return null
+  }
+}
 
 export default async function AddressDistributionOverviewPage() {
-  // Fetch all distribution data
-  const [
-    priceData,
-    data1to100,
-    data100to1k,
-    data1kto10k,
-    data10kto100k,
-    data100kto1m,
-    data1mto10m,
-    data10mto100m,
-    data100mto1b,
-    data1bPlus
-  ] = await Promise.all([
-    getPriceData(),
-    getAddressDistribution1to100Data(),
-    getAddressDistribution100to1kData(),
-    getAddressDistribution1kto10kData(),
-    getAddressDistribution10kto100kData(),
-    getAddressDistribution100kto1mData(),
-    getAddressDistribution1mto10mData(),
-    getAddressDistribution10mto100mData(),
-    getAddressDistribution100mto1bData(),
-    getAddressDistribution1bPlusData()
+  // Fetch distribution data from API and price data
+  const [distributionData, priceData] = await Promise.all([
+    getDistributionData(),
+    getPriceData()
   ])
 
   // Get current KAS price for USD calculations
   const currentPrice = priceData.length > 0 ? priceData[priceData.length - 1].value : 0.115
 
-  // Prepare distribution data
-  const distributionTiers = [
-    {
-      name: '1 - 100',
-      range: '[1 - 100]',
-      icon: '🦀',
-      category: 'Crab',
-      data: data1to100,
-      minBalance: 1,
-      maxBalance: 100,
-      color: 'from-orange-500 to-red-500'
-    },
-    {
-      name: '100 - 1K',
-      range: '[100 - 1K]',
-      icon: '🐙',
-      category: 'Octopus', 
-      data: data100to1k,
-      minBalance: 100,
-      maxBalance: 1000,
-      color: 'from-purple-500 to-pink-500'
-    },
-    {
-      name: '1K - 10K',
-      range: '[1K - 10K]',
-      icon: '🐟',
-      category: 'Fish',
-      data: data1kto10k,
-      minBalance: 1000,
-      maxBalance: 10000,
-      color: 'from-blue-500 to-cyan-500'
-    },
-    {
-      name: '10K - 100K',
-      range: '[10K - 100K]',
-      icon: '🐬',
-      category: 'Dolphin',
-      data: data10kto100k,
-      minBalance: 10000,
-      maxBalance: 100000,
-      color: 'from-cyan-500 to-teal-500'
-    },
-    {
-      name: '100K - 1M',
-      range: '[100K - 1M]',
-      icon: '🦈',
-      category: 'Shark',
-      data: data100kto1m,
-      minBalance: 100000,
-      maxBalance: 1000000,
-      color: 'from-teal-500 to-green-500'
-    },
-    {
-      name: '1M - 10M',
-      range: '[1M - 10M]',
-      icon: '🐋',
-      category: 'Whale',
-      data: data1mto10m,
-      minBalance: 1000000,
-      maxBalance: 10000000,
-      color: 'from-green-500 to-emerald-500'
-    },
-    {
-      name: '10M - 100M',
-      range: '[10M - 100M]',
-      icon: '🐳',
-      category: 'Humpback',
-      data: data10mto100m,
-      minBalance: 10000000,
-      maxBalance: 100000000,
-      color: 'from-emerald-500 to-blue-600'
-    },
-    {
-      name: '100M - 1B',
-      range: '[100M - 1B]',
-      icon: '🦈',
-      category: 'Megalodon',
-      data: data100mto1b,
-      minBalance: 100000000,
-      maxBalance: 1000000000,
-      color: 'from-blue-600 to-indigo-500'
-    },
-    {
-      name: '1B+',
-      range: '[1B+]',
-      icon: '🏛️',
-      category: 'Leviathan',
-      data: data1bPlus,
-      minBalance: 1000000000,
-      maxBalance: null,
-      color: 'from-indigo-500 to-purple-600'
-    }
+  // Map API tiers to our tier structure
+  const tierMapping = [
+    { tier: 0, name: '0.0001 - 1', range: '[0.0001 - 1]', icon: '🦐', category: 'Shrimp', color: 'from-gray-400 to-gray-500' },
+    { tier: 1, name: '1 - 10', range: '[1 - 10]', icon: '🦀', category: 'Crab', color: 'from-orange-500 to-red-500' },
+    { tier: 2, name: '10 - 100', range: '[10 - 100]', icon: '🐙', category: 'Octopus', color: 'from-purple-500 to-pink-500' },
+    { tier: 3, name: '100 - 1K', range: '[100 - 1K]', icon: '🐟', category: 'Fish', color: 'from-blue-500 to-cyan-500' },
+    { tier: 4, name: '1K - 10K', range: '[1K - 10K]', icon: '🐬', category: 'Dolphin', color: 'from-cyan-500 to-teal-500' },
+    { tier: 5, name: '10K - 100K', range: '[10K - 100K]', icon: '🦈', category: 'Shark', color: 'from-teal-500 to-green-500' },
+    { tier: 6, name: '100K - 1M', range: '[100K - 1M]', icon: '🐋', category: 'Whale', color: 'from-green-500 to-emerald-500' },
+    { tier: 7, name: '1M - 10M', range: '[1M - 10M]', icon: '🐳', category: 'Humpback', color: 'from-emerald-500 to-blue-600' },
+    { tier: 8, name: '10M - 100M', range: '[10M - 100M]', icon: '🦕', category: 'Megalodon', color: 'from-blue-600 to-indigo-500' },
+    { tier: 9, name: '100M - 1B', range: '[100M - 1B]', icon: '🏛️', category: 'Institution', color: 'from-indigo-500 to-purple-600' },
+    { tier: 10, name: '1B+', range: '[1B+]', icon: '👑', category: 'Leviathan', color: 'from-purple-600 to-pink-600' }
   ]
 
-  // Calculate statistics for each tier
-  const tierStats = distributionTiers.map(tier => {
-    const currentCount = tier.data.length > 0 ? tier.data[tier.data.length - 1].value : 0
-    const previousCount = tier.data.length > 1 ? tier.data[tier.data.length - 2].value : currentCount
-    const change24h = currentCount - previousCount
+  // Combine API data with tier mapping
+  const tierStats = tierMapping.map(tierInfo => {
+    const apiTier = distributionData?.tiers?.find(t => t.tier === tierInfo.tier)
     
-    // Calculate estimated KAS held (using midpoint of range)
-    let avgBalance: number
-    if (tier.maxBalance === null) {
-      avgBalance = tier.minBalance * 2 // Estimate for 1B+ tier
-    } else {
-      avgBalance = (tier.minBalance + tier.maxBalance) / 2
-    }
-    
-    const totalKAS = currentCount * avgBalance
-    const totalUSD = totalKAS * currentPrice
-    
-    // Calculate 30-day change
-    const thirtyDaysAgo = tier.data.length >= 30 ? tier.data[tier.data.length - 30].value : currentCount
-    const change30d = currentCount - thirtyDaysAgo
-    const change30dPercent = thirtyDaysAgo > 0 ? ((change30d / thirtyDaysAgo) * 100) : 0
-
     return {
-      ...tier,
-      currentCount,
-      change24h,
-      change30d,
-      change30dPercent,
-      totalKAS,
-      totalUSD,
-      avgBalance
+      ...tierInfo,
+      currentCount: apiTier?.count || 0,
+      totalKAS: (apiTier?.amount || 0) / 100000000, // Convert from sompi to KAS
+      totalUSD: ((apiTier?.amount || 0) / 100000000) * currentPrice
     }
-  })
+  }).filter(tier => tier.totalKAS > 0 || tier.currentCount > 0) // Only show tiers with data
 
   // Calculate totals
   const totalAddresses = tierStats.reduce((sum, tier) => sum + tier.currentCount, 0)
@@ -182,10 +73,10 @@ export default async function AddressDistributionOverviewPage() {
   }
 
   const formatCurrency = (num: number): string => {
-    if (num >= 1000000000) return `$${(num/1000000000).toFixed(1)}B`
-    if (num >= 1000000) return `$${(num/1000000).toFixed(1)}M`
-    if (num >= 1000) return `$${(num/1000).toFixed(1)}K`
-    return `$${num.toFixed(0)}`
+    if (num >= 1000000000) return `${(num/1000000000).toFixed(2)}B`
+    if (num >= 1000000) return `${(num/1000000).toFixed(1)}M`
+    if (num >= 1000) return `${(num/1000).toFixed(1)}K`
+    return `${num.toFixed(0)}`
   }
 
   const formatKAS = (num: number): string => {
@@ -193,6 +84,17 @@ export default async function AddressDistributionOverviewPage() {
     if (num >= 1000000) return `${(num/1000000).toFixed(1)}M KAS`
     if (num >= 1000) return `${(num/1000).toFixed(0)}K KAS`
     return `${num.toFixed(0)} KAS`
+  }
+
+  const formatTimestamp = (timestamp: number) => {
+    return new Date(timestamp).toLocaleString('en-US', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
   }
 
   return (
@@ -219,14 +121,9 @@ export default async function AddressDistributionOverviewPage() {
             
             <div className="text-right">
               <p className="text-sm text-[#6B7280]">Last updated</p>
-              <p className="text-sm text-white">{new Date().toLocaleString('en-US', { 
-                year: 'numeric', 
-                month: '2-digit', 
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-              })}</p>
+              <p className="text-sm text-white">
+                {distributionData?.timestamp ? formatTimestamp(distributionData.timestamp) : 'Loading...'}
+              </p>
             </div>
           </div>
         </div>
@@ -295,7 +192,7 @@ export default async function AddressDistributionOverviewPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[#6B7280] text-sm font-medium">Distribution Tiers</p>
-                <p className="text-2xl font-bold text-white mt-1">9</p>
+                <p className="text-2xl font-bold text-white mt-1">{tierStats.length}</p>
                 <p className="text-[#A0A0B8] text-xs mt-1">Active Tiers</p>
               </div>
               <div className="w-12 h-12 bg-[#A0A0B8]/10 rounded-lg flex items-center justify-center">
@@ -325,8 +222,6 @@ export default async function AddressDistributionOverviewPage() {
                   <th className="text-left p-4 text-[#6B7280] text-sm font-medium">Category</th>
                   <th className="text-left p-4 text-[#6B7280] text-sm font-medium">Balance Range</th>
                   <th className="text-right p-4 text-[#6B7280] text-sm font-medium">Addresses</th>
-                  <th className="text-right p-4 text-[#6B7280] text-sm font-medium">24h</th>
-                  <th className="text-right p-4 text-[#6B7280] text-sm font-medium">30d</th>
                   <th className="text-right p-4 text-[#6B7280] text-sm font-medium">Total KAS</th>
                   <th className="text-right p-4 text-[#6B7280] text-sm font-medium">% of Supply</th>
                   <th className="text-right p-4 text-[#6B7280] text-sm font-medium">USD Value</th>
@@ -335,8 +230,7 @@ export default async function AddressDistributionOverviewPage() {
               <tbody>
                 {tierStats.map((tier, index) => {
                   const percentOfSupply = totalKAS > 0 ? (tier.totalKAS / (24000000000)) * 100 : 0 // 24B total supply
-                  const isPositive24h = tier.change24h >= 0
-                  const isPositive30d = tier.change30dPercent >= 0
+                  const percentOfAddresses = totalAddresses > 0 ? (tier.currentCount / totalAddresses) * 100 : 0
                   
                   return (
                     <tr key={tier.name} className="border-b border-[#2D2D45]/10 hover:bg-[#1A1A2E]/30 transition-colors">
@@ -350,17 +244,10 @@ export default async function AddressDistributionOverviewPage() {
                         <span className="text-[#A0A0B8] text-sm">{tier.range}</span>
                       </td>
                       <td className="text-right p-4">
-                        <span className="text-white font-medium">{formatNumber(tier.currentCount)}</span>
-                      </td>
-                      <td className="text-right p-4">
-                        <span className={`text-sm ${isPositive24h ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
-                          {isPositive24h ? '+' : ''}{tier.change24h}
-                        </span>
-                      </td>
-                      <td className="text-right p-4">
-                        <span className={`text-sm ${isPositive30d ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
-                          {isPositive30d ? '+' : ''}{tier.change30dPercent.toFixed(1)}%
-                        </span>
+                        <div>
+                          <span className="text-white font-medium">{formatNumber(tier.currentCount)}</span>
+                          <div className="text-xs text-[#6B7280]">{percentOfAddresses.toFixed(1)}%</div>
+                        </div>
                       </td>
                       <td className="text-right p-4">
                         <span className="text-white font-medium">{formatKAS(tier.totalKAS)}</span>
