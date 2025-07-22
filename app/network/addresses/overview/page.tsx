@@ -296,25 +296,39 @@ export default async function AddressDistributionOverviewPage() {
                         <span className="text-[#A0A0B8] text-sm">{tier.range}</span>
                       </td>
                       <td className="text-right p-4">
-                        <div>
-                          <span className="text-white font-medium">{formatNumber(tier.currentCount)}</span>
-                          <div className="text-xs text-[#6B7280]">{percentOfAddresses.toFixed(1)}%</div>
+                        <div className="relative">
+                          {/* Background progress bar for % of addresses */}
+                          <div className="absolute inset-0 bg-[#0F0F1A] rounded-md overflow-hidden">
+                            <div 
+                              className="h-full bg-gradient-to-r from-[#1A1A2E] to-[#2D2D45] transition-all duration-300"
+                              style={{ width: `${Math.min(percentOfAddresses * 3, 100)}%` }}
+                            />
+                          </div>
+                          {/* Address count text */}
+                          <div className="relative z-10 p-2">
+                            <span className="text-white font-medium">{formatNumber(tier.currentCount)}</span>
+                            <div className="text-xs text-[#6B7280]">{percentOfAddresses.toFixed(1)}%</div>
+                          </div>
                         </div>
                       </td>
                       <td className="text-right p-4">
                         <span className="text-white font-medium">{formatKAS(tier.totalKAS)}</span>
                       </td>
                       <td className="text-right p-4">
-                        <div className="flex items-center justify-end space-x-2">
-                          <div className="w-16 h-2 bg-[#0F0F1A] rounded-full overflow-hidden">
+                        <div className="relative">
+                          {/* Background progress bar for % of supply */}
+                          <div className="absolute inset-0 bg-[#0F0F1A] rounded-md overflow-hidden">
                             <div 
-                              className={`h-full bg-gradient-to-r ${tier.color} rounded-full transition-all duration-300`}
-                              style={{ width: `${Math.min(percentOfSupply * 10, 100)}%` }}
+                              className={`h-full bg-gradient-to-r ${tier.color} transition-all duration-300`}
+                              style={{ width: `${Math.min(percentOfSupply * 4, 100)}%` }}
                             />
                           </div>
-                          <span className="text-[#A0A0B8] text-sm w-12 text-right">
-                            {percentOfSupply.toFixed(2)}%
-                          </span>
+                          {/* Percentage text */}
+                          <div className="relative z-10 p-2 flex items-center justify-end">
+                            <span className="text-white font-medium text-sm">
+                              {percentOfSupply.toFixed(2)}%
+                            </span>
+                          </div>
                         </div>
                       </td>
                       <td className="text-right p-4">
