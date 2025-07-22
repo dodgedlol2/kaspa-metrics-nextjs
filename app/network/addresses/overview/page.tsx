@@ -151,9 +151,9 @@ export default async function AddressDistributionOverviewPage() {
 
   return (
     <div className="min-h-screen bg-[#0A0A12] text-white">
-      <div className="p-6">
-        {/* Header */}
-        <div className="mb-8">
+      <div className="p-4">
+        {/* Header - More Compact */}
+        <div className="mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-gradient-to-r from-[#6366F1] to-[#5B6CFF] rounded-lg flex items-center justify-center">
@@ -162,17 +162,17 @@ export default async function AddressDistributionOverviewPage() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-b from-[#FFFFFF] to-[#A0A0B8] bg-clip-text text-transparent drop-shadow-sm">
+                <h1 className="text-3xl md:text-4xl font-bold mb-1 bg-gradient-to-b from-[#FFFFFF] to-[#A0A0B8] bg-clip-text text-transparent drop-shadow-sm">
                   Address Distribution Overview
                 </h1>
-                <p className="text-[#6B7280] text-lg">
+                <p className="text-[#6B7280] text-base">
                   Complete analysis of Kaspa address distribution across all holding tiers
                 </p>
               </div>
             </div>
             
             <div className="text-right">
-              <p className="text-sm text-[#6B7280]">Last updated</p>
+              <p className="text-xs text-[#6B7280]">Last updated</p>
               <p className="text-sm text-white">
                 {distributionData?.timestamp ? formatTimestamp(distributionData.timestamp) : 'Loading...'}
               </p>
@@ -180,75 +180,75 @@ export default async function AddressDistributionOverviewPage() {
           </div>
         </div>
 
-        {/* Breadcrumb */}
-        <div className="flex items-center space-x-2 text-sm text-[#6B7280] mb-6">
+        {/* Breadcrumb - More Compact */}
+        <div className="flex items-center space-x-2 text-sm text-[#6B7280] mb-4">
           <span>Network</span>
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
             <path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"/>
           </svg>
           <span>Addresses</span>
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
             <path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"/>
           </svg>
           <span className="text-[#5B6CFF]">Distribution Overview</span>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-[#1A1A2E]/50 backdrop-blur-sm border border-[#2D2D45]/30 rounded-xl p-6">
+        {/* Summary Cards - More Compact */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+          <div className="bg-[#1A1A2E]/50 backdrop-blur-sm border border-[#2D2D45]/30 rounded-xl p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[#6B7280] text-sm font-medium">Total Addresses</p>
-                <p className="text-2xl font-bold text-white mt-1">{formatNumber(totalAddresses)}</p>
+                <p className="text-[#6B7280] text-xs font-medium">Total Addresses</p>
+                <p className="text-xl font-bold text-white mt-1">{formatNumber(totalAddresses)}</p>
                 <p className="text-[#10B981] text-xs mt-1">All Holdings</p>
               </div>
-              <div className="w-12 h-12 bg-[#5B6CFF]/10 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-[#5B6CFF]" fill="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-[#5B6CFF]/10 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-[#5B6CFF]" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M16,4C18.21,4 20,5.79 20,8C20,10.21 18.21,12 16,12C13.79,12 12,10.21 12,8C12,5.79 13.79,4 16,4M16,14C18.67,14 24,15.33 24,18V20H8V18C8,15.33 13.33,14 16,14M8.5,6A2.5,2.5 0 0,1 11,8.5A2.5,2.5 0 0,1 8.5,11A2.5,2.5 0 0,1 6,8.5A2.5,2.5 0 0,1 8.5,6M8.5,13C10.83,13 15.5,14.17 15.5,16.5V18H1.5V16.5C1.5,14.17 6.17,13 8.5,13Z"/>
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="bg-[#1A1A2E]/50 backdrop-blur-sm border border-[#2D2D45]/30 rounded-xl p-6">
+          <div className="bg-[#1A1A2E]/50 backdrop-blur-sm border border-[#2D2D45]/30 rounded-xl p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[#6B7280] text-sm font-medium">Total KAS Held</p>
-                <p className="text-2xl font-bold text-white mt-1">{formatKAS(totalKAS)}</p>
+                <p className="text-[#6B7280] text-xs font-medium">Total KAS Held</p>
+                <p className="text-xl font-bold text-white mt-1">{formatKAS(totalKAS)}</p>
                 <p className="text-[#F59E0B] text-xs mt-1">From Distribution</p>
               </div>
-              <div className="w-12 h-12 bg-[#F59E0B]/10 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-[#F59E0B]" fill="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-[#F59E0B]/10 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-[#F59E0B]" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M7,15H9C9,16.08 10.37,17 12,17C13.63,17 15,16.08 15,15C15,13.9 13.96,13.5 11.76,12.97C9.64,12.44 7,11.78 7,9C7,7.21 8.47,5.69 10.5,5.18V3H13.5V5.18C15.53,5.69 17,7.21 17,9H15C15,7.92 13.63,7 12,7C10.37,7 9,7.92 9,9C9,10.1 10.04,10.5 12.24,11.03C14.36,11.56 17,12.22 17,15C17,16.79 15.53,18.31 13.5,18.82V21H10.5V18.82C8.47,18.31 7,16.79 7,15Z"/>
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="bg-[#1A1A2E]/50 backdrop-blur-sm border border-[#2D2D45]/30 rounded-xl p-6">
+          <div className="bg-[#1A1A2E]/50 backdrop-blur-sm border border-[#2D2D45]/30 rounded-xl p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[#6B7280] text-sm font-medium">Circulating Supply</p>
-                <p className="text-2xl font-bold text-white mt-1">{formatKAS(circulatingSupplyKAS)}</p>
+                <p className="text-[#6B7280] text-xs font-medium">Circulating Supply</p>
+                <p className="text-xl font-bold text-white mt-1">{formatKAS(circulatingSupplyKAS)}</p>
                 <p className="text-[#10B981] text-xs mt-1">Live from API</p>
               </div>
-              <div className="w-12 h-12 bg-[#10B981]/10 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-[#10B981]" fill="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-[#10B981]/10 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-[#10B981]" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6M12,8A4,4 0 0,0 8,12A4,4 0 0,0 12,16A4,4 0 0,0 16,12A4,4 0 0,0 12,8Z"/>
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="bg-[#1A1A2E]/50 backdrop-blur-sm border border-[#2D2D45]/30 rounded-xl p-6">
+          <div className="bg-[#1A1A2E]/50 backdrop-blur-sm border border-[#2D2D45]/30 rounded-xl p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[#6B7280] text-sm font-medium">Distribution Tiers</p>
-                <p className="text-2xl font-bold text-white mt-1">11</p>
+                <p className="text-[#6B7280] text-xs font-medium">Distribution Tiers</p>
+                <p className="text-xl font-bold text-white mt-1">11</p>
                 <p className="text-[#A0A0B8] text-xs mt-1">Total Tiers</p>
               </div>
-              <div className="w-12 h-12 bg-[#A0A0B8]/10 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-[#A0A0B8]" fill="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-[#A0A0B8]/10 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-[#A0A0B8]" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M3,11H5V13H3V11M11,5H13V19H11V5M7,9H9V15H7V9M15,3H17V17H15V3M19,7H21V13H19V7"/>
                 </svg>
               </div>
@@ -256,11 +256,11 @@ export default async function AddressDistributionOverviewPage() {
           </div>
         </div>
 
-        {/* Distribution Table */}
+        {/* Distribution Table - More Compact */}
         <div className="bg-[#1A1A2E]/50 backdrop-blur-sm border border-[#2D2D45]/30 rounded-xl overflow-hidden">
-          <div className="p-6 border-b border-[#2D2D45]/30">
-            <h2 className="text-xl font-semibold text-white flex items-center">
-              <svg className="w-5 h-5 text-[#5B6CFF] mr-2" fill="currentColor" viewBox="0 0 24 24">
+          <div className="p-4 border-b border-[#2D2D45]/30">
+            <h2 className="text-lg font-semibold text-white flex items-center">
+              <svg className="w-4 h-4 text-[#5B6CFF] mr-2" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M3,3H21C21.53,3 22,3.47 22,4V20C22,20.53 21.53,21 21,21H3C2.47,21 2,20.53 2,20V4C2,3.47 2.47,3 3,3M20,8H4V6H20V8M20,18H4V10H20V18M6,12V16H10V12H6M18,14H12V12H18V14M18,16H12V15H18V16Z"/>
               </svg>
               Address Distribution by KAS Bucket
@@ -271,12 +271,12 @@ export default async function AddressDistributionOverviewPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[#2D2D45]/30">
-                  <th className="text-left p-3 text-[#6B7280] text-sm font-medium">Category</th>
-                  <th className="text-left p-3 text-[#6B7280] text-sm font-medium">Balance Range</th>
-                  <th className="text-right p-3 text-[#6B7280] text-sm font-medium">Addresses</th>
-                  <th className="text-right p-3 text-[#6B7280] text-sm font-medium">Total KAS</th>
-                  <th className="text-right p-3 text-[#6B7280] text-sm font-medium">% of Supply</th>
-                  <th className="text-right p-3 text-[#6B7280] text-sm font-medium">USD Value</th>
+                  <th className="text-left p-2 text-[#6B7280] text-xs font-medium">Category</th>
+                  <th className="text-left p-2 text-[#6B7280] text-xs font-medium">Balance Range</th>
+                  <th className="text-right p-2 text-[#6B7280] text-xs font-medium">Addresses</th>
+                  <th className="text-right p-2 text-[#6B7280] text-xs font-medium">Total KAS</th>
+                  <th className="text-right p-2 text-[#6B7280] text-xs font-medium">% of Supply</th>
+                  <th className="text-right p-2 text-[#6B7280] text-xs font-medium">USD Value</th>
                 </tr>
               </thead>
               <tbody>
@@ -286,16 +286,16 @@ export default async function AddressDistributionOverviewPage() {
                   
                   return (
                     <tr key={tier.name} className="border-b border-[#2D2D45]/10 hover:bg-[#1A1A2E]/30 transition-colors">
-                      <td className="p-3">
-                        <div className="flex items-center space-x-3">
-                          <span className="text-xl">{tier.icon}</span>
-                          <span className="text-white font-medium text-sm">{tier.category}</span>
+                      <td className="p-2">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-lg">{tier.icon}</span>
+                          <span className="text-white font-medium text-xs">{tier.category}</span>
                         </div>
                       </td>
-                      <td className="p-3">
-                        <span className="text-[#A0A0B8] text-sm">{tier.range}</span>
+                      <td className="p-2">
+                        <span className="text-[#A0A0B8] text-xs">{tier.range}</span>
                       </td>
-                      <td className="text-right p-3">
+                      <td className="text-right p-2">
                         <div className="relative">
                           {/* Background progress bar for % of addresses */}
                           <div className="absolute inset-0 bg-[#0F0F1A] rounded-md overflow-hidden">
@@ -305,16 +305,16 @@ export default async function AddressDistributionOverviewPage() {
                             />
                           </div>
                           {/* Address count text */}
-                          <div className="relative z-10 px-3 py-2">
-                            <span className="text-white font-medium text-sm">{formatNumber(tier.currentCount)}</span>
+                          <div className="relative z-10 px-2 py-1">
+                            <span className="text-white font-medium text-xs">{formatNumber(tier.currentCount)}</span>
                             <div className="text-xs text-[#6B7280]">{percentOfAddresses.toFixed(1)}%</div>
                           </div>
                         </div>
                       </td>
-                      <td className="text-right p-3">
-                        <span className="text-white font-medium text-sm">{formatKAS(tier.totalKAS)}</span>
+                      <td className="text-right p-2">
+                        <span className="text-white font-medium text-xs">{formatKAS(tier.totalKAS)}</span>
                       </td>
-                      <td className="text-right p-3">
+                      <td className="text-right p-2">
                         <div className="relative">
                           {/* Background progress bar for % of supply */}
                           <div className="absolute inset-0 bg-[#0F0F1A] rounded-md overflow-hidden">
@@ -324,15 +324,15 @@ export default async function AddressDistributionOverviewPage() {
                             />
                           </div>
                           {/* Percentage text */}
-                          <div className="relative z-10 px-3 py-2 flex items-center justify-end">
-                            <span className="text-white font-medium text-sm">
+                          <div className="relative z-10 px-2 py-1 flex items-center justify-end">
+                            <span className="text-white font-medium text-xs">
                               {percentOfSupply.toFixed(2)}%
                             </span>
                           </div>
                         </div>
                       </td>
-                      <td className="text-right p-3">
-                        <span className="text-white font-medium text-sm">{formatCurrency(tier.totalUSD)}</span>
+                      <td className="text-right p-2">
+                        <span className="text-white font-medium text-xs">{formatCurrency(tier.totalUSD)}</span>
                       </td>
                     </tr>
                   )
