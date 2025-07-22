@@ -76,19 +76,19 @@ export default async function AddressDistributionOverviewPage() {
   const circulatingSupplyKAS = coinSupplyData ? 
     parseInt(coinSupplyData.circulatingSupply) / 100000000 : 26000000000 // Fallback to ~26B
 
-  // Map API tiers to our tier structure (matching KasFYI naming)
+  // Map API tiers to our tier structure (using consistent colors)
   const tierMapping = [
-    { tier: 0, name: '0.0001 - 1', range: '[0.0001 - 1)', icon: '🦠', category: 'Plankton', color: 'from-gray-400 to-gray-500' },
-    { tier: 1, name: '1 - 10', range: '[1 - 10)', icon: '🦐', category: 'Shrimp', color: 'from-pink-400 to-orange-400' },
-    { tier: 2, name: '10 - 100', range: '[10 - 100)', icon: '🦞', category: 'Lobster', color: 'from-red-400 to-orange-500' },
-    { tier: 3, name: '100 - 1K', range: '[100 - 1K)', icon: '🦀', category: 'Crab', color: 'from-orange-500 to-red-500' },
-    { tier: 4, name: '1K - 10K', range: '[1K - 10K)', icon: '🦑', category: 'Octopus', color: 'from-purple-500 to-pink-500' },
-    { tier: 5, name: '10K - 100K', range: '[10K - 100K)', icon: '🐟', category: 'Fish', color: 'from-teal-500 to-green-500' },
-    { tier: 6, name: '100K - 1M', range: '[100K - 1M)', icon: '🐬', category: 'Dolphin', color: 'from-green-500 to-emerald-500' },
-    { tier: 7, name: '1M - 10M', range: '[1M - 10M)', icon: '🦈', category: 'Shark', color: 'from-emerald-500 to-blue-600' },
-    { tier: 8, name: '10M - 100M', range: '[10M - 100M)', icon: '🐳', category: 'Whale', color: 'from-blue-600 to-indigo-500' },
-    { tier: 9, name: '100M - 1B', range: '[100M - 1B)', icon: '🐋', category: 'Humpback', color: 'from-indigo-500 to-purple-600' },
-    { tier: 10, name: '1B+', range: '[1B+)', icon: '🔱', category: 'Aquaman', color: 'from-purple-600 to-pink-600' }
+    { tier: 0, name: '0.0001 - 1', range: '[0.0001 - 1)', icon: '🦠', category: 'Plankton', color: 'from-[#5B6CFF] to-[#6366F1]' },
+    { tier: 1, name: '1 - 10', range: '[1 - 10)', icon: '🦐', category: 'Shrimp', color: 'from-[#5B6CFF] to-[#6366F1]' },
+    { tier: 2, name: '10 - 100', range: '[10 - 100)', icon: '🦞', category: 'Lobster', color: 'from-[#5B6CFF] to-[#6366F1]' },
+    { tier: 3, name: '100 - 1K', range: '[100 - 1K)', icon: '🦀', category: 'Crab', color: 'from-[#5B6CFF] to-[#6366F1]' },
+    { tier: 4, name: '1K - 10K', range: '[1K - 10K)', icon: '🦑', category: 'Octopus', color: 'from-[#5B6CFF] to-[#6366F1]' },
+    { tier: 5, name: '10K - 100K', range: '[10K - 100K)', icon: '🐟', category: 'Fish', color: 'from-[#5B6CFF] to-[#6366F1]' },
+    { tier: 6, name: '100K - 1M', range: '[100K - 1M)', icon: '🐬', category: 'Dolphin', color: 'from-[#5B6CFF] to-[#6366F1]' },
+    { tier: 7, name: '1M - 10M', range: '[1M - 10M)', icon: '🦈', category: 'Shark', color: 'from-[#5B6CFF] to-[#6366F1]' },
+    { tier: 8, name: '10M - 100M', range: '[10M - 100M)', icon: '🐳', category: 'Whale', color: 'from-[#5B6CFF] to-[#6366F1]' },
+    { tier: 9, name: '100M - 1B', range: '[100M - 1B)', icon: '🐋', category: 'Humpback', color: 'from-[#5B6CFF] to-[#6366F1]' },
+    { tier: 10, name: '1B+', range: '[1B+)', icon: '🔱', category: 'Aquaman', color: 'from-[#5B6CFF] to-[#6366F1]' }
   ]
 
   // Combine API data with tier mapping - ALWAYS show all tiers
@@ -271,12 +271,12 @@ export default async function AddressDistributionOverviewPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[#2D2D45]/30">
-                  <th className="text-left p-4 text-[#6B7280] text-sm font-medium">Category</th>
-                  <th className="text-left p-4 text-[#6B7280] text-sm font-medium">Balance Range</th>
-                  <th className="text-right p-4 text-[#6B7280] text-sm font-medium">Addresses</th>
-                  <th className="text-right p-4 text-[#6B7280] text-sm font-medium">Total KAS</th>
-                  <th className="text-right p-4 text-[#6B7280] text-sm font-medium">% of Supply</th>
-                  <th className="text-right p-4 text-[#6B7280] text-sm font-medium">USD Value</th>
+                  <th className="text-left p-3 text-[#6B7280] text-sm font-medium">Category</th>
+                  <th className="text-left p-3 text-[#6B7280] text-sm font-medium">Balance Range</th>
+                  <th className="text-right p-3 text-[#6B7280] text-sm font-medium">Addresses</th>
+                  <th className="text-right p-3 text-[#6B7280] text-sm font-medium">Total KAS</th>
+                  <th className="text-right p-3 text-[#6B7280] text-sm font-medium">% of Supply</th>
+                  <th className="text-right p-3 text-[#6B7280] text-sm font-medium">USD Value</th>
                 </tr>
               </thead>
               <tbody>
@@ -286,16 +286,16 @@ export default async function AddressDistributionOverviewPage() {
                   
                   return (
                     <tr key={tier.name} className="border-b border-[#2D2D45]/10 hover:bg-[#1A1A2E]/30 transition-colors">
-                      <td className="p-4">
+                      <td className="p-3">
                         <div className="flex items-center space-x-3">
                           <span className="text-xl">{tier.icon}</span>
-                          <span className="text-white font-medium">{tier.category}</span>
+                          <span className="text-white font-medium text-sm">{tier.category}</span>
                         </div>
                       </td>
-                      <td className="p-4">
+                      <td className="p-3">
                         <span className="text-[#A0A0B8] text-sm">{tier.range}</span>
                       </td>
-                      <td className="text-right p-4">
+                      <td className="text-right p-3">
                         <div className="relative">
                           {/* Background progress bar for % of addresses */}
                           <div className="absolute inset-0 bg-[#0F0F1A] rounded-md overflow-hidden">
@@ -305,34 +305,34 @@ export default async function AddressDistributionOverviewPage() {
                             />
                           </div>
                           {/* Address count text */}
-                          <div className="relative z-10 p-2">
-                            <span className="text-white font-medium">{formatNumber(tier.currentCount)}</span>
+                          <div className="relative z-10 px-3 py-2">
+                            <span className="text-white font-medium text-sm">{formatNumber(tier.currentCount)}</span>
                             <div className="text-xs text-[#6B7280]">{percentOfAddresses.toFixed(1)}%</div>
                           </div>
                         </div>
                       </td>
-                      <td className="text-right p-4">
-                        <span className="text-white font-medium">{formatKAS(tier.totalKAS)}</span>
+                      <td className="text-right p-3">
+                        <span className="text-white font-medium text-sm">{formatKAS(tier.totalKAS)}</span>
                       </td>
-                      <td className="text-right p-4">
+                      <td className="text-right p-3">
                         <div className="relative">
                           {/* Background progress bar for % of supply */}
                           <div className="absolute inset-0 bg-[#0F0F1A] rounded-md overflow-hidden">
                             <div 
-                              className={`h-full bg-gradient-to-r ${tier.color} transition-all duration-300`}
+                              className="h-full bg-gradient-to-r from-[#5B6CFF] to-[#6366F1] transition-all duration-300"
                               style={{ width: `${Math.min(percentOfSupply * 4, 100)}%` }}
                             />
                           </div>
                           {/* Percentage text */}
-                          <div className="relative z-10 p-2 flex items-center justify-end">
+                          <div className="relative z-10 px-3 py-2 flex items-center justify-end">
                             <span className="text-white font-medium text-sm">
                               {percentOfSupply.toFixed(2)}%
                             </span>
                           </div>
                         </div>
                       </td>
-                      <td className="text-right p-4">
-                        <span className="text-white font-medium">{formatCurrency(tier.totalUSD)}</span>
+                      <td className="text-right p-3">
+                        <span className="text-white font-medium text-sm">{formatCurrency(tier.totalUSD)}</span>
                       </td>
                     </tr>
                   )
