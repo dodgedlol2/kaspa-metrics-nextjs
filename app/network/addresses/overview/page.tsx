@@ -12,6 +12,11 @@ interface DistributionResponse {
   tiers: ApiTier[]
 }
 
+interface CoinSupplyResponse {
+  circulatingSupply: string
+  maxSupply: string
+}
+
 // Function to fetch distribution data from Kaspa API
 async function getDistributionData(): Promise<DistributionResponse | null> {
   try {
@@ -34,15 +39,42 @@ async function getDistributionData(): Promise<DistributionResponse | null> {
   }
 }
 
+// Function to fetch coin supply data
+async function getCoinSupplyData(): Promise<CoinSupplyResponse | null> {
+  try {
+    const response = await fetch('https://api.kaspa.org/info/coinsupply', {
+      headers: {
+        'accept': 'application/json'
+      },
+      next: { revalidate: 300 } // Cache for 5 minutes
+    })
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch coin supply data')
+    }
+    
+    const data: CoinSupplyResponse = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error fetching coin supply data:', error)
+    return null
+  }
+}
+
 export default async function AddressDistributionOverviewPage() {
-  // Fetch distribution data from API and price data
-  const [distributionData, priceData] = await Promise.all([
+  // Fetch distribution data from API, coin supply, and price data
+  const [distributionData, coinSupplyData, priceData] = await Promise.all([
     getDistributionData(),
+    getCoinSupplyData(),
     getPriceData()
   ])
 
   // Get current KAS price for USD calculations
   const currentPrice = priceData.length > 0 ? priceData[priceData.length - 1].value : 0.115
+
+  // Get circulating supply in KAS (convert from sompi)
+  const circulatingSupplyKAS = coinSupplyData ? 
+    parseInt(coinSupplyData.circulatingSupply) / 100000000 : 26000000000 // Fallback to ~26B
 
   // Map API tiers to our tier structure
   const tierMapping = [
@@ -69,7 +101,7 @@ export default async function AddressDistributionOverviewPage() {
       totalKAS: (apiTier?.amount || 0) / 100000000, // Convert from sompi to KAS
       totalUSD: ((apiTier?.amount || 0) / 100000000) * currentPrice
     }
-  }).filter(tier => tier.totalKAS > 0 || tier.currentCount > 0) // Only show tiers with data
+  }).filter(tier => tier.currentCount > 0) // Only show tiers with addresses
 
   // Calculate totals
   const totalAddresses = tierStats.reduce((sum, tier) => sum + tier.currentCount, 0)
@@ -175,7 +207,7 @@ export default async function AddressDistributionOverviewPage() {
               <div>
                 <p className="text-[#6B7280] text-sm font-medium">Total KAS Held</p>
                 <p className="text-2xl font-bold text-white mt-1">{formatKAS(totalKAS)}</p>
-                <p className="text-[#F59E0B] text-xs mt-1">Estimated</p>
+                <p className="text-[#F59E0B] text-xs mt-1">From Distribution</p>
               </div>
               <div className="w-12 h-12 bg-[#F59E0B]/10 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-[#F59E0B]" fill="currentColor" viewBox="0 0 24 24">
@@ -188,13 +220,13 @@ export default async function AddressDistributionOverviewPage() {
           <div className="bg-[#1A1A2E]/50 backdrop-blur-sm border border-[#2D2D45]/30 rounded-xl p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[#6B7280] text-sm font-medium">USD Value</p>
-                <p className="text-2xl font-bold text-white mt-1">{formatCurrency(totalUSD)}</p>
-                <p className="text-[#10B981] text-xs mt-1">@ ${currentPrice.toFixed(3)}</p>
+                <p className="text-[#6B7280] text-sm font-medium">Circulating Supply</p>
+                <p className="text-2xl font-bold text-white mt-1">{formatKAS(circulatingSupplyKAS)}</p>
+                <p className="text-[#10B981] text-xs mt-1">Live from API</p>
               </div>
               <div className="w-12 h-12 bg-[#10B981]/10 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-[#10B981]" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M7,15H9C9,16.08 10.37,17 12,17C13.63,17 15,16.08 15,15C15,13.9 13.96,13.5 11.76,12.97C9.64,12.44 7,11.78 7,9C7,7.21 8.47,5.69 10.5,5.18V3H13.5V5.18C15.53,5.69 17,7.21 17,9H15C15,7.92 13.63,7 12,7C10.37,7 9,7.92 9,9C9,10.1 10.04,10.5 12.24,11.03C14.36,11.56 17,12.22 17,15C17,16.79 15.53,18.31 13.5,18.82V21H10.5V18.82C8.47,18.31 7,16.79 7,15Z"/>
+                  <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6M12,8A4,4 0 0,0 8,12A4,4 0 0,0 12,16A4,4 0 0,0 16,12A4,4 0 0,0 12,8Z"/>
                 </svg>
               </div>
             </div>
@@ -241,7 +273,7 @@ export default async function AddressDistributionOverviewPage() {
               </thead>
               <tbody>
                 {tierStats.map((tier, index) => {
-                  const percentOfSupply = totalKAS > 0 ? (tier.totalKAS / (24000000000)) * 100 : 0 // 24B total supply
+                  const percentOfSupply = circulatingSupplyKAS > 0 ? (tier.totalKAS / circulatingSupplyKAS) * 100 : 0
                   const percentOfAddresses = totalAddresses > 0 ? (tier.currentCount / totalAddresses) * 100 : 0
                   
                   return (
@@ -269,7 +301,7 @@ export default async function AddressDistributionOverviewPage() {
                           <div className="w-16 h-2 bg-[#0F0F1A] rounded-full overflow-hidden">
                             <div 
                               className={`h-full bg-gradient-to-r ${tier.color} rounded-full transition-all duration-300`}
-                              style={{ width: `${Math.min(percentOfSupply * 4, 100)}%` }}
+                              style={{ width: `${Math.min(percentOfSupply * 10, 100)}%` }}
                             />
                           </div>
                           <span className="text-[#A0A0B8] text-sm w-12 text-right">
