@@ -1,4 +1,17 @@
-'use client'
+{/* Success Message */}
+          {!loading && !error && searchAddress && balanceHistory.length > 0 && (
+            <div className="mt-4 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <p className="text-green-400 text-sm">
+                  ✅ Successfully loaded {balanceHistory.length} balance changes from {transactionCount} transactions
+                </p>
+              </div>
+              <p className="text-green-300 text-xs mt-1">
+                Note: Limited to 500 most recent transactions due to API constraints
+              </p>
+            </div>
+          )}'use client'
 
 import { useState, useEffect } from 'react'
 import { Line } from 'react-chartjs-2'
@@ -159,51 +172,67 @@ export default function AddressHistoryPage() {
     }
   }
 
-  // Fetch transaction history
+  // Fetch transaction history with smart retry on limit errors
   const fetchTransactions = async (addr: string, limit = 500) => {
     addDebugInfo(`Starting transaction fetch for address: ${addr.substring(0, 20)}... (limit: ${limit})`)
     
-    try {
-      let response;
-      
+    const tryFetch = async (currentLimit: number): Promise<Transaction[]> => {
       try {
-        addDebugInfo('Attempting to use proxy API for transactions...')
-        const proxyUrl = `/api/kaspa/transactions/${encodeURIComponent(addr)}?limit=${limit}&resolve_previous_outpoints=light`
-        addDebugInfo(`Proxy Transaction URL: ${proxyUrl}`)
+        let response;
         
-        response = await fetch(proxyUrl, {
-          method: 'GET',
-          headers: {
-            'accept': 'application/json',
+        try {
+          addDebugInfo(`Attempting to use proxy API for transactions with limit ${currentLimit}...`)
+          const proxyUrl = `/api/kaspa/transactions/${encodeURIComponent(addr)}?limit=${currentLimit}&resolve_previous_outpoints=light`
+          addDebugInfo(`Proxy Transaction URL: ${proxyUrl}`)
+          
+          response = await fetch(proxyUrl, {
+            method: 'GET',
+            headers: {
+              'accept': 'application/json',
+            }
+          })
+          addDebugInfo(`Proxy Transaction Response status: ${response.status} ${response.statusText}`)
+        } catch (proxyError) {
+          addDebugInfo('Proxy API failed, trying direct API...')
+          const directUrl = `https://api.kaspa.org/addresses/${encodeURIComponent(addr)}/full-transactions-page?limit=${currentLimit}&resolve_previous_outpoints=light`
+          addDebugInfo(`Direct Transaction URL: ${directUrl}`)
+          
+          response = await fetch(directUrl, {
+            method: 'GET',
+            headers: {
+              'accept': 'application/json',
+            },
+            mode: 'cors',
+          })
+          addDebugInfo(`Direct Transaction Response status: ${response.status} ${response.statusText}`)
+        }
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          addDebugInfo(`Transaction Error response: ${errorText}`)
+          
+          // If it's a 422 error about limit being too high, try with a lower limit
+          if (response.status === 422 && errorText.includes('limit') && currentLimit > 100) {
+            const newLimit = Math.min(500, Math.floor(currentLimit * 0.8)) // Reduce by 20%
+            addDebugInfo(`Limit too high (${currentLimit}), retrying with ${newLimit}...`)
+            return await tryFetch(newLimit)
           }
-        })
-        addDebugInfo(`Proxy Transaction Response status: ${response.status} ${response.statusText}`)
-      } catch (proxyError) {
-        addDebugInfo('Proxy API failed, trying direct API...')
-        const directUrl = `https://api.kaspa.org/addresses/${encodeURIComponent(addr)}/full-transactions-page?limit=${limit}&resolve_previous_outpoints=light`
-        addDebugInfo(`Direct Transaction URL: ${directUrl}`)
-        
-        response = await fetch(directUrl, {
-          method: 'GET',
-          headers: {
-            'accept': 'application/json',
-          },
-          mode: 'cors',
-        })
-        addDebugInfo(`Direct Transaction Response status: ${response.status} ${response.statusText}`)
-      }
+          
+          throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`)
+        }
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        addDebugInfo(`Transaction Error response: ${errorText}`)
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`)
+        const data = await response.json()
+        addDebugInfo(`Transaction Success: Found ${data.length} transactions with limit ${currentLimit}`)
+        return data as Transaction[]
+      } catch (err: any) {
+        addDebugInfo(`Transaction Fetch Error with limit ${currentLimit}: ${err.message}`)
+        throw err
       }
+    }
 
-      const data = await response.json()
-      addDebugInfo(`Transaction Success: Found ${data.length} transactions`)
-      return data as Transaction[]
+    try {
+      return await tryFetch(Math.min(limit, 500)) // Ensure we never exceed 500
     } catch (err: any) {
-      addDebugInfo(`Transaction Fetch Error: ${err.message}`)
       if (err.name === 'TypeError' && err.message.includes('fetch')) {
         addDebugInfo('Network error detected - this might be a CORS issue')
       }
@@ -286,7 +315,7 @@ export default function AddressHistoryPage() {
       // Try to fetch UTXOs and transactions in parallel
       const [utxoData, txData] = await Promise.all([
         fetchUTXOs(address.trim()),
-        fetchTransactions(address.trim(), 1000)
+        fetchTransactions(address.trim(), 500) // Reduced from 1000 to 500 (API max limit)
       ])
 
       setUtxos(utxoData)
@@ -314,6 +343,8 @@ export default function AddressHistoryPage() {
         errorMessage += 'CORS error detected. This might require a backend proxy to access the Kaspa API.'
       } else if (err.message.includes('NetworkError') || err.message.includes('fetch')) {
         errorMessage += 'Network error - please check your internet connection and try again.'
+      } else if (err.message.includes('422')) {
+        errorMessage += 'Invalid request parameters. The address might be valid but the request format is incorrect.'
       } else if (err.message.includes('404')) {
         errorMessage += 'Address not found or has no transaction history.'
       } else if (err.message.includes('500')) {
@@ -526,12 +557,20 @@ export default function AddressHistoryPage() {
                 <p className="text-xs text-gray-400">
                   This information helps diagnose connection issues
                 </p>
-                <button
-                  onClick={() => setDebugInfo([])}
-                  className="text-xs text-gray-400 hover:text-gray-300 underline"
-                >
-                  Clear Debug Log
-                </button>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => navigator.clipboard.writeText(debugInfo.join('\n'))}
+                    className="text-xs text-gray-400 hover:text-gray-300 underline"
+                  >
+                    Copy Log
+                  </button>
+                  <button
+                    onClick={() => setDebugInfo([])}
+                    className="text-xs text-gray-400 hover:text-gray-300 underline"
+                  >
+                    Clear Debug Log
+                  </button>
+                </div>
               </div>
             </div>
           )}
