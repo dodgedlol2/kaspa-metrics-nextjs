@@ -1,17 +1,4 @@
-{/* Success Message */}
-          {!loading && !error && searchAddress && balanceHistory.length > 0 && (
-            <div className="mt-4 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <p className="text-green-400 text-sm">
-                  ✅ Successfully loaded {balanceHistory.length} balance changes from {transactionCount} transactions
-                </p>
-              </div>
-              <p className="text-green-300 text-xs mt-1">
-                Note: Limited to 500 most recent transactions due to API constraints
-              </p>
-            </div>
-          )}'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import { Line } from 'react-chartjs-2'
@@ -539,6 +526,21 @@ export default function AddressHistoryPage() {
             </div>
           )}
 
+          {/* Success Message */}
+          {!loading && !error && searchAddress && balanceHistory.length > 0 && (
+            <div className="mt-4 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <p className="text-green-400 text-sm">
+                  ✅ Successfully loaded {balanceHistory.length} balance changes from {transactionCount} transactions
+                </p>
+              </div>
+              <p className="text-green-300 text-xs mt-1">
+                Note: Limited to 500 most recent transactions due to API constraints
+              </p>
+            </div>
+          )}
+
           {/* Debug Information Panel */}
           {showDebug && debugInfo.length > 0 && (
             <div className="mt-4 p-4 bg-gray-800/50 border border-gray-600/30 rounded-lg">
@@ -615,7 +617,106 @@ export default function AddressHistoryPage() {
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 </div>
                 <p className="text-2xl font-bold text-white">
-                  {formatDisplay(currentBalance)} KAS
+                  {formatDisplay(totalSent)} KAS
+                </p>
+                <p className="text-xs text-[#6B7280] mt-1">
+                  {totalSent.toLocaleString()} KAS
+                </p>
+              </div>
+
+              <div className="bg-[#1A1A2E]/60 backdrop-blur-sm rounded-xl border border-[#2D2D45]/50 p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-[#A0A0B8]">Transactions</h3>
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                </div>
+                <p className="text-2xl font-bold text-white">
+                  {transactionCount.toLocaleString()}
+                </p>
+                <p className="text-xs text-[#6B7280] mt-1">
+                  Total transactions
+                </p>
+              </div>
+            </div>
+
+            {/* Address Display */}
+            <div className="bg-[#1A1A2E]/60 backdrop-blur-sm rounded-xl border border-[#2D2D45]/50 p-6 mb-8">
+              <h3 className="text-lg font-semibold text-white mb-3">Address</h3>
+              <div className="bg-[#0F0F1A] rounded-lg p-4 border border-[#2D2D45]/30">
+                <p className="text-[#A0A0B8] font-mono text-sm break-all">
+                  {searchAddress}
+                </p>
+              </div>
+            </div>
+
+            {/* Balance History Chart */}
+            {balanceHistory.length > 0 && (
+              <div className="bg-[#1A1A2E]/60 backdrop-blur-sm rounded-xl border border-[#2D2D45]/50 p-6 mb-8">
+                <h3 className="text-lg font-semibold text-white mb-6">Balance History</h3>
+                <div className="h-96">
+                  <Line data={chartData} options={chartOptions} />
+                </div>
+              </div>
+            )}
+
+            {/* Recent Transactions */}
+            {balanceHistory.length > 0 && (
+              <div className="bg-[#1A1A2E]/60 backdrop-blur-sm rounded-xl border border-[#2D2D45]/50 p-6">
+                <h3 className="text-lg font-semibold text-white mb-6">Recent Balance Changes</h3>
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {balanceHistory.slice(-10).reverse().map((point, index) => (
+                    <div key={point.txId} className="flex items-center justify-between p-4 bg-[#0F0F1A]/50 rounded-lg border border-[#2D2D45]/30">
+                      <div className="flex items-center space-x-4">
+                        <div className={`w-3 h-3 rounded-full ${
+                          point.type === 'received' ? 'bg-green-500' : 'bg-red-500'
+                        }`}></div>
+                        <div>
+                          <p className="text-white font-medium">
+                            {point.type === 'received' ? 'Received' : 'Sent'}
+                          </p>
+                          <p className="text-[#6B7280] text-sm font-mono">
+                            {point.txId.substring(0, 16)}...
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={`font-bold ${
+                          point.change > 0 ? 'text-green-400' : 'text-red-400'
+                        }`}>
+                          {point.change > 0 ? '+' : ''}{formatDisplay(point.change)} KAS
+                        </p>
+                        <p className="text-[#6B7280] text-sm">
+                          Balance: {formatDisplay(point.balance)} KAS
+                        </p>
+                        <p className="text-[#6B7280] text-xs">
+                          {new Date(point.timestamp).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* No Data Message */}
+            {!loading && balanceHistory.length === 0 && searchAddress && (
+              <div className="bg-[#1A1A2E]/60 backdrop-blur-sm rounded-xl border border-[#2D2D45]/50 p-12 text-center">
+                <div className="w-16 h-16 bg-[#2D2D45]/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">No Transaction History</h3>
+                <p className="text-[#A0A0B8]">
+                  This address has no transaction history or the transactions couldn't be loaded.
+                </p>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}(currentBalance)} KAS
                 </p>
                 <p className="text-xs text-[#6B7280] mt-1">
                   {currentBalance.toLocaleString()} KAS
@@ -626,19 +727,6 @@ export default function AddressHistoryPage() {
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-medium text-[#A0A0B8]">Total Received</h3>
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                </div>
-                <p className="text-2xl font-bold text-white">
-                  {formatDisplay(totalReceived)} KAS
-                </p>
-                <p className="text-xs text-[#6B7280] mt-1">
-                  {totalReceived.toLocaleString()} KAS
-                </p>
-              </div>
-
-              <div className="bg-[#1A1A2E]/60 backdrop-blur-sm rounded-xl border border-[#2D2D45]/50 p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-[#A0A0B8]">Total Sent</h3>
-                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
                 </div>
                 <p className="text-2xl font-bold text-white">
                   {formatDisplay(totalSent)} KAS
@@ -711,7 +799,7 @@ export default function AddressHistoryPage() {
                         <p className="text-[#6B7280] text-sm">
                           Balance: {formatDisplay(point.balance)} KAS
                         </p>
-                        <p className="text-[#6B7280] text-xs">
+                        <p className="text-xs text-[#6B7280]">
                           {new Date(point.timestamp).toLocaleDateString()}
                         </p>
                       </div>
