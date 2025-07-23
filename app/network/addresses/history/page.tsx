@@ -73,6 +73,8 @@ export default function AddressHistoryPage() {
   const [balanceHistory, setBalanceHistory] = useState<BalancePoint[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [debugInfo, setDebugInfo] = useState<string[]>([])
+  const [showDebug, setShowDebug] = useState(false)
   const [currentBalance, setCurrentBalance] = useState(0)
   const [totalReceived, setTotalReceived] = useState(0)
   const [totalSent, setTotalSent] = useState(0)
@@ -97,52 +99,114 @@ export default function AddressHistoryPage() {
     return kaspaRegex.test(addr)
   }
 
+  // Add debug logging function
+  const addDebugInfo = (message: string) => {
+    console.log('DEBUG:', message)
+    setDebugInfo(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`])
+  }
+
   // Fetch UTXOs for current balance
   const fetchUTXOs = async (addr: string) => {
+    addDebugInfo(`Starting UTXO fetch for address: ${addr.substring(0, 20)}...`)
+    
     try {
-      const response = await fetch('https://api.kaspa.org/addresses/utxos', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          addresses: [addr]
+      // Try proxy API first, then fallback to direct API
+      let response;
+      
+      try {
+        addDebugInfo('Attempting to use proxy API for UTXOs...')
+        response = await fetch('/api/kaspa/utxos', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            addresses: [addr]
+          })
         })
-      })
+        addDebugInfo(`Proxy UTXO Response status: ${response.status} ${response.statusText}`)
+      } catch (proxyError) {
+        addDebugInfo('Proxy API failed, trying direct API...')
+        response = await fetch('https://api.kaspa.org/addresses/utxos', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          mode: 'cors',
+          body: JSON.stringify({
+            addresses: [addr]
+          })
+        })
+        addDebugInfo(`Direct UTXO Response status: ${response.status} ${response.statusText}`)
+      }
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        const errorText = await response.text()
+        addDebugInfo(`UTXO Error response: ${errorText}`)
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`)
       }
 
       const data = await response.json()
+      addDebugInfo(`UTXO Success: Found ${data.length} UTXOs`)
       return data as UTXO[]
-    } catch (err) {
-      console.error('Error fetching UTXOs:', err)
+    } catch (err: any) {
+      addDebugInfo(`UTXO Fetch Error: ${err.message}`)
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        addDebugInfo('Network error detected - this might be a CORS issue')
+      }
       throw err
     }
   }
 
   // Fetch transaction history
   const fetchTransactions = async (addr: string, limit = 500) => {
+    addDebugInfo(`Starting transaction fetch for address: ${addr.substring(0, 20)}... (limit: ${limit})`)
+    
     try {
-      const response = await fetch(
-        `https://api.kaspa.org/addresses/${encodeURIComponent(addr)}/full-transactions-page?limit=${limit}&resolve_previous_outpoints=light`,
-        {
+      let response;
+      
+      try {
+        addDebugInfo('Attempting to use proxy API for transactions...')
+        const proxyUrl = `/api/kaspa/transactions/${encodeURIComponent(addr)}?limit=${limit}&resolve_previous_outpoints=light`
+        addDebugInfo(`Proxy Transaction URL: ${proxyUrl}`)
+        
+        response = await fetch(proxyUrl, {
           method: 'GET',
           headers: {
             'accept': 'application/json',
           }
-        }
-      )
+        })
+        addDebugInfo(`Proxy Transaction Response status: ${response.status} ${response.statusText}`)
+      } catch (proxyError) {
+        addDebugInfo('Proxy API failed, trying direct API...')
+        const directUrl = `https://api.kaspa.org/addresses/${encodeURIComponent(addr)}/full-transactions-page?limit=${limit}&resolve_previous_outpoints=light`
+        addDebugInfo(`Direct Transaction URL: ${directUrl}`)
+        
+        response = await fetch(directUrl, {
+          method: 'GET',
+          headers: {
+            'accept': 'application/json',
+          },
+          mode: 'cors',
+        })
+        addDebugInfo(`Direct Transaction Response status: ${response.status} ${response.statusText}`)
+      }
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        const errorText = await response.text()
+        addDebugInfo(`Transaction Error response: ${errorText}`)
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`)
       }
 
       const data = await response.json()
+      addDebugInfo(`Transaction Success: Found ${data.length} transactions`)
       return data as Transaction[]
-    } catch (err) {
-      console.error('Error fetching transactions:', err)
+    } catch (err: any) {
+      addDebugInfo(`Transaction Fetch Error: ${err.message}`)
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        addDebugInfo('Network error detected - this might be a CORS issue')
+      }
       throw err
     }
   }
@@ -212,10 +276,14 @@ export default function AddressHistoryPage() {
 
     setLoading(true)
     setError('')
+    setDebugInfo([]) // Clear previous debug info
     setSearchAddress(address.trim())
+    addDebugInfo('Starting address lookup process')
 
     try {
-      // Fetch UTXOs and transactions in parallel
+      addDebugInfo('Attempting to fetch address data...')
+      
+      // Try to fetch UTXOs and transactions in parallel
       const [utxoData, txData] = await Promise.all([
         fetchUTXOs(address.trim()),
         fetchTransactions(address.trim(), 1000)
@@ -230,14 +298,33 @@ export default function AddressHistoryPage() {
         sum + formatKAS(utxo.utxoEntry.amount), 0
       )
       setCurrentBalance(balance)
+      addDebugInfo(`Calculated balance: ${balance} KAS from ${utxoData.length} UTXOs`)
 
       // Calculate balance history
       const history = calculateBalanceHistory(txData, address.trim())
       setBalanceHistory(history)
+      addDebugInfo(`Generated balance history with ${history.length} points`)
 
-    } catch (err) {
-      setError('Failed to fetch address data. Please check the address and try again.')
-      console.error(err)
+      addDebugInfo('✅ Address lookup completed successfully!')
+
+    } catch (err: any) {
+      let errorMessage = 'Failed to fetch address data. '
+      
+      if (err.message.includes('CORS')) {
+        errorMessage += 'CORS error detected. This might require a backend proxy to access the Kaspa API.'
+      } else if (err.message.includes('NetworkError') || err.message.includes('fetch')) {
+        errorMessage += 'Network error - please check your internet connection and try again.'
+      } else if (err.message.includes('404')) {
+        errorMessage += 'Address not found or has no transaction history.'
+      } else if (err.message.includes('500')) {
+        errorMessage += 'Server error - the Kaspa API might be temporarily unavailable.'
+      } else {
+        errorMessage += 'Please check the address and try again.'
+      }
+      
+      setError(errorMessage)
+      addDebugInfo(`❌ Error: ${err.message}`)
+      console.error('Address lookup error:', err)
     } finally {
       setLoading(false)
     }
@@ -396,9 +483,87 @@ export default function AddressHistoryPage() {
           {error && (
             <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
               <p className="text-red-400 text-sm">{error}</p>
+              
+              {/* Troubleshooting suggestions */}
+              <div className="mt-3 pt-3 border-t border-red-500/20">
+                <p className="text-red-300 text-xs font-medium mb-2">Troubleshooting suggestions:</p>
+                <ul className="text-red-200 text-xs space-y-1 list-disc list-inside">
+                  <li>Check if the address format is correct (starts with "kaspa:")</li>
+                  <li>Verify the address exists and has transaction history</li>
+                  <li>Try refreshing the page and searching again</li>
+                  <li>Check your internet connection</li>
+                  {error.includes('CORS') && (
+                    <li className="text-yellow-300">CORS issue detected - this requires backend proxy setup</li>
+                  )}
+                </ul>
+              </div>
+              
+              {/* Debug toggle button */}
+              <button
+                onClick={() => setShowDebug(!showDebug)}
+                className="mt-3 text-xs text-red-300 hover:text-red-200 underline"
+              >
+                {showDebug ? 'Hide' : 'Show'} Debug Information
+              </button>
+            </div>
+          )}
+
+          {/* Debug Information Panel */}
+          {showDebug && debugInfo.length > 0 && (
+            <div className="mt-4 p-4 bg-gray-800/50 border border-gray-600/30 rounded-lg">
+              <h4 className="text-sm font-medium text-gray-300 mb-3 flex items-center">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Debug Information
+              </h4>
+              <div className="bg-black/50 rounded-md p-3 max-h-40 overflow-y-auto">
+                <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono">
+                  {debugInfo.join('\n')}
+                </pre>
+              </div>
+              <div className="mt-2 flex justify-between items-center">
+                <p className="text-xs text-gray-400">
+                  This information helps diagnose connection issues
+                </p>
+                <button
+                  onClick={() => setDebugInfo([])}
+                  className="text-xs text-gray-400 hover:text-gray-300 underline"
+                >
+                  Clear Debug Log
+                </button>
+              </div>
             </div>
           )}
         </div>
+
+        {/* CORS Warning Banner */}
+        {!loading && error.includes('CORS') && (
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6 mb-8">
+            <div className="flex items-start space-x-3">
+              <div className="w-6 h-6 bg-yellow-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg className="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-yellow-300 mb-2">CORS Issue Detected</h3>
+                <p className="text-yellow-100 text-sm mb-3">
+                  The browser is blocking direct access to the Kaspa API due to CORS (Cross-Origin Resource Sharing) restrictions. 
+                  This is a security feature that prevents websites from making unauthorized requests to external APIs.
+                </p>
+                <div className="bg-yellow-500/5 rounded-lg p-4 border border-yellow-500/20">
+                  <h4 className="text-yellow-200 font-medium text-sm mb-2">Solutions:</h4>
+                  <ul className="text-yellow-100 text-sm space-y-1 list-disc list-inside">
+                    <li><strong>Backend Proxy:</strong> Create an API route in your Next.js app to proxy requests to Kaspa API</li>
+                    <li><strong>Server-Side Rendering:</strong> Fetch data on the server side instead of client side</li>
+                    <li><strong>Browser Extension:</strong> Use a CORS browser extension for development (not recommended for production)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Results Section */}
         {searchAddress && !loading && (
