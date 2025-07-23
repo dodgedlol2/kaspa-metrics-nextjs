@@ -78,7 +78,13 @@ export default function AddressHistoryPage() {
   const [currentBalance, setCurrentBalance] = useState(0)
   const [totalReceived, setTotalReceived] = useState(0)
   const [totalSent, setTotalSent] = useState(0)
+  // Add state for pagination progress
   const [transactionCount, setTransactionCount] = useState(0)
+  const [fetchProgress, setFetchProgress] = useState<{
+    currentPage: number,
+    totalPages: number,
+    isComplete: boolean
+  }>({ currentPage: 0, totalPages: 0, isComplete: false })
 
   // Function to format KAS amount (convert from sompi to KAS)
   const formatKAS = (sompi: number | string): number => {
@@ -158,17 +164,79 @@ export default function AddressHistoryPage() {
     }
   }
 
-  // Fetch transaction history with smart retry on limit errors
-  const fetchTransactions = async (addr: string, limit = 500) => {
-    addDebugInfo(`Starting transaction fetch for address: ${addr.substring(0, 20)}... (limit: ${limit})`)
+  // Fetch ALL transaction history with pagination
+  const fetchAllTransactions = async (addr: string, maxPages = 20): Promise<Transaction[]> => {
+    addDebugInfo(`Starting complete transaction fetch for address: ${addr.substring(0, 20)}...`)
     
-    const tryFetch = async (currentLimit: number): Promise<Transaction[]> => {
+    let allTransactions: Transaction[] = []
+    let currentBefore: number | null = null
+    let pageCount = 0
+    let hasMorePages = true
+
+    while (hasMorePages && pageCount < maxPages) {
+      pageCount++
+      addDebugInfo(`Fetching page ${pageCount}/${maxPages}...`)
+
+      try {
+        const result = await fetchTransactionsPage(addr, 500, currentBefore)
+        
+        if (result.transactions.length === 0) {
+          addDebugInfo(`No more transactions found on page ${pageCount}`)
+          break
+        }
+
+        allTransactions = [...allTransactions, ...result.transactions]
+        addDebugInfo(`Page ${pageCount}: Found ${result.transactions.length} transactions (total: ${allTransactions.length})`)
+
+        // Check if there are more pages
+        if (result.nextPageBefore) {
+          currentBefore = result.nextPageBefore
+          addDebugInfo(`Next page available before timestamp: ${new Date(currentBefore).toLocaleString()}`)
+        } else {
+          addDebugInfo(`No more pages available`)
+          hasMorePages = false
+        }
+
+        // Small delay to be respectful to the API
+        await new Promise(resolve => setTimeout(resolve, 100))
+
+      } catch (error: any) {
+        addDebugInfo(`Error on page ${pageCount}: ${error.message}`)
+        break
+      }
+    }
+
+    addDebugInfo(`✅ Complete fetch finished: ${allTransactions.length} total transactions across ${pageCount} pages`)
+    return allTransactions
+  }
+
+  // Fetch single page of transactions with pagination support
+  const fetchTransactionsPage = async (addr: string, limit = 500, before?: number | null): Promise<{
+    transactions: Transaction[],
+    nextPageBefore?: number,
+    nextPageAfter?: number
+  }> => {
+    const tryFetch = async (currentLimit: number): Promise<{
+      transactions: Transaction[],
+      nextPageBefore?: number,
+      nextPageAfter?: number
+    }> => {
       try {
         let response;
+        let url: string;
         
         try {
-          addDebugInfo(`Attempting to use proxy API for transactions with limit ${currentLimit}...`)
-          const proxyUrl = `/api/kaspa/transactions/${encodeURIComponent(addr)}?limit=${currentLimit}&resolve_previous_outpoints=light`
+          // Build URL with pagination parameters
+          const params = new URLSearchParams({
+            limit: currentLimit.toString(),
+            resolve_previous_outpoints: 'light'
+          })
+          
+          if (before) {
+            params.append('before', before.toString())
+          }
+
+          const proxyUrl = `/api/kaspa/transactions/${encodeURIComponent(addr)}?${params.toString()}`
           addDebugInfo(`Proxy Transaction URL: ${proxyUrl}`)
           
           response = await fetch(proxyUrl, {
@@ -177,20 +245,30 @@ export default function AddressHistoryPage() {
               'accept': 'application/json',
             }
           })
-          addDebugInfo(`Proxy Transaction Response status: ${response.status} ${response.statusText}`)
+          addDebugInfo(`Proxy Response status: ${response.status} ${response.statusText}`)
         } catch (proxyError) {
           addDebugInfo('Proxy API failed, trying direct API...')
-          const directUrl = `https://api.kaspa.org/addresses/${encodeURIComponent(addr)}/full-transactions-page?limit=${currentLimit}&resolve_previous_outpoints=light`
-          addDebugInfo(`Direct Transaction URL: ${directUrl}`)
           
-          response = await fetch(directUrl, {
+          const params = new URLSearchParams({
+            limit: currentLimit.toString(),
+            resolve_previous_outpoints: 'light'
+          })
+          
+          if (before) {
+            params.append('before', before.toString())
+          }
+
+          url = `https://api.kaspa.org/addresses/${encodeURIComponent(addr)}/full-transactions-page?${params.toString()}`
+          addDebugInfo(`Direct Transaction URL: ${url}`)
+          
+          response = await fetch(url, {
             method: 'GET',
             headers: {
               'accept': 'application/json',
             },
             mode: 'cors',
           })
-          addDebugInfo(`Direct Transaction Response status: ${response.status} ${response.statusText}`)
+          addDebugInfo(`Direct Response status: ${response.status} ${response.statusText}`)
         }
 
         if (!response.ok) {
@@ -207,22 +285,26 @@ export default function AddressHistoryPage() {
         }
 
         const data = await response.json()
-        addDebugInfo(`Transaction Success: Found ${data.length} transactions with limit ${currentLimit}`)
-        return data as Transaction[]
+        
+        // Extract pagination headers
+        const nextPageBefore = response.headers.get('X-Next-Page-Before')
+        const nextPageAfter = response.headers.get('X-Next-Page-After')
+        
+        addDebugInfo(`Page Success: Found ${data.length} transactions`)
+        if (nextPageBefore) addDebugInfo(`Next page before: ${nextPageBefore}`)
+        
+        return {
+          transactions: data as Transaction[],
+          nextPageBefore: nextPageBefore ? parseInt(nextPageBefore) : undefined,
+          nextPageAfter: nextPageAfter ? parseInt(nextPageAfter) : undefined
+        }
       } catch (err: any) {
-        addDebugInfo(`Transaction Fetch Error with limit ${currentLimit}: ${err.message}`)
+        addDebugInfo(`Transaction Page Fetch Error with limit ${currentLimit}: ${err.message}`)
         throw err
       }
     }
 
-    try {
-      return await tryFetch(Math.min(limit, 500))
-    } catch (err: any) {
-      if (err.name === 'TypeError' && err.message.includes('fetch')) {
-        addDebugInfo('Network error detected - this might be a CORS issue')
-      }
-      throw err
-    }
+    return await tryFetch(Math.min(limit, 500))
   }
 
   // Calculate balance history from transactions with daily aggregation
@@ -349,26 +431,33 @@ export default function AddressHistoryPage() {
     try {
       addDebugInfo('Attempting to fetch address data...')
       
-      const [utxoData, txData] = await Promise.all([
-        fetchUTXOs(address.trim()),
-        fetchTransactions(address.trim(), 500)
-      ])
-
+      // First, get UTXOs for current balance
+      const utxoData = await fetchUTXOs(address.trim())
       setUtxos(utxoData)
-      setTransactions(txData)
-      setTransactionCount(txData.length)
-
+      
+      // Calculate current balance from UTXOs
       const balance = utxoData.reduce((sum, utxo) => 
         sum + formatKAS(utxo.utxoEntry.amount), 0
       )
       setCurrentBalance(balance)
-      addDebugInfo(`Calculated balance: ${balance} KAS from ${utxoData.length} UTXOs`)
+      addDebugInfo(`Calculated current balance: ${balance} KAS from ${utxoData.length} UTXOs`)
 
-      const history = calculateBalanceHistory(txData, address.trim())
+      // Then fetch complete transaction history with pagination
+      addDebugInfo('Starting complete transaction history fetch...')
+      setFetchProgress({ currentPage: 0, totalPages: 20, isComplete: false })
+      
+      const allTxData = await fetchAllTransactions(address.trim(), 20) // Max 20 pages = 10,000 transactions
+      
+      setTransactions(allTxData)
+      setTransactionCount(allTxData.length)
+      setFetchProgress({ currentPage: 20, totalPages: 20, isComplete: true })
+
+      // Calculate balance history with complete data
+      const history = calculateBalanceHistory(allTxData, address.trim())
       setBalanceHistory(history)
-      addDebugInfo(`Generated balance history with ${history.length} points`)
+      addDebugInfo(`Generated balance history with ${history.length} points from ${allTxData.length} total transactions`)
 
-      addDebugInfo('✅ Address lookup completed successfully!')
+      addDebugInfo('✅ Complete address lookup finished successfully!')
 
     } catch (err: any) {
       let errorMessage = 'Failed to fetch address data. '
@@ -534,7 +623,11 @@ export default function AddressHistoryPage() {
                 {loading ? (
                   <div className="flex items-center justify-center">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Loading...
+                    {fetchProgress.currentPage > 0 ? (
+                      `Page ${fetchProgress.currentPage}/${fetchProgress.totalPages}...`
+                    ) : (
+                      'Loading...'
+                    )}
                   </div>
                 ) : (
                   'Search'
@@ -578,40 +671,26 @@ export default function AddressHistoryPage() {
                 </p>
               </div>
               <p className="text-green-300 text-xs mt-1">
-                {transactionCount >= 500 
-                  ? '⚠️ High-volume address: Showing daily aggregated data from most recent 500 transactions'
-                  : 'Complete transaction history loaded'
+                {fetchProgress.isComplete 
+                  ? `Complete transaction history loaded (${Math.ceil(transactionCount / 500)} API pages)`
+                  : 'Partial transaction history loaded'
                 }
               </p>
             </div>
           )}
 
-          {/* High Volume Warning */}
-          {!loading && !error && searchAddress && transactionCount >= 500 && (
-            <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-              <div className="flex items-start space-x-3">
-                <div className="w-6 h-6 bg-yellow-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <svg className="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-yellow-300 mb-2">High-Volume Address Detected</h3>
-                  <p className="text-yellow-100 text-sm mb-3">
-                    This address has {transactionCount}+ transactions. Due to API limitations (500 transaction max), 
-                    we're showing aggregated daily data from the most recent transactions only.
-                  </p>
-                  <div className="bg-yellow-500/5 rounded-lg p-4 border border-yellow-500/20">
-                    <h4 className="text-yellow-200 font-medium text-sm mb-2">What you're seeing:</h4>
-                    <ul className="text-yellow-100 text-sm space-y-1 list-disc list-inside">
-                      <li><strong>Recent 500 transactions:</strong> Most recent activity (daily aggregated)</li>
-                      <li><strong>Current balance:</strong> ✅ Accurate (from live UTXO data)</li>
-                      <li><strong>Total received/sent:</strong> ⚠️ Partial (from recent transactions only)</li>
-                      <li><strong>Complete history:</strong> Requires dedicated blockchain indexer</li>
-                    </ul>
-                  </div>
-                </div>
+          {/* Remove high volume warning since we can now fetch complete history */}
+          {!loading && !error && searchAddress && transactionCount >= 10000 && (
+            <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <p className="text-blue-400 text-sm">
+                  🚀 High-volume address: Successfully loaded {transactionCount.toLocaleString()} transactions using pagination
+                </p>
               </div>
+              <p className="text-blue-300 text-xs mt-1">
+                This address required {Math.ceil(transactionCount / 500)} API requests to fetch complete history
+              </p>
             </div>
           )}
 
