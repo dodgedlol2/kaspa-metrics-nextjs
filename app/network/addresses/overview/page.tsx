@@ -270,13 +270,13 @@ export default async function AddressDistributionOverviewPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#2D2D45]/50 bg-[#0F0F1A]/50">
-                  <th className="text-left p-3 text-white text-sm font-semibold">Category</th>
-                  <th className="text-left p-3 text-white text-sm font-semibold">Balance Range</th>
-                  <th className="text-right p-3 text-white text-sm font-semibold">Addresses</th>
-                  <th className="text-right p-3 text-white text-sm font-semibold">Total KAS</th>
-                  <th className="text-right p-3 text-white text-sm font-semibold">% of Supply</th>
-                  <th className="text-right p-3 text-white text-sm font-semibold">USD Value</th>
+                <tr className="border-b border-[#2D2D45]/30">
+                  <th className="text-left p-2 text-[#6B7280] text-xs font-medium">Category</th>
+                  <th className="text-left p-2 text-[#6B7280] text-xs font-medium">Balance Range</th>
+                  <th className="text-right p-2 text-[#6B7280] text-xs font-medium">Addresses</th>
+                  <th className="text-right p-2 text-[#6B7280] text-xs font-medium">Total KAS</th>
+                  <th className="text-right p-2 text-[#6B7280] text-xs font-medium">% of Supply</th>
+                  <th className="text-right p-2 text-[#6B7280] text-xs font-medium">USD Value</th>
                 </tr>
               </thead>
               <tbody>
@@ -297,10 +297,10 @@ export default async function AddressDistributionOverviewPage() {
                       </td>
                       <td className="text-right p-2">
                         <div className="relative">
-                          {/* Background progress bar for % of addresses - Now using same colors as supply */}
+                          {/* Background progress bar for % of addresses */}
                           <div className="absolute inset-0 bg-[#0F0F1A] rounded-md overflow-hidden">
                             <div 
-                              className="h-full bg-gradient-to-r from-[#5B6CFF] to-[#6366F1] transition-all duration-300"
+                              className="h-full bg-gradient-to-r from-[#1A1A2E] to-[#2D2D45] transition-all duration-300"
                               style={{ width: `${Math.min(percentOfAddresses * 3, 100)}%` }}
                             />
                           </div>
