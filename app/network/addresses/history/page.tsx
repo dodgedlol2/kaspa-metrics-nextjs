@@ -225,48 +225,103 @@ export default function AddressHistoryPage() {
     }
   }
 
-  // Calculate balance history from transactions
+  // Calculate balance history from transactions with daily aggregation
   const calculateBalanceHistory = (txs: Transaction[], targetAddress: string): BalancePoint[] => {
     const points: BalancePoint[] = []
     let runningBalance = 0
     let totalRec = 0
     let totalSnt = 0
 
+    // Sort transactions by time (oldest first)
     const sortedTxs = [...txs].sort((a, b) => a.accepting_block_time - b.accepting_block_time)
 
-    sortedTxs.forEach(tx => {
-      let txChange = 0
-      let type: 'received' | 'sent' = 'received'
+    // For high-volume addresses (500 transactions = API limit), aggregate by day
+    if (sortedTxs.length >= 500) {
+      addDebugInfo('⚠️ High-volume address detected - aggregating by day for better performance')
+      
+      // Group transactions by day
+      const dailyGroups = new Map<string, Transaction[]>()
+      
+      sortedTxs.forEach(tx => {
+        const date = new Date(tx.accepting_block_time).toDateString()
+        if (!dailyGroups.has(date)) {
+          dailyGroups.set(date, [])
+        }
+        dailyGroups.get(date)!.push(tx)
+      })
 
-      const received = tx.outputs
-        .filter(output => output.script_public_key_address === targetAddress)
-        .reduce((sum, output) => sum + formatKAS(output.amount), 0)
+      // Process each day
+      Array.from(dailyGroups.entries())
+        .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
+        .forEach(([date, dayTxs]) => {
+          let dayChange = 0
+          let dayReceived = 0
+          let daySent = 0
 
-      const sent = tx.inputs
-        .filter(input => input.previous_outpoint_address === targetAddress)
-        .reduce((sum, input) => sum + formatKAS(input.previous_outpoint_amount || 0), 0)
+          dayTxs.forEach(tx => {
+            const received = tx.outputs
+              .filter(output => output.script_public_key_address === targetAddress)
+              .reduce((sum, output) => sum + formatKAS(output.amount), 0)
 
-      txChange = received - sent
+            const sent = tx.inputs
+              .filter(input => input.previous_outpoint_address === targetAddress)
+              .reduce((sum, input) => sum + formatKAS(input.previous_outpoint_amount || 0), 0)
 
-      if (txChange > 0) {
-        type = 'received'
-        totalRec += received
-      } else if (txChange < 0) {
-        type = 'sent'
-        totalSnt += Math.abs(sent)
-      }
+            dayReceived += received
+            daySent += sent
+            dayChange += (received - sent)
+          })
 
-      if (txChange !== 0) {
-        runningBalance += txChange
-        points.push({
-          timestamp: tx.accepting_block_time,
-          balance: runningBalance,
-          change: txChange,
-          txId: tx.transaction_id,
-          type
+          totalRec += dayReceived
+          totalSnt += daySent
+
+          if (dayChange !== 0) {
+            runningBalance += dayChange
+            points.push({
+              timestamp: new Date(date).getTime(),
+              balance: runningBalance,
+              change: dayChange,
+              txId: `${dayTxs.length} transactions on ${date}`,
+              type: dayChange > 0 ? 'received' : 'sent'
+            })
+          }
         })
-      }
-    })
+    } else {
+      // Normal processing for addresses with < 500 transactions
+      sortedTxs.forEach(tx => {
+        let txChange = 0
+        let type: 'received' | 'sent' = 'received'
+
+        const received = tx.outputs
+          .filter(output => output.script_public_key_address === targetAddress)
+          .reduce((sum, output) => sum + formatKAS(output.amount), 0)
+
+        const sent = tx.inputs
+          .filter(input => input.previous_outpoint_address === targetAddress)
+          .reduce((sum, input) => sum + formatKAS(input.previous_outpoint_amount || 0), 0)
+
+        txChange = received - sent
+
+        if (txChange > 0) {
+          type = 'received'
+          totalRec += received
+        } else if (txChange < 0) {
+          type = 'sent'
+          totalSnt += Math.abs(sent)
+        }
+
+        if (txChange !== 0) {
+          runningBalance += txChange
+          points.push({
+            timestamp: tx.accepting_block_time,
+            balance: runningBalance,
+            change: txChange,
+            txId: tx.transaction_id,
+            type
+          })
+        }
+      })
+    }
 
     setTotalReceived(totalRec)
     setTotalSent(totalSnt)
@@ -523,8 +578,40 @@ export default function AddressHistoryPage() {
                 </p>
               </div>
               <p className="text-green-300 text-xs mt-1">
-                Note: Limited to 500 most recent transactions due to API constraints
+                {transactionCount >= 500 
+                  ? '⚠️ High-volume address: Showing daily aggregated data from most recent 500 transactions'
+                  : 'Complete transaction history loaded'
+                }
               </p>
+            </div>
+          )}
+
+          {/* High Volume Warning */}
+          {!loading && !error && searchAddress && transactionCount >= 500 && (
+            <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+              <div className="flex items-start space-x-3">
+                <div className="w-6 h-6 bg-yellow-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg className="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-yellow-300 mb-2">High-Volume Address Detected</h3>
+                  <p className="text-yellow-100 text-sm mb-3">
+                    This address has {transactionCount}+ transactions. Due to API limitations (500 transaction max), 
+                    we're showing aggregated daily data from the most recent transactions only.
+                  </p>
+                  <div className="bg-yellow-500/5 rounded-lg p-4 border border-yellow-500/20">
+                    <h4 className="text-yellow-200 font-medium text-sm mb-2">What you're seeing:</h4>
+                    <ul className="text-yellow-100 text-sm space-y-1 list-disc list-inside">
+                      <li><strong>Recent 500 transactions:</strong> Most recent activity (daily aggregated)</li>
+                      <li><strong>Current balance:</strong> ✅ Accurate (from live UTXO data)</li>
+                      <li><strong>Total received/sent:</strong> ⚠️ Partial (from recent transactions only)</li>
+                      <li><strong>Complete history:</strong> Requires dedicated blockchain indexer</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -631,16 +718,30 @@ export default function AddressHistoryPage() {
 
             {balanceHistory.length > 0 && (
               <div className="bg-[#1A1A2E]/60 backdrop-blur-sm rounded-xl border border-[#2D2D45]/50 p-6 mb-8">
-                <h3 className="text-lg font-semibold text-white mb-6">Balance History</h3>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-white">Balance History</h3>
+                  {transactionCount >= 500 && (
+                    <span className="px-3 py-1 text-xs bg-yellow-500/20 text-yellow-300 rounded-full border border-yellow-500/30">
+                      Daily Aggregated
+                    </span>
+                  )}
+                </div>
                 <div className="h-96">
                   <Line data={chartData} options={chartOptions} />
                 </div>
+                {transactionCount >= 500 && (
+                  <p className="text-xs text-[#6B7280] mt-3 text-center">
+                    Chart shows daily net balance changes due to high transaction volume
+                  </p>
+                )}
               </div>
             )}
 
             {balanceHistory.length > 0 && (
               <div className="bg-[#1A1A2E]/60 backdrop-blur-sm rounded-xl border border-[#2D2D45]/50 p-6">
-                <h3 className="text-lg font-semibold text-white mb-6">Recent Balance Changes</h3>
+                <h3 className="text-lg font-semibold text-white mb-6">
+                  {transactionCount >= 500 ? 'Recent Daily Changes' : 'Recent Balance Changes'}
+                </h3>
                 <div className="space-y-4 max-h-96 overflow-y-auto">
                   {balanceHistory.slice(-10).reverse().map((point, index) => (
                     <div key={point.txId} className="flex items-center justify-between p-4 bg-[#0F0F1A]/50 rounded-lg border border-[#2D2D45]/30">
@@ -650,10 +751,16 @@ export default function AddressHistoryPage() {
                         }`}></div>
                         <div>
                           <p className="text-white font-medium">
-                            {point.type === 'received' ? 'Received' : 'Sent'}
+                            {transactionCount >= 500 
+                              ? (point.change > 0 ? 'Net Received' : 'Net Sent')
+                              : (point.type === 'received' ? 'Received' : 'Sent')
+                            }
                           </p>
                           <p className="text-[#6B7280] text-sm font-mono">
-                            {point.txId.substring(0, 16)}...
+                            {transactionCount >= 500 
+                              ? point.txId
+                              : `${point.txId.substring(0, 16)}...`
+                            }
                           </p>
                         </div>
                       </div>
@@ -673,6 +780,11 @@ export default function AddressHistoryPage() {
                     </div>
                   ))}
                 </div>
+                {transactionCount >= 500 && (
+                  <p className="text-xs text-[#6B7280] mt-4 text-center">
+                    Showing daily aggregated changes from recent transactions
+                  </p>
+                )}
               </div>
             )}
 
