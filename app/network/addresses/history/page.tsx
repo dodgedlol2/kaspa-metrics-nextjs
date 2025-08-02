@@ -99,7 +99,7 @@ export default function AddressHistoryPage() {
     return kas.toFixed(2)
   }
 
-  // Validate Kaspa address format
+  // Validate Kaspa address formatt
   const isValidKaspaAddress = (addr: string): boolean => {
     const kaspaRegex = /^kaspa:[a-z0-9]{61,63}$/
     return kaspaRegex.test(addr)
