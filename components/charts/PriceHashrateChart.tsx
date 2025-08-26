@@ -91,7 +91,7 @@ export default function PriceHashrateChart({ priceData, hashrateData, className 
     return merged.sort((a, b) => a.date.getTime() - b.date.getTime())
   }, [priceData, hashrateData])
 
-  // Filter data based on time period for display only1
+  // Filter data based on time period for display only12
   const filteredAnalysisData = useMemo(() => {
     if (timePeriod === 'All' || analysisData.length === 0) return analysisData
     
