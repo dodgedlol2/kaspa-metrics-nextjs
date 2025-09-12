@@ -450,7 +450,7 @@ export default function PriceChart({ data, height = 600 }: PriceChartProps) {
       yMinorTicks = minorTicks
     }
 
-    // Create base layout2
+    // Create base layout
     const layout: any = {
       height: height,
       plot_bgcolor: 'rgba(0,0,0,0)',
