@@ -62,7 +62,7 @@ function fitPowerLaw(data: KaspaMetric[]) {
   return { a, b, r2 }
 }
 
-// Calculate ATH (All-Time High) data
+// Calculate ATH (All-Time High) data 2
 function calculateATH(data: KaspaMetric[]) {
   if (data.length === 0) return null
   
