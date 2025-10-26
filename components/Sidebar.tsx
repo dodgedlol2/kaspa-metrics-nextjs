@@ -69,6 +69,15 @@ const navigation = [
         )
       },
       {
+        name: 'Open Interest',
+        href: '/market/openinterest',
+        icon: (
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M11,16V12.5C11,11.9 11.4,11.5 12,11.5S13,11.9 13,12.5V16C13,16.6 12.6,17 12,17S11,16.6 11,16M12,10A1,1 0 0,1 11,9A1,1 0 0,1 12,8A1,1 0 0,1 13,9A1,1 0 0,1 12,10Z"/>
+          </svg>
+        )
+      },
+      {
         name: 'Volume',
         href: '/market/volume',
         icon: (
@@ -181,31 +190,31 @@ const navigation = [
             name: 'Address History',
             href: '/network/addresses/history',
             icon: (
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M13.5,8H12V13L16.28,15.54L17,14.33L13.5,12.25V8M13,3A9,9 0 0,0 4,12H1L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3Z"/>
+              <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
               </svg>
             )
           },
           {
-            name: 'Distribution Overview',
-            href: '/network/addresses/overview',
-            icon: (
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M19,3H5C3.89,3 3,3.9 3,5V19C3,20.1 3.89,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M19,19H5V5H19V19M7,10H9V16H7V10M11,7H13V16H11V7M15,13H17V16H15V13Z"/>
-              </svg>
-            )
-          },
-          {
-            name: 'Distribution by Balance',
+            name: 'Address Distribution',
             icon: (
               <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M7,15H9C9,16.08 10.37,17 12,17C13.63,17 15,16.08 15,15C15,13.9 13.96,13.5 11.76,12.97C9.64,12.44 7,11.78 7,9C7,7.21 8.47,5.69 10.5,5.18V3H13.5V5.18C15.53,5.69 17,7.21 17,9H15C15,7.92 13.63,7 12,7C10.37,7 9,7.92 9,9C9,10.1 10.04,10.5 12.24,11.03C14.36,11.56 17,12.22 17,15C17,16.79 15.53,18.31 13.5,18.82V21H10.5V18.82C8.47,18.31 7,16.79 7,15Z"/>
+                <path d="M5,4H19A2,2 0 0,1 21,6V18A2,2 0 0,1 19,20H5A2,2 0 0,1 3,18V6A2,2 0 0,1 5,4M5,8V12H11V8H5M13,8V12H19V8H13M5,14V18H11V14H5M13,14V18H19V14H13Z"/>
               </svg>
             ),
             children: [
               {
-                name: '0-1K KAS',
-                href: '/network/addresses/distribution/0-1k',
+                name: '1-100 KAS',
+                href: '/network/addresses/distribution/1-100',
+                icon: (
+                  <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z"/>
+                  </svg>
+                )
+              },
+              {
+                name: '100-1K KAS',
+                href: '/network/addresses/distribution/100-1k',
                 icon: (
                   <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z"/>
