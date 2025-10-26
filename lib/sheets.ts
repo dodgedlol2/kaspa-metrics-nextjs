@@ -229,7 +229,7 @@ export async function getOpenInterestData(): Promise<KaspaMetric[]> {
           timestamp: new Date(date).getTime()
         }
       })
-      .filter(item => item !== null && !isNaN(item.value) && item.value > 0)
+      .filter((item): item is KaspaMetric => item !== null && !isNaN(item.value) && item.value > 0)
       .sort((a, b) => a.timestamp - b.timestamp)
   } catch (error) {
     console.error('Error fetching open interest data:', error)
