@@ -301,7 +301,7 @@ export default function ThreeDPowerLawOscillator({
         },
         hoverinfo: 'skip'
       }
-    ]
+    ] as any[]
   }, [filteredData])
 
   const layout = {
