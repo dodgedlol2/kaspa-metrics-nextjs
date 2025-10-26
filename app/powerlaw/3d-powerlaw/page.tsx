@@ -3,7 +3,7 @@ import PriceHashrateVolume3DChart from '@/components/charts/PriceHashrateVolume3
 import { getPriceData, getHashrateData, getVolumeData } from '@/lib/sheets'
 
 export default async function ThreeDPowerLawPage() {
-  // Fetch real data from Google Sheets server-side
+  // Fetch real data from Google Sheets server-side 1
   const [priceData, hashrateData, volumeData] = await Promise.all([
     getPriceData(),
     getHashrateData(),
