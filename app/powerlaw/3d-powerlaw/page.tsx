@@ -1,7 +1,6 @@
 import React from 'react'
 import PriceHashrateVolume3DChart from '@/components/charts/PriceHashrateVolume3DChart'
-import PriceChart from '@/components/charts/PriceChart'
-import ThreeDPowerLawOscillator from '@/components/charts/ThreeDPowerLawOscillator'
+import PriceChartWith3DOscillator from '@/components/charts/PriceChartWith3DOscillator'
 import { getPriceData, getHashrateData, getVolumeData } from '@/lib/sheets'
 
 export default async function ThreeDPowerLawPage() {
@@ -64,30 +63,13 @@ export default async function ThreeDPowerLawPage() {
           </div>
         </div>
 
-        {/* Price Chart Section */}
+        {/* Combined Price Chart with 3D Power Law Oscillator */}
         <div className="mb-8">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-white mb-2">
-              Price History & Power Law
-            </h2>
-            <p className="text-[#A0A0B8]">
-              Kaspa's price trajectory with power law model and key support/resistance levels
-            </p>
-          </div>
-          
-          <PriceChart 
-            data={priceData} 
-            height={600}
-          />
-        </div>
-
-        {/* 3D Power Law Oscillator Section */}
-        <div className="mb-8">
-          <ThreeDPowerLawOscillator
+          <PriceChartWith3DOscillator 
             priceData={priceData}
             hashrateData={hashrateData}
             volumeData={volumeData}
-            height={400}
+            height={800}
           />
         </div>
 
