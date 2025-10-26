@@ -161,12 +161,15 @@ export default function PriceChartWith3DResiduals({
 
       if (correspondingHashrate && correspondingVolume && 
           pricePoint.value > 0 && correspondingHashrate.value > 0 && correspondingVolume.value > 0) {
+        // Convert volume from USD to KAS
+        const volumeInKAS = correspondingVolume.value / pricePoint.value
+        
         merged.push({
           date: new Date(pricePoint.timestamp),
           timestamp: pricePoint.timestamp,
           hashrate: correspondingHashrate.value / 1e15,
           price: pricePoint.value,
-          volume: correspondingVolume.value
+          volume: volumeInKAS // Now in KAS, not USD
         })
       }
     })
