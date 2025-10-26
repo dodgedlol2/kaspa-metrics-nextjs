@@ -152,14 +152,14 @@ export default function OpenInterestPriceChart({
       }
     })
 
-    const traces = []
+    const traces: any[] = []
 
     if (chartView === 'combined' || chartView === 'oi-only') {
       // Open Interest line
       traces.push({
         x: filteredOI.map(d => new Date(d.timestamp)),
         y: filteredOI.map(d => d.value),
-        type: 'scatter',
+        type: 'scatter' as const,
         mode: 'lines',
         name: 'Open Interest',
         line: { color: '#00FFCC', width: 2 },
@@ -187,7 +187,7 @@ export default function OpenInterestPriceChart({
         traces.push({
           x: fitDates,
           y: fitValues,
-          type: 'scatter',
+          type: 'scatter' as const,
           mode: 'lines',
           name: `OI Power Law (R²: ${r2OI.toFixed(3)})`,
           line: { color: 'orange', dash: 'dot', width: 2 },
@@ -206,7 +206,7 @@ export default function OpenInterestPriceChart({
       traces.push({
         x: mergedData.map(d => d.date),
         y: mergedData.map(d => d.price),
-        type: 'scatter',
+        type: 'scatter' as const,
         mode: 'markers+lines',
         name: 'Price (OI Risk Color)',
         marker: {
@@ -271,7 +271,7 @@ export default function OpenInterestPriceChart({
       traces.push({
         x: oiWithResiduals.map(d => new Date(d.timestamp)),
         y: oiWithResiduals.map(d => d.residualPct),
-        type: 'bar',
+        type: 'bar' as const,
         name: 'OI Residuals',
         marker: {
           color: oiWithResiduals.map(d => d.residualPct >= 0 ? '#10B981' : '#EF4444'),
