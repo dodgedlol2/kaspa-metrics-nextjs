@@ -343,7 +343,7 @@ export default function PriceChartWith3DResiduals({
         x: dates,
         y: residuals,
         name: '3D Residual',
-        xaxis: 'x',
+        xaxis: 'x2',
         yaxis: 'y2',
         line: {
           color: 'rgba(139, 92, 246, 1)',
@@ -361,7 +361,7 @@ export default function PriceChartWith3DResiduals({
         x: dates,
         y: Array(dates.length).fill(0),
         name: 'Fair Value',
-        xaxis: 'x',
+        xaxis: 'x2',
         yaxis: 'y2',
         line: {
           color: 'rgba(255, 255, 255, 0.3)',
