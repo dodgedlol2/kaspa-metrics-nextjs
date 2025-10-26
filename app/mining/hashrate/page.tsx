@@ -6,7 +6,7 @@ export default async function HashratePage() {
   const [metrics, hashrateData, priceData] = await Promise.all([
     getCurrentMetrics(),
     getHashrateData(),
-    getPriceData() // Add price data fetch
+    getPriceData() // Add price data fetch1
   ])
   
   return (
