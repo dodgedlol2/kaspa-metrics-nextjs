@@ -5,7 +5,7 @@ import ThreeDPowerLawOscillator from '@/components/charts/ThreeDPowerLawOscillat
 import { getPriceData, getHashrateData, getVolumeData } from '@/lib/sheets'
 
 export default async function ThreeDPowerLawPage() {
-  // Fetch real data from Google Sheets server-side
+  // Fetch real data from Google Sheets server-side 1
   const [priceData, hashrateData, volumeData] = await Promise.all([
     getPriceData(),
     getHashrateData(),
