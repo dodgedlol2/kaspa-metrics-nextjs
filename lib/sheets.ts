@@ -41,21 +41,80 @@ export interface CurrentMetrics {
   lastUpdated: string
 }
 
-// Helper function to parse monetary values like '$78.41M' or '$1.21M'
+// Helper function to parse dates with flexible formats
+function parseDate(dateStr: string): number {
+  if (!dateStr || typeof dateStr !== 'string') return 0
+  
+  try {
+    // Clean the date string
+    let cleanDate = dateStr.trim()
+    
+    // Handle different formats:
+    // Format 1: "9 Jun 2025, 02:00'" (with time)
+    // Format 2: "15 jun 2025" (without time)
+    
+    // Remove trailing single quote if present
+    if (cleanDate.endsWith("'")) {
+      cleanDate = cleanDate.slice(0, -1)
+    }
+    
+    // If it has a comma and time, extract just the date part
+    if (cleanDate.includes(',')) {
+      cleanDate = cleanDate.split(',')[0].trim()
+    }
+    
+    // Standardize the month capitalization
+    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
+    const standardMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    
+    months.forEach((month, index) => {
+      const regex = new RegExp(`\\b${month}\\b`, 'gi')
+      cleanDate = cleanDate.replace(regex, standardMonths[index])
+    })
+    
+    // Parse the date
+    const timestamp = new Date(cleanDate).getTime()
+    
+    // Verify it's a valid timestamp
+    if (isNaN(timestamp)) {
+      console.warn(`Failed to parse date: "${dateStr}" -> "${cleanDate}"`)
+      return 0
+    }
+    
+    return timestamp
+  } catch (error) {
+    console.warn(`Error parsing date: "${dateStr}"`, error)
+    return 0
+  }
+}
+
+// Updated helper function to parse monetary values like '$78.41M' or '$1.21M'
 function parseMonetaryValue(value: string): number {
   if (!value || typeof value !== 'string') return 0
   
-  // Remove $ and ' characters, convert to lowercase
-  const cleanValue = value.replace(/[$']/g, '').toLowerCase().trim()
-  
-  if (cleanValue.endsWith('m')) {
-    return parseFloat(cleanValue.slice(0, -1)) * 1000000
-  } else if (cleanValue.endsWith('k')) {
-    return parseFloat(cleanValue.slice(0, -1)) * 1000
-  } else if (cleanValue.endsWith('b')) {
-    return parseFloat(cleanValue.slice(0, -1)) * 1000000000
-  } else {
-    return parseFloat(cleanValue) || 0
+  try {
+    // Remove $, ', and whitespace characters, convert to lowercase
+    const cleanValue = value.replace(/[$'\s]/g, '').toLowerCase().trim()
+    
+    if (!cleanValue) return 0
+    
+    // Handle different suffixes
+    if (cleanValue.endsWith('m')) {
+      const num = parseFloat(cleanValue.slice(0, -1))
+      return isNaN(num) ? 0 : num * 1000000
+    } else if (cleanValue.endsWith('k')) {
+      const num = parseFloat(cleanValue.slice(0, -1))
+      return isNaN(num) ? 0 : num * 1000
+    } else if (cleanValue.endsWith('b')) {
+      const num = parseFloat(cleanValue.slice(0, -1))
+      return isNaN(num) ? 0 : num * 1000000000
+    } else {
+      const num = parseFloat(cleanValue)
+      return isNaN(num) ? 0 : num
+    }
+  } catch (error) {
+    console.warn(`Error parsing monetary value: "${value}"`, error)
+    return 0
   }
 }
 
@@ -218,18 +277,31 @@ export async function getOpenInterestData(): Promise<KaspaMetric[]> {
                                row.get('open_interest') ||
                                row.get('OpenInterest')
         
-        if (!date || !openInterestRaw) return null
+        if (!date || !openInterestRaw) {
+          return null
+        }
+        
+        // Parse the timestamp using our flexible date parser
+        const timestamp = parseDate(date)
+        if (!timestamp) {
+          console.warn(`Skipping row with invalid date: "${date}"`)
+          return null
+        }
         
         // Parse the monetary value (e.g., '$78.41M' -> 78410000)
         const openInterest = parseMonetaryValue(openInterestRaw)
+        if (!openInterest || openInterest <= 0) {
+          console.warn(`Skipping row with invalid open interest value: "${openInterestRaw}"`)
+          return null
+        }
         
         return {
           date: date,
           value: openInterest,
-          timestamp: new Date(date).getTime()
+          timestamp: timestamp
         }
       })
-      .filter((item): item is KaspaMetric => item !== null && !isNaN(item.value) && item.value > 0)
+      .filter((item): item is KaspaMetric => item !== null)
       .sort((a, b) => a.timestamp - b.timestamp)
   } catch (error) {
     console.error('Error fetching open interest data:', error)
