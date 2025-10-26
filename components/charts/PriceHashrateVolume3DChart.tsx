@@ -79,7 +79,7 @@ function fit3DPowerLaw(data: Array<{hashrate: number, price: number, volume: num
 export default function PriceHashrateVolume3DChart({ priceData, hashrateData, volumeData, className = '' }: PriceHashrateVolume3DChartProps) {
   const [timePeriod, setTimePeriod] = useState<'1M' | '3M' | '6M' | '1Y' | '2Y' | '3Y' | 'All'>('All')
   const [showTrajectory, setShowTrajectory] = useState<'Hide' | 'Show'>('Show')
-  const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Hide')
+  const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
   const [colorBy, setColorBy] = useState<'Time' | 'Price' | 'Hashrate' | 'Volume'>('Time')
   const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
   const [hashrateScale, setHashrateScale] = useState<'Linear' | 'Log'>('Log')
