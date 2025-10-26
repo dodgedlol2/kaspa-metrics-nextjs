@@ -118,14 +118,14 @@ export default function PriceHashrateVolume3DChart({ priceData, hashrateData, vo
         const date = new Date(pricePoint.timestamp)
         const hashrate = correspondingHashrate.value / 1e15 // Convert to PH/s
         const price = pricePoint.value
-        const volume = correspondingVolume.value
+        const volumeInKAS = correspondingVolume.value / pricePoint.value // Convert from USD to KAS
 
         merged.push({
           date,
           timestamp: pricePoint.timestamp,
           hashrate,
           price,
-          volume,
+          volume: volumeInKAS,
           timeIndex: 0 // Will be set below
         })
       }
@@ -390,7 +390,7 @@ export default function PriceHashrateVolume3DChart({ priceData, hashrateData, vo
       },
       zaxis: {
         title: {
-          text: 'Volume (USD)',
+          text: 'Volume (KAS)',
           font: { color: '#9CA3AF', size: 12 }
         },
         type: volumeScale === 'Log' ? 'log' : 'linear',
