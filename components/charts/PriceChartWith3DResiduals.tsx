@@ -101,7 +101,21 @@ function fit3DPowerLaw(data: Array<{hashrate: number, price: number, volume: num
     const C = (sumVP * sumHH - sumHP * sumHV) / det
     const A = Math.exp(meanLnPrice - B * meanLnHashrate - C * meanLnVolume)
     
-    return { A, B, C }
+    // Calculate R²
+    let ssRes = 0
+    let ssTot = 0
+    for (let i = 0; i < logData.length; i++) {
+      const predicted = Math.log(A) + B * logData[i].lnHashrate + C * logData[i].lnVolume
+      const residual = logData[i].lnPrice - predicted
+      const total = logData[i].lnPrice - meanLnPrice
+      ssRes += residual * residual
+      ssTot += total * total
+    }
+    const r2 = 1 - (ssRes / ssTot)
+    
+    console.log('3D Power Law R² =', r2.toFixed(4), '(1.0 = perfect fit)')
+    
+    return { A, B, C, r2 }
   } catch (error) {
     console.error('3D Power law fitting error:', error)
     return null
@@ -170,6 +184,13 @@ export default function PriceChartWith3DResiduals({
     const powerLaw = fit3DPowerLaw(powerLawData)
     if (!powerLaw) return []
 
+    // Debug: Log the coefficients
+    console.log('3D Power Law Coefficients:', {
+      A: powerLaw.A.toExponential(4),
+      B: powerLaw.B.toFixed(4),
+      C: powerLaw.C.toFixed(4)
+    })
+
     const residuals = sorted.map(point => {
       const predictedPrice = powerLaw.A * Math.pow(point.hashrate, powerLaw.B) * Math.pow(point.volume, powerLaw.C)
       const residual = ((point.price - predictedPrice) / predictedPrice) * 100
@@ -181,6 +202,15 @@ export default function PriceChartWith3DResiduals({
         price: point.price,
         predictedPrice: predictedPrice
       }
+    })
+
+    // Debug: Log sample predictions
+    const latest = residuals[residuals.length - 1]
+    console.log('Latest Prediction:', {
+      date: latest.date.toISOString().split('T')[0],
+      actualPrice: latest.price.toFixed(6),
+      predictedPrice: latest.predictedPrice.toFixed(6),
+      residual: latest.residual.toFixed(2) + '%'
     })
 
     return residuals
