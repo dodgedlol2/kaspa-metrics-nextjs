@@ -7,6 +7,7 @@ const SHEETS_CONFIG = {
   price: process.env.PRICE_SHEET_ID!,
   volume: process.env.VOLUME_SHEET_ID!,
   marketcap: process.env.MARKETCAP_SHEET_ID!,
+  openinterest: process.env.OPENINTEREST_SHEET_ID!, // NEW: Open Interest sheet
   addresses: '1Nl8SI-x2lSdSvz5jAFBuWwidk-5L8P_UNoRUb7UNVuQ', // Address distribution sheet
 }
 
@@ -35,7 +36,27 @@ export interface CurrentMetrics {
   hashrateChange24h: number
   volume24h: number
   volumeChange24h: number
+  openInterest: number // NEW: Open Interest metric
+  openInterestChange24h: number // NEW: Open Interest 24h change
   lastUpdated: string
+}
+
+// Helper function to parse monetary values like '$78.41M' or '$1.21M'
+function parseMonetaryValue(value: string): number {
+  if (!value || typeof value !== 'string') return 0
+  
+  // Remove $ and ' characters, convert to lowercase
+  const cleanValue = value.replace(/[$']/g, '').toLowerCase().trim()
+  
+  if (cleanValue.endsWith('m')) {
+    return parseFloat(cleanValue.slice(0, -1)) * 1000000
+  } else if (cleanValue.endsWith('k')) {
+    return parseFloat(cleanValue.slice(0, -1)) * 1000
+  } else if (cleanValue.endsWith('b')) {
+    return parseFloat(cleanValue.slice(0, -1)) * 1000000000
+  } else {
+    return parseFloat(cleanValue) || 0
+  }
 }
 
 // Fetch hashrate data from "kaspa_daily_hashrate (3)" sheet
@@ -167,6 +188,51 @@ export async function getMarketCapData(): Promise<KaspaMetric[]> {
       .sort((a, b) => a.timestamp - b.timestamp)
   } catch (error) {
     console.error('Error fetching market cap data:', error)
+    return []
+  }
+}
+
+// NEW: Fetch open interest data from Kaspa open interest sheet
+export async function getOpenInterestData(): Promise<KaspaMetric[]> {
+  try {
+    const doc = new GoogleSpreadsheet(SHEETS_CONFIG.openinterest, serviceAccountAuth)
+    await doc.loadInfo()
+    
+    // Get the first sheet (assuming it's the main data sheet)
+    const sheet = doc.sheetsByIndex[0]
+    if (!sheet) {
+      console.error('Open interest sheet not found')
+      return []
+    }
+    
+    const rows = await sheet.getRows()
+    
+    return rows
+      .map(row => {
+        // Handle different possible column names for date
+        const date = row.get('Date') || row.get('date') || row.get('DATE')
+        // Handle different possible column names for open interest
+        const openInterestRaw = row.get('Total_open_interest') || 
+                               row.get('total_open_interest') || 
+                               row.get('Open Interest') || 
+                               row.get('open_interest') ||
+                               row.get('OpenInterest')
+        
+        if (!date || !openInterestRaw) return null
+        
+        // Parse the monetary value (e.g., '$78.41M' -> 78410000)
+        const openInterest = parseMonetaryValue(openInterestRaw)
+        
+        return {
+          date: date,
+          value: openInterest,
+          timestamp: new Date(date).getTime()
+        }
+      })
+      .filter(item => item !== null && !isNaN(item.value) && item.value > 0)
+      .sort((a, b) => a.timestamp - b.timestamp)
+  } catch (error) {
+    console.error('Error fetching open interest data:', error)
     return []
   }
 }
@@ -474,14 +540,15 @@ function calculateChange(current: number, previous: number): number {
   return ((current - previous) / previous) * 100
 }
 
-// Get current metrics with 24h changes
+// Get current metrics with 24h changes (Updated to include Open Interest)
 export async function getCurrentMetrics(): Promise<CurrentMetrics> {
   try {
-    const [priceData, hashrateData, volumeData, marketCapData] = await Promise.all([
+    const [priceData, hashrateData, volumeData, marketCapData, openInterestData] = await Promise.all([
       getPriceData(),
       getHashrateData(),
       getVolumeData(),
-      getMarketCapData()
+      getMarketCapData(),
+      getOpenInterestData() // NEW: Include open interest data
     ])
 
     // Get latest values
@@ -489,12 +556,14 @@ export async function getCurrentMetrics(): Promise<CurrentMetrics> {
     const latestHashrate = hashrateData[hashrateData.length - 1]?.value || 0
     const latestVolume = volumeData[volumeData.length - 1]?.value || 0
     const latestMarketCap = marketCapData[marketCapData.length - 1]?.value || 0
+    const latestOpenInterest = openInterestData[openInterestData.length - 1]?.value || 0 // NEW
 
     // Get previous day values (if available)
     const price24hAgo = priceData[priceData.length - 2]?.value || latestPrice
     const hashrate24hAgo = hashrateData[hashrateData.length - 2]?.value || latestHashrate
     const volume24hAgo = volumeData[volumeData.length - 2]?.value || latestVolume
     const marketCap24hAgo = marketCapData[marketCapData.length - 2]?.value || latestMarketCap
+    const openInterest24hAgo = openInterestData[openInterestData.length - 2]?.value || latestOpenInterest // NEW
 
     return {
       price: latestPrice,
@@ -505,6 +574,8 @@ export async function getCurrentMetrics(): Promise<CurrentMetrics> {
       hashrateChange24h: calculateChange(latestHashrate, hashrate24hAgo),
       volume24h: latestVolume,
       volumeChange24h: calculateChange(latestVolume, volume24hAgo),
+      openInterest: latestOpenInterest, // NEW
+      openInterestChange24h: calculateChange(latestOpenInterest, openInterest24hAgo), // NEW
       lastUpdated: new Date().toISOString()
     }
   } catch (error) {
@@ -520,6 +591,8 @@ export async function getCurrentMetrics(): Promise<CurrentMetrics> {
       hashrateChange24h: 0,
       volume24h: 0,
       volumeChange24h: 0,
+      openInterest: 0, // NEW
+      openInterestChange24h: 0, // NEW
       lastUpdated: new Date().toISOString()
     }
   }
