@@ -4,7 +4,7 @@ import PriceChartWith3DResiduals from '@/components/charts/PriceChartWith3DResid
 import { getPriceData, getHashrateData, getVolumeData } from '@/lib/sheets'
 
 export default async function ThreeDPowerLawPage() {
-  // Fetch real data from Google Sheets server-side 12354
+  // Fetch real data from Google Sheets server-side 111
   const [priceData, hashrateData, volumeData] = await Promise.all([
     getPriceData(),
     getHashrateData(),
