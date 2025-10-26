@@ -336,7 +336,7 @@ export default function ThreeDPowerLawOscillator({
       }
     },
     margin: { l: 60, r: 20, t: 40, b: 60 },
-    hovermode: 'x unified',
+    hovermode: 'x unified' as const,
     showlegend: true,
     legend: {
       x: 0.01,
@@ -396,7 +396,7 @@ export default function ThreeDPowerLawOscillator({
         line: { width: 0 }
       }
     ]
-  }
+  } as any
 
   if (residualData.length === 0) {
     return (
