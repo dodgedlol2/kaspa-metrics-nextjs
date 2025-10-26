@@ -11,8 +11,8 @@ interface DataPoint {
 }
 
 interface PriceChartWith3DResidualsProps {
-  priceData: DataPoint[]
-  hashrateData: DataPoint[]
+  priceData: KaspaMetric[]
+  hashrateData: KaspaMetric[]
   volumeData: KaspaMetric[]
   height?: number
 }
@@ -220,15 +220,9 @@ export default function PriceChartWith3DResiduals({
     if (!filteredPriceData || filteredPriceData.length === 0) return null
     
     try {
-      const kaspaMetrics: KaspaMetric[] = filteredPriceData.map(p => ({
-        timestamp: p.timestamp,
-        value: p.value,
-        date: new Date(p.timestamp)
-      }))
+      const { a, b } = fitPowerLaw(filteredPriceData)
       
-      const { a, b } = fitPowerLaw(kaspaMetrics)
-      
-      return kaspaMetrics.map(point => {
+      return filteredPriceData.map(point => {
         const daysFromGenesis = getDaysFromGenesis(point.timestamp)
         return {
           timestamp: point.timestamp,
