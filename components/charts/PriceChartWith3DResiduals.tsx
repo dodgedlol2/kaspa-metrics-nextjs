@@ -250,10 +250,10 @@ export default function PriceChartWith3DResiduals({
       if (!residualPoint) return 'rgba(91, 108, 255, 0.3)'
       
       const r = residualPoint.residual
-      if (r < -50) return 'rgba(34, 197, 94, 1)' // Strong buy - bright green
-      if (r < -25) return 'rgba(74, 222, 128, 1)' // Buy - light green
-      if (r > 50) return 'rgba(239, 68, 68, 1)' // Strong sell - bright red
-      if (r > 25) return 'rgba(248, 113, 113, 1)' // Sell - light red
+      if (r < -60) return 'rgba(34, 197, 94, 1)' // Strong buy - bright green
+      if (r < -40) return 'rgba(74, 222, 128, 1)' // Buy - light green
+      if (r > 100) return 'rgba(239, 68, 68, 1)' // Strong sell - bright red
+      if (r > 80) return 'rgba(248, 113, 113, 1)' // Sell - light red
       return 'rgba(139, 92, 246, 0.5)' // Fair value - purple
     })
 
@@ -265,8 +265,10 @@ export default function PriceChartWith3DResiduals({
       if (!residualPoint) return 3
       
       const r = Math.abs(residualPoint.residual)
-      if (r > 50) return 8 // Large bubble for extreme values
-      if (r > 25) return 6 // Medium bubble
+      if (r > 100) return 8 // Large bubble for extreme values (strong sell)
+      if (r > 80) return 6 // Medium bubble
+      if (r > 60) return 8 // Large bubble for strong buy
+      if (r > 40) return 6 // Medium bubble for buy zone
       return 3 // Small bubble
     })
 
@@ -329,10 +331,10 @@ export default function PriceChartWith3DResiduals({
     const residuals = filteredResidualData.map(d => d.residual)
 
     const colors = residuals.map(r => {
-      if (r < -50) return 'rgba(34, 197, 94, 0.8)'
-      if (r < -25) return 'rgba(74, 222, 128, 0.8)'
-      if (r > 50) return 'rgba(239, 68, 68, 0.8)'
-      if (r > 25) return 'rgba(248, 113, 113, 0.8)'
+      if (r < -60) return 'rgba(34, 197, 94, 0.8)'
+      if (r < -40) return 'rgba(74, 222, 128, 0.8)'
+      if (r > 100) return 'rgba(239, 68, 68, 0.8)'
+      if (r > 80) return 'rgba(248, 113, 113, 0.8)'
       return 'rgba(139, 92, 246, 0.8)'
     })
 
@@ -524,7 +526,7 @@ export default function PriceChartWith3DResiduals({
             <div className="w-3 h-3 rounded-full bg-green-500"></div>
             <p className="text-xs font-semibold text-green-400">Strong Buy</p>
           </div>
-          <p className="text-xs text-[#A0A0B8]">Residual &lt; -50%</p>
+          <p className="text-xs text-[#A0A0B8]">Residual &lt; -60%</p>
         </div>
         
         <div className="bg-[#0F0F1A] rounded-lg p-3 border-l-4 border-green-300">
@@ -532,7 +534,7 @@ export default function PriceChartWith3DResiduals({
             <div className="w-3 h-3 rounded-full bg-green-300"></div>
             <p className="text-xs font-semibold text-green-300">Buy Zone</p>
           </div>
-          <p className="text-xs text-[#A0A0B8]">-50% to -25%</p>
+          <p className="text-xs text-[#A0A0B8]">-60% to -40%</p>
         </div>
 
         <div className="bg-[#0F0F1A] rounded-lg p-3 border-l-4 border-purple-400">
@@ -540,7 +542,7 @@ export default function PriceChartWith3DResiduals({
             <div className="w-3 h-3 rounded-full bg-purple-400"></div>
             <p className="text-xs font-semibold text-purple-400">Fair Value</p>
           </div>
-          <p className="text-xs text-[#A0A0B8]">-25% to +25%</p>
+          <p className="text-xs text-[#A0A0B8]">-40% to +80%</p>
         </div>
         
         <div className="bg-[#0F0F1A] rounded-lg p-3 border-l-4 border-red-300">
@@ -548,7 +550,7 @@ export default function PriceChartWith3DResiduals({
             <div className="w-3 h-3 rounded-full bg-red-300"></div>
             <p className="text-xs font-semibold text-red-300">Sell Zone</p>
           </div>
-          <p className="text-xs text-[#A0A0B8]">+25% to +50%</p>
+          <p className="text-xs text-[#A0A0B8]">+80% to +100%</p>
         </div>
         
         <div className="bg-[#0F0F1A] rounded-lg p-3 border-l-4 border-red-500">
@@ -556,7 +558,7 @@ export default function PriceChartWith3DResiduals({
             <div className="w-3 h-3 rounded-full bg-red-500"></div>
             <p className="text-xs font-semibold text-red-400">Strong Sell</p>
           </div>
-          <p className="text-xs text-[#A0A0B8]">Residual &gt; +50%</p>
+          <p className="text-xs text-[#A0A0B8]">Residual &gt; +100%</p>
         </div>
       </div>
     </div>
