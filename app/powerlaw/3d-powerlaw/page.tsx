@@ -1,6 +1,7 @@
 import React from 'react'
 import PriceHashrateVolume3DChart from '@/components/charts/PriceHashrateVolume3DChart'
 import PriceChart from '@/components/charts/PriceChart'
+import ThreeDPowerLawOscillator from '@/components/charts/ThreeDPowerLawOscillator'
 import { getPriceData, getHashrateData, getVolumeData } from '@/lib/sheets'
 
 export default async function ThreeDPowerLawPage() {
@@ -78,6 +79,63 @@ export default async function ThreeDPowerLawPage() {
             data={priceData} 
             height={600}
           />
+        </div>
+
+        {/* 3D Power Law Oscillator Section */}
+        <div className="mb-8">
+          <ThreeDPowerLawOscillator
+            priceData={priceData}
+            hashrateData={hashrateData}
+            volumeData={volumeData}
+            height={400}
+          />
+        </div>
+
+        {/* Explanation Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-[#1A1A2E] rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">How to Use the Oscillator</h3>
+            <div className="space-y-3 text-sm text-[#A0A0B8]">
+              <div className="flex items-start">
+                <span className="text-[#5B6CFF] font-semibold mr-2">📊</span>
+                <span><strong>Residual Calculation:</strong> Shows how much actual price deviates from the 3D power law prediction</span>
+              </div>
+              <div className="flex items-start">
+                <span className="text-green-400 font-semibold mr-2">🟢</span>
+                <span><strong>Negative Values:</strong> Price is undervalued relative to hashrate & volume - potential buy zones</span>
+              </div>
+              <div className="flex items-start">
+                <span className="text-red-400 font-semibold mr-2">🔴</span>
+                <span><strong>Positive Values:</strong> Price is overvalued relative to fundamentals - consider taking profits</span>
+              </div>
+              <div className="flex items-start">
+                <span className="text-purple-400 font-semibold mr-2">⚖️</span>
+                <span><strong>Zero Line:</strong> Price perfectly matches the 3D power law model prediction</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-[#1A1A2E] rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Trading Strategy Insights</h3>
+            <div className="space-y-3 text-sm text-[#A0A0B8]">
+              <div className="flex items-start">
+                <span className="text-green-400 font-semibold mr-2">💎</span>
+                <span><strong>Strong Buy (&lt;-50%):</strong> Historically rare opportunities when all three metrics suggest deep undervaluation</span>
+              </div>
+              <div className="flex items-start">
+                <span className="text-yellow-400 font-semibold mr-2">📈</span>
+                <span><strong>Accumulation Zone (-50% to -25%):</strong> Good entry points for long-term positions</span>
+              </div>
+              <div className="flex items-start">
+                <span className="text-orange-400 font-semibold mr-2">⚠️</span>
+                <span><strong>Profit Taking (+25% to +50%):</strong> Consider scaling out of positions</span>
+              </div>
+              <div className="flex items-start">
+                <span className="text-red-400 font-semibold mr-2">🚨</span>
+                <span><strong>Strong Sell (&gt;+50%):</strong> Extreme overvaluation - historically precedes corrections</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
