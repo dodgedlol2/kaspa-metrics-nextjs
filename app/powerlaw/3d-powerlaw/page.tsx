@@ -1,10 +1,10 @@
 import React from 'react'
 import PriceHashrateVolume3DChart from '@/components/charts/PriceHashrateVolume3DChart'
-import PriceChartWith3DOscillator from '@/components/charts/PriceChartWith3DOscillator'
+import PriceChartWith3DResiduals from '@/components/charts/PriceChartWith3DResiduals'
 import { getPriceData, getHashrateData, getVolumeData } from '@/lib/sheets'
 
 export default async function ThreeDPowerLawPage() {
-  // Fetch real data from Google Sheets server-side 123
+  // Fetch real data from Google Sheets server-side
   const [priceData, hashrateData, volumeData] = await Promise.all([
     getPriceData(),
     getHashrateData(),
@@ -63,13 +63,13 @@ export default async function ThreeDPowerLawPage() {
           </div>
         </div>
 
-        {/* Combined Price Chart with 3D Power Law Oscillator */}
+        {/* Price Chart with 3D Power Law Signals */}
         <div className="mb-8">
-          <PriceChartWith3DOscillator 
+          <PriceChartWith3DResiduals 
             priceData={priceData}
             hashrateData={hashrateData}
             volumeData={volumeData}
-            height={800}
+            height={1000}
           />
         </div>
 
