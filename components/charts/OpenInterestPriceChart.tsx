@@ -232,24 +232,25 @@ export default function OpenInterestPriceChart({
           size: 6,
           line: { width: 0.5, color: 'rgba(255, 255, 255, 0.4)' },
           colorbar: {
-            title: '<b>OI Risk</b>',
+            title: { text: 'OI Risk', font: { color: '#FFFFFF' } },
             titleside: 'right',
             tickmode: 'array',
             tickvals: [-60, -40, -20, 0, 20, 40, 60, 80, 100],
             ticktext: [
-              '-60%<br><b>🔵COLD</b>',
-              '-40%<br><b>🌊LOW</b>',
+              '-60% COLD',
+              '-40% LOW',
               '-20%',
-              '0%<br><b>✅SAFE</b>',
+              '0% SAFE',
               '+20%',
-              '+40%<br>⚠️Warn',
-              '+60%<br><b>🔴RISK</b>',
-              '+80%<br><b>⛔DANGER</b>',
-              '+100%<br><b>🚨MAX</b>'
+              '+40% Warn',
+              '+60% RISK',
+              '+80% DANGER',
+              '+100% MAX'
             ],
             len: 0.6,
             y: 0.75,
-            thickness: 15
+            thickness: 15,
+            tickfont: { color: '#FFFFFF', size: 10 }
           }
         },
         line: { color: 'rgba(150, 150, 150, 0.3)', width: 1 },
@@ -290,7 +291,7 @@ export default function OpenInterestPriceChart({
 
   // Layout configuration
   const plotlyLayout = useMemo(() => {
-    const baseLayout = {
+    const baseLayout: any = {
       plot_bgcolor: 'rgba(0,0,0,0)',
       paper_bgcolor: 'rgba(0,0,0,0)',
       font: { color: '#FFFFFF', family: 'Inter, sans-serif' },
@@ -308,7 +309,7 @@ export default function OpenInterestPriceChart({
         gridcolor: 'rgba(75, 85, 99, 0.2)',
         zeroline: false,
         color: '#9CA3AF',
-        title: 'Date'
+        title: { text: 'Date', font: { color: '#FFFFFF' } }
       },
       hovermode: 'x unified'
     }
@@ -317,12 +318,12 @@ export default function OpenInterestPriceChart({
       return {
         ...baseLayout,
         title: {
-          text: 'Kaspa Price & Open Interest Risk Analysis<br><sub>Color gradient shows OI deviation: Blue = Underheated, Red = Overheated</sub>',
+          text: 'Kaspa Price & Open Interest Risk Analysis',
           font: { size: 16, color: '#FFFFFF' },
           x: 0.5
         },
         yaxis: {
-          title: 'Price (USD)',
+          title: { text: 'Price (USD)', font: { color: '#FFFFFF' } },
           type: 'log',
           showgrid: true,
           gridcolor: 'rgba(75, 85, 99, 0.2)',
@@ -330,7 +331,7 @@ export default function OpenInterestPriceChart({
           side: 'left'
         },
         yaxis2: {
-          title: 'Open Interest (USD)',
+          title: { text: 'Open Interest (USD)', font: { color: '#FFFFFF' } },
           type: 'log',
           showgrid: false,
           color: '#00FFCC',
@@ -347,7 +348,7 @@ export default function OpenInterestPriceChart({
           x: 0.5
         },
         yaxis: {
-          title: 'Open Interest (USD)',
+          title: { text: 'Open Interest (USD)', font: { color: '#FFFFFF' } },
           type: 'log',
           showgrid: true,
           gridcolor: 'rgba(75, 85, 99, 0.2)',
@@ -363,7 +364,7 @@ export default function OpenInterestPriceChart({
           x: 0.5
         },
         yaxis: {
-          title: 'Residual (%)',
+          title: { text: 'Residual (%)', font: { color: '#FFFFFF' } },
           showgrid: true,
           gridcolor: 'rgba(75, 85, 99, 0.2)',
           color: '#9CA3AF',
