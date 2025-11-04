@@ -2,7 +2,7 @@ import { getCurrentMetrics, getHashrateData, getPriceData } from '@/lib/sheets'
 import HashrateChart from '@/components/charts/HashrateChart'
 
 export default async function HashratePage() {
-  // Fetch real data from Google Sheets - now including price data 1
+  // Fetch real data from Google Sheets - now including price data 123
   const [metrics, hashrateData, priceData] = await Promise.all([
     getCurrentMetrics(),
     getHashrateData(),
