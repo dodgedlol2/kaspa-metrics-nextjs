@@ -15,6 +15,7 @@ export interface InactiveSupplyDataPoint {
 interface InactiveSupplyChartProps {
   data: InactiveSupplyDataPoint[]
   timeframeName: string // e.g., "2 Years"
+  genesisDate: Date // The adjusted genesis date for this timeframe
   powerLawParams?: {
     intercept: number
     slope: number
@@ -23,9 +24,6 @@ interface InactiveSupplyChartProps {
   }
   height?: number
 }
-
-// Kaspa genesis date - November 7, 2021
-const GENESIS_DATE = new Date('2021-11-07T00:00:00.000Z').getTime()
 
 // Format percentage with proper decimals
 function formatPercent(value: number): string {
@@ -68,9 +66,43 @@ function generateLogTicks(dataMin: number, dataMax: number) {
   return { majorTicks, intermediateTicks, minorTicks }
 }
 
+// Generate linear ticks with appropriate spacing
+function generateLinearTicks(dataMin: number, dataMax: number, numTicks: number = 8) {
+  const range = dataMax - dataMin
+  const rawStep = range / (numTicks - 1)
+  
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)))
+  const normalizedStep = rawStep / magnitude
+  
+  let niceStep: number
+  if (normalizedStep <= 1) {
+    niceStep = 1
+  } else if (normalizedStep <= 2) {
+    niceStep = 2
+  } else if (normalizedStep <= 5) {
+    niceStep = 5
+  } else {
+    niceStep = 10
+  }
+  
+  const step = niceStep * magnitude
+  const niceMin = Math.floor(dataMin / step) * step
+  const niceMax = Math.ceil(dataMax / step) * step
+  
+  const ticks: number[] = []
+  for (let i = niceMin; i <= niceMax + step/2; i += step) {
+    if (i >= 0) {
+      ticks.push(i)
+    }
+  }
+  
+  return ticks
+}
+
 export default function InactiveSupplyChart({ 
   data, 
   timeframeName,
+  genesisDate,
   powerLawParams,
   height = 600 
 }: InactiveSupplyChartProps) {
@@ -166,7 +198,7 @@ export default function InactiveSupplyChart({
       })
     }
 
-    // Main inactive supply trace
+    // Main inactive supply trace - CHANGED COLOR TO MATCH WEBSITE
     traces.push({
       x: xValues,
       y: yValues,
@@ -174,7 +206,7 @@ export default function InactiveSupplyChart({
       type: 'scatter',
       name: `Inactive Supply (${timeframeName})`,
       line: { 
-        color: '#00FFCC', 
+        color: '#5B6CFF',  // Changed from #00FFCC to match website purple
         width: 2 
       },
       fill: yScale === 'Log' ? 'tonexty' : 'tozeroy',
@@ -182,7 +214,7 @@ export default function InactiveSupplyChart({
         type: "vertical",
         colorscale: [
           [0, "rgba(13, 13, 26, 0.01)"],
-          [1, "rgba(0, 255, 204, 0.6)"]
+          [1, "rgba(91, 108, 255, 0.6)"]  // Changed to match purple theme
         ]
       },
       connectgaps: true,
@@ -204,7 +236,7 @@ export default function InactiveSupplyChart({
         fitX = powerLawFitData.xFit
       } else {
         fitX = powerLawFitData.xFit.map(days => 
-          new Date(GENESIS_DATE + days * 24 * 60 * 60 * 1000)
+          new Date(genesisDate.getTime() + days * 24 * 60 * 60 * 1000)
         )
       }
 
@@ -215,7 +247,7 @@ export default function InactiveSupplyChart({
         type: 'scatter',
         name: `Power Law (R² ${powerLawParams?.r2.toFixed(3)})`,
         line: { 
-          color: '#FF8C00', 
+          color: '#FF8C00',  // Keep orange for power law
           width: 2,
           dash: 'dot'
         },
@@ -259,7 +291,7 @@ export default function InactiveSupplyChart({
     }
 
     return traces
-  }, [filteredData, timeScale, yScale, powerLawFitData, showPowerLaw, showBounds, timeframeName, powerLawParams])
+  }, [filteredData, timeScale, yScale, powerLawFitData, showPowerLaw, showBounds, timeframeName, powerLawParams, genesisDate])
 
   // Plotly layout
   const plotlyLayout = useMemo(() => {
@@ -301,7 +333,7 @@ export default function InactiveSupplyChart({
       margin: { l: 80, r: 20, t: 20, b: 50 },
       hoverlabel: {
         bgcolor: 'rgba(15, 20, 25, 0.95)',
-        bordercolor: 'rgba(0, 255, 204, 0.5)',
+        bordercolor: 'rgba(91, 108, 255, 0.5)',  // Changed to match purple theme
         font: { color: '#e2e8f0', size: 11 },
         align: 'left',
         namelength: -1,
@@ -329,7 +361,7 @@ export default function InactiveSupplyChart({
       const logMax = Math.log10(maxDays)
       
       layout.xaxis = {
-        title: { text: 'Days Since Genesis (Log Scale)' },
+        title: { text: `Days Since Genesis + ${timeframeName} (Log Scale)` },
         type: 'log',
         showgrid: true,
         gridwidth: 1,
@@ -395,22 +427,22 @@ export default function InactiveSupplyChart({
     }
 
     return layout
-  }, [filteredData, timeScale, yScale, height])
+  }, [filteredData, timeScale, yScale, height, timeframeName])
 
   return (
     <div className="space-y-6">
-      {/* Interactive Controls */}
+      {/* Interactive Controls - MATCHING HASHRATE CHART STYLE */}
       <div className="flex flex-wrap gap-4 items-center justify-between">
         <div className="flex flex-wrap gap-2">
           {/* Y Scale Control */}
           <div className="relative group">
             <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-              <svg className="w-3.5 h-3.5 text-[#00FFCC]" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M14.27,4.73L19.27,9.73C19.65,10.11 19.65,10.74 19.27,11.12L14.27,16.12C13.89,16.5 13.26,16.5 12.88,16.12C12.5,15.74 12.5,15.11 12.88,14.73L16.16,11.45H8.91L12.19,14.73C12.57,15.11 12.57,15.74 12.19,16.12C11.81,16.5 11.18,16.5 10.8,16.12L5.8,11.12C5.42,10.74 5.42,10.11 5.8,9.73L10.8,4.73C11.18,4.35 11.81,4.35 12.19,4.73C12.57,5.11 12.57,5.74 12.19,6.12L8.91,9.4H16.16L12.88,6.12C12.5,5.74 12.5,5.11 12.88,4.73C13.26,4.35 13.89,4.35 14.27,4.73Z"/>
               </svg>
               <span className="text-[#A0A0B8] text-xs">Y Scale:</span>
               <span className="font-medium text-[#FFFFFF] text-xs">{yScale}</span>
-              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#00FFCC] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
@@ -420,12 +452,15 @@ export default function InactiveSupplyChart({
                   onClick={() => setYScale('Linear')}
                   className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
                     yScale === 'Linear' 
-                      ? 'bg-[#00FFCC]/20' 
+                      ? 'bg-[#5B6CFF]/20' 
                       : 'hover:bg-[#1A1A2E]/80'
                   }`}
                 >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
+                  </svg>
                   <div className="flex-1">
-                    <div className={`font-medium text-xs ${yScale === 'Linear' ? 'text-[#00FFCC]' : 'text-[#FFFFFF]'}`}>
+                    <div className={`font-medium text-xs ${yScale === 'Linear' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
                       Linear Scale
                     </div>
                     <div className="text-[10px] text-[#9CA3AF] mt-0.5">
@@ -437,12 +472,15 @@ export default function InactiveSupplyChart({
                   onClick={() => setYScale('Log')}
                   className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
                     yScale === 'Log' 
-                      ? 'bg-[#00FFCC]/20' 
+                      ? 'bg-[#5B6CFF]/20' 
                       : 'hover:bg-[#1A1A2E]/80'
                   }`}
                 >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M19,19H5V5H19V19M7,10H9V16H7V10M11,7H13V16H11V7M15,13H17V16H15V13Z"/>
+                  </svg>
                   <div className="flex-1">
-                    <div className={`font-medium text-xs ${yScale === 'Log' ? 'text-[#00FFCC]' : 'text-[#FFFFFF]'}`}>
+                    <div className={`font-medium text-xs ${yScale === 'Log' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
                       Logarithmic Scale
                     </div>
                     <div className="text-[10px] text-[#9CA3AF] mt-0.5">
@@ -457,12 +495,12 @@ export default function InactiveSupplyChart({
           {/* Time Scale Control */}
           <div className="relative group">
             <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-              <svg className="w-3.5 h-3.5 text-[#00FFCC]" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
               </svg>
               <span className="text-[#A0A0B8] text-xs">Time Scale:</span>
               <span className="font-medium text-[#FFFFFF] text-xs">{timeScale}</span>
-              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#00FFCC] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
@@ -472,12 +510,15 @@ export default function InactiveSupplyChart({
                   onClick={() => setTimeScale('Linear')}
                   className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
                     timeScale === 'Linear' 
-                      ? 'bg-[#00FFCC]/20' 
+                      ? 'bg-[#5B6CFF]/20' 
                       : 'hover:bg-[#1A1A2E]/80'
                   }`}
                 >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
+                  </svg>
                   <div className="flex-1">
-                    <div className={`font-medium text-xs ${timeScale === 'Linear' ? 'text-[#00FFCC]' : 'text-[#FFFFFF]'}`}>
+                    <div className={`font-medium text-xs ${timeScale === 'Linear' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
                       Linear Time
                     </div>
                     <div className="text-[10px] text-[#9CA3AF] mt-0.5">
@@ -489,12 +530,15 @@ export default function InactiveSupplyChart({
                   onClick={() => setTimeScale('Log')}
                   className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
                     timeScale === 'Log' 
-                      ? 'bg-[#00FFCC]/20' 
+                      ? 'bg-[#5B6CFF]/20' 
                       : 'hover:bg-[#1A1A2E]/80'
                   }`}
                 >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+                  </svg>
                   <div className="flex-1">
-                    <div className={`font-medium text-xs ${timeScale === 'Log' ? 'text-[#00FFCC]' : 'text-[#FFFFFF]'}`}>
+                    <div className={`font-medium text-xs ${timeScale === 'Log' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
                       Logarithmic Time
                     </div>
                     <div className="text-[10px] text-[#9CA3AF] mt-0.5">
@@ -509,12 +553,12 @@ export default function InactiveSupplyChart({
           {/* Power Law Control */}
           <div className="relative group">
             <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-              <svg className="w-3.5 h-3.5 text-[#FF8C00]" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
               </svg>
               <span className="text-[#A0A0B8] text-xs">Power Law:</span>
               <span className="font-medium text-[#FFFFFF] text-xs">{showPowerLaw}</span>
-              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#FF8C00] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
@@ -524,12 +568,15 @@ export default function InactiveSupplyChart({
                   onClick={() => setShowPowerLaw('Hide')}
                   className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
                     showPowerLaw === 'Hide' 
-                      ? 'bg-[#FF8C00]/20' 
+                      ? 'bg-[#5B6CFF]/20' 
                       : 'hover:bg-[#1A1A2E]/80'
                   }`}
                 >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,2C13.1,2 14,2.9 14,4C14,5.1 13.1,6 12,6C10.9,6 10,5.1 10,4C10,2.9 10.9,2 12,2M21,9V7L15,1H5C3.89,1 3,1.89 3,3V21A2,2 0 0,0 5,23H19A2,2 0 0,0 21,21V9H21M19,19H5V3H13V9H19V19Z"/>
+                  </svg>
                   <div className="flex-1">
-                    <div className={`font-medium text-xs ${showPowerLaw === 'Hide' ? 'text-[#FF8C00]' : 'text-[#FFFFFF]'}`}>
+                    <div className={`font-medium text-xs ${showPowerLaw === 'Hide' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
                       Hide Power Law
                     </div>
                   </div>
@@ -538,12 +585,15 @@ export default function InactiveSupplyChart({
                   onClick={() => setShowPowerLaw('Show')}
                   className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
                     showPowerLaw === 'Show' 
-                      ? 'bg-[#FF8C00]/20' 
+                      ? 'bg-[#5B6CFF]/20' 
                       : 'hover:bg-[#1A1A2E]/80'
                   }`}
                 >
+                  <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
+                  </svg>
                   <div className="flex-1">
-                    <div className={`font-medium text-xs ${showPowerLaw === 'Show' ? 'text-[#FF8C00]' : 'text-[#FFFFFF]'}`}>
+                    <div className={`font-medium text-xs ${showPowerLaw === 'Show' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
                       Show Power Law
                     </div>
                   </div>
@@ -556,12 +606,12 @@ export default function InactiveSupplyChart({
           {showPowerLaw === 'Show' && powerLawParams && (
             <div className="relative group">
               <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-                <svg className="w-3.5 h-3.5 text-[#9CA3AF]" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
                 </svg>
                 <span className="text-[#A0A0B8] text-xs">Bounds:</span>
                 <span className="font-medium text-[#FFFFFF] text-xs">{showBounds}</span>
-                <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#9CA3AF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
@@ -571,12 +621,12 @@ export default function InactiveSupplyChart({
                     onClick={() => setShowBounds('Hide')}
                     className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
                       showBounds === 'Hide' 
-                        ? 'bg-[#9CA3AF]/20' 
+                        ? 'bg-[#5B6CFF]/20' 
                         : 'hover:bg-[#1A1A2E]/80'
                     }`}
                   >
                     <div className="flex-1">
-                      <div className={`font-medium text-xs ${showBounds === 'Hide' ? 'text-[#9CA3AF]' : 'text-[#FFFFFF]'}`}>
+                      <div className={`font-medium text-xs ${showBounds === 'Hide' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
                         Hide Bounds
                       </div>
                     </div>
@@ -585,12 +635,12 @@ export default function InactiveSupplyChart({
                     onClick={() => setShowBounds('Show')}
                     className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
                       showBounds === 'Show' 
-                        ? 'bg-[#9CA3AF]/20' 
+                        ? 'bg-[#5B6CFF]/20' 
                         : 'hover:bg-[#1A1A2E]/80'
                     }`}
                   >
                     <div className="flex-1">
-                      <div className={`font-medium text-xs ${showBounds === 'Show' ? 'text-[#9CA3AF]' : 'text-[#FFFFFF]'}`}>
+                      <div className={`font-medium text-xs ${showBounds === 'Show' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
                         Show Bounds
                       </div>
                     </div>
@@ -609,7 +659,7 @@ export default function InactiveSupplyChart({
               onClick={() => setTimePeriod(period)}
               className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
                 timePeriod === period
-                  ? 'bg-[#00FFCC] text-[#0F0F1A]'
+                  ? 'bg-[#5B6CFF] text-white'
                   : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
               }`}
             >
@@ -620,7 +670,7 @@ export default function InactiveSupplyChart({
             onClick={() => setTimePeriod('All')}
             className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
               timePeriod === 'All' || timePeriod === 'Full'
-                ? 'bg-[#00FFCC] text-[#0F0F1A]'
+                ? 'bg-[#5B6CFF] text-white'
                 : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
             }`}
           >
