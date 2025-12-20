@@ -1,6 +1,7 @@
 'use client'
 import React, { useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
+import { KaspaMetric } from '@/lib/sheets'
 
 // Dynamically import Plotly to avoid SSR issues
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false })
@@ -14,6 +15,7 @@ export interface InactiveSupplyDataPoint {
 
 interface InactiveSupplyChartProps {
   data: InactiveSupplyDataPoint[]
+  priceData?: KaspaMetric[] // Add optional price data
   timeframeName: string // e.g., "2 Years"
   genesisDate: Date // The adjusted genesis date for this timeframe
   powerLawParams?: {
@@ -23,6 +25,24 @@ interface InactiveSupplyChartProps {
     constant: number
   }
   height?: number
+}
+
+// Enhanced currency formatting
+function formatCurrency(value: number): string {
+  if (value >= 1) {
+    if (value >= 1000) return `$${(value/1000).toFixed(1)}k`
+    else if (value >= 100) return `$${value.toFixed(0)}`
+    else if (value >= 10) return `$${value.toFixed(1)}`
+    else return `$${value.toFixed(2)}`
+  } else if (value >= 0.01) {
+    return `$${value.toFixed(3)}`
+  } else if (value >= 0.001) {
+    return `$${value.toFixed(4)}`
+  } else if (value >= 0.0001) {
+    return `$${value.toFixed(5)}`
+  } else {
+    return `$${value.toExponential(1)}`
+  }
 }
 
 // Format percentage with proper decimals
@@ -101,16 +121,17 @@ function generateLinearTicks(dataMin: number, dataMax: number, numTicks: number 
 
 export default function InactiveSupplyChart({ 
   data, 
+  priceData,
   timeframeName,
   genesisDate,
   powerLawParams,
   height = 600 
 }: InactiveSupplyChartProps) {
   const [yScale, setYScale] = useState<'Linear' | 'Log'>('Log')
+  const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
   const [timeScale, setTimeScale] = useState<'Linear' | 'Log'>('Linear')
   const [timePeriod, setTimePeriod] = useState<'1M' | '3M' | '6M' | '1Y' | '2Y' | '3Y' | 'All' | 'Full'>('All')
   const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
-  const [showBounds, setShowBounds] = useState<'Hide' | 'Show'>('Show')
 
   // Filter data based on time period
   const filteredData = useMemo(() => {
@@ -126,6 +147,20 @@ export default function InactiveSupplyChart({
     return data.filter(point => point.timestamp >= cutoffTime)
   }, [data, timePeriod])
 
+  // Filter price data based on same time period
+  const filteredPriceData = useMemo(() => {
+    if (!priceData || timePeriod === 'All' || timePeriod === 'Full' || priceData.length === 0) return priceData || []
+    
+    const now = Date.now()
+    const days = {
+      '1M': 30, '3M': 90, '6M': 180, 
+      '1Y': 365, '2Y': 730, '3Y': 1095
+    }
+    
+    const cutoffTime = now - days[timePeriod as keyof typeof days] * 24 * 60 * 60 * 1000
+    return priceData.filter(point => point.timestamp >= cutoffTime)
+  }, [priceData, timePeriod])
+
   // Calculate power law fit line
   const powerLawFitData = useMemo(() => {
     if (showPowerLaw === 'Hide' || !powerLawParams || filteredData.length === 0) return null
@@ -139,19 +174,15 @@ export default function InactiveSupplyChart({
     const numPoints = 100
     const xFit: number[] = []
     const yFit: number[] = []
-    const yLower: number[] = []
-    const yUpper: number[] = []
     
     for (let i = 0; i < numPoints; i++) {
       const x = minDays + (maxDays - minDays) * (i / (numPoints - 1))
       const y = constant * Math.pow(x, slope)
       xFit.push(x)
       yFit.push(y)
-      yLower.push(y * 0.4) // -60% bound
-      yUpper.push(y * 2.2) // +120% bound
     }
     
-    return { xFit, yFit, yLower, yUpper }
+    return { xFit, yFit }
   }, [filteredData, powerLawParams, showPowerLaw])
 
   // Prepare Plotly data
@@ -184,6 +215,53 @@ export default function InactiveSupplyChart({
       yMaxChart = yMaxData * 1.1
     }
 
+    // Add price background trace if price data is available
+    if (filteredPriceData && filteredPriceData.length > 0) {
+      let priceXValues: (number | Date)[]
+      if (timeScale === 'Log') {
+        // For log time scale, we need to convert price timestamps to days from genesis
+        priceXValues = filteredPriceData.map(d => {
+          const daysFromGenesis = Math.max(1, Math.floor((d.timestamp - genesisDate.getTime()) / (24 * 60 * 60 * 1000)))
+          return daysFromGenesis
+        })
+      } else {
+        priceXValues = filteredPriceData.map(d => {
+          const date = new Date(d.timestamp)
+          if (isNaN(date.getTime())) {
+            console.warn('Invalid price timestamp:', d.timestamp)
+            return new Date()
+          }
+          return date
+        })
+      }
+
+      const priceYValues = filteredPriceData.map(d => d.value)
+
+      traces.push({
+        x: priceXValues,
+        y: priceYValues,
+        mode: 'lines',
+        type: 'scatter',
+        name: 'Kaspa Price',
+        line: { 
+          color: 'rgba(156, 163, 175, 0.4)', // Gray color with transparency
+          width: 1 
+        },
+        yaxis: 'y2', // Use secondary y-axis
+        connectgaps: true,
+        showlegend: false,
+        hovertemplate: timeScale === 'Linear' 
+          ? '<b>%{fullData.name}</b><br>Price: $%{y:.4f}<extra></extra>'
+          : '%{text}<br><b>%{fullData.name}</b><br>Price: $%{y:.4f}<extra></extra>',
+        hoverinfo: 'none',
+        text: filteredPriceData.map(d => new Date(d.timestamp).toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        })),
+      })
+    }
+
     // For log scale: add invisible baseline
     if (yScale === 'Log') {
       traces.push({
@@ -198,7 +276,7 @@ export default function InactiveSupplyChart({
       })
     }
 
-    // Main inactive supply trace - CHANGED COLOR TO MATCH WEBSITE
+    // Main inactive supply trace
     traces.push({
       x: xValues,
       y: yValues,
@@ -206,7 +284,7 @@ export default function InactiveSupplyChart({
       type: 'scatter',
       name: `Inactive Supply (${timeframeName})`,
       line: { 
-        color: '#5B6CFF',  // Changed from #00FFCC to match website purple
+        color: '#5B6CFF',
         width: 2 
       },
       fill: yScale === 'Log' ? 'tonexty' : 'tozeroy',
@@ -214,7 +292,7 @@ export default function InactiveSupplyChart({
         type: "vertical",
         colorscale: [
           [0, "rgba(13, 13, 26, 0.01)"],
-          [1, "rgba(91, 108, 255, 0.6)"]  // Changed to match purple theme
+          [1, "rgba(91, 108, 255, 0.6)"]
         ]
       },
       connectgaps: true,
@@ -247,7 +325,7 @@ export default function InactiveSupplyChart({
         type: 'scatter',
         name: `Power Law (R² ${powerLawParams?.r2.toFixed(3)})`,
         line: { 
-          color: '#FF8C00',  // Keep orange for power law
+          color: '#FF8C00',
           width: 2,
           dash: 'dot'
         },
@@ -255,43 +333,10 @@ export default function InactiveSupplyChart({
         showlegend: true,
         hovertemplate: '<b>%{fullData.name}</b><br>Fit: %{y:.2f}%<extra></extra>',
       })
-
-      // Add bounds if enabled
-      if (showBounds === 'Show') {
-        traces.push({
-          x: fitX,
-          y: powerLawFitData.yLower,
-          mode: 'lines',
-          type: 'scatter',
-          name: 'Lower Bound (-60%)',
-          line: { 
-            color: '#9CA3AF', 
-            width: 1,
-            dash: 'dot'
-          },
-          showlegend: true,
-          hovertemplate: '<b>%{fullData.name}</b><br>%{y:.2f}%<extra></extra>',
-        })
-
-        traces.push({
-          x: fitX,
-          y: powerLawFitData.yUpper,
-          mode: 'lines',
-          type: 'scatter',
-          name: 'Upper Bound (+120%)',
-          line: { 
-            color: '#9CA3AF', 
-            width: 1,
-            dash: 'dot'
-          },
-          showlegend: true,
-          hovertemplate: '<b>%{fullData.name}</b><br>%{y:.2f}%<extra></extra>',
-        })
-      }
     }
 
     return traces
-  }, [filteredData, timeScale, yScale, powerLawFitData, showPowerLaw, showBounds, timeframeName, powerLawParams, genesisDate])
+  }, [filteredData, filteredPriceData, timeScale, yScale, priceScale, powerLawFitData, showPowerLaw, timeframeName, powerLawParams, genesisDate])
 
   // Plotly layout
   const plotlyLayout = useMemo(() => {
@@ -323,6 +368,35 @@ export default function InactiveSupplyChart({
       yMinorTicks = minorTicks
     }
 
+    // Calculate price Y-axis range and ticks if price data exists
+    let priceYTickVals: number[] | undefined
+    let priceYTickText: string[] | undefined
+    let priceYRange: [number, number] | undefined
+    let priceYMinorTicks: number[] = []
+
+    if (filteredPriceData && filteredPriceData.length > 0) {
+      const priceValues = filteredPriceData.map(d => d.value)
+      const priceMin = Math.min(...priceValues)
+      const priceMax = Math.max(...priceValues)
+      
+      if (priceScale === 'Log') {
+        const priceMinChart = priceMin * 0.8
+        const priceMaxChart = priceMax * 1.2
+        priceYRange = [Math.log10(priceMinChart), Math.log10(priceMaxChart)]
+        
+        const { majorTicks, intermediateTicks, minorTicks } = generateLogTicks(priceMinChart, priceMaxChart)
+        priceYTickVals = [...majorTicks, ...intermediateTicks].sort((a, b) => a - b)
+        priceYTickText = priceYTickVals.map(val => formatCurrency(val))
+        priceYMinorTicks = minorTicks
+      } else {
+        priceYRange = [priceMin * 0.95, priceMax * 1.05]
+        
+        const priceTicks = generateLinearTicks(priceYRange[0], priceYRange[1], 6)
+        priceYTickVals = priceTicks
+        priceYTickText = priceTicks.map(val => formatCurrency(val))
+      }
+    }
+
     const layout: any = {
       height: height,
       plot_bgcolor: 'rgba(0,0,0,0)',
@@ -330,10 +404,10 @@ export default function InactiveSupplyChart({
       font: { color: '#9CA3AF', family: 'Inter, ui-sans-serif, system-ui, sans-serif' },
       hovermode: 'x unified',
       showlegend: true,
-      margin: { l: 80, r: 20, t: 20, b: 50 },
+      margin: { l: 80, r: filteredPriceData && filteredPriceData.length > 0 ? 80 : 20, t: 20, b: 50 },
       hoverlabel: {
         bgcolor: 'rgba(15, 20, 25, 0.95)',
-        bordercolor: 'rgba(91, 108, 255, 0.5)',  // Changed to match purple theme
+        bordercolor: 'rgba(91, 108, 255, 0.5)',
         font: { color: '#e2e8f0', size: 11 },
         align: 'left',
         namelength: -1,
@@ -400,7 +474,7 @@ export default function InactiveSupplyChart({
       }
     }
 
-    // Configure Y-axis
+    // Configure primary Y-axis (inactive supply %)
     layout.yaxis = {
       title: { text: 'Inactive Supply (%)' },
       type: yScale === 'Log' ? 'log' : 'linear',
@@ -426,12 +500,39 @@ export default function InactiveSupplyChart({
       }
     }
 
+    // Configure secondary Y-axis (price) if price data exists
+    if (filteredPriceData && filteredPriceData.length > 0 && priceYRange && priceYTickVals && priceYTickText) {
+      layout.yaxis2 = {
+        title: { text: 'Price (USD)', standoff: 20 },
+        type: priceScale === 'Log' ? 'log' : 'linear',
+        overlaying: 'y',
+        side: 'right',
+        showgrid: false,
+        color: '#9CA3AF',
+        range: priceYRange,
+        tickmode: 'array',
+        tickvals: priceYTickVals,
+        ticktext: priceYTickText,
+        showspikes: false,
+      }
+
+      if (priceScale === 'Log') {
+        layout.yaxis2.minor = {
+          showgrid: false,
+          gridwidth: 0.5,
+          gridcolor: 'rgba(54, 54, 80, 0.3)',
+          tickmode: 'array',
+          tickvals: priceYMinorTicks
+        }
+      }
+    }
+
     return layout
-  }, [filteredData, timeScale, yScale, height, timeframeName])
+  }, [filteredData, filteredPriceData, timeScale, yScale, priceScale, height, timeframeName])
 
   return (
     <div className="space-y-6">
-      {/* Interactive Controls - MATCHING HASHRATE CHART STYLE */}
+      {/* Interactive Controls */}
       <div className="flex flex-wrap gap-4 items-center justify-between">
         <div className="flex flex-wrap gap-2">
           {/* Y Scale Control */}
@@ -491,6 +592,66 @@ export default function InactiveSupplyChart({
               </div>
             </div>
           </div>
+
+          {/* Price Scale Control - Only show if price data exists */}
+          {filteredPriceData && filteredPriceData.length > 0 && (
+            <div className="relative group">
+              <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
+                <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,7H13V9H11V7M11,11H13V17H11V11Z"/>
+                </svg>
+                <span className="text-[#A0A0B8] text-xs">Price Scale:</span>
+                <span className="font-medium text-[#FFFFFF] text-xs">{priceScale}</span>
+                <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
+                <div className="p-1.5">
+                  <div 
+                    onClick={() => setPriceScale('Linear')}
+                    className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                      priceScale === 'Linear' 
+                        ? 'bg-[#5B6CFF]/20' 
+                        : 'hover:bg-[#1A1A2E]/80'
+                    }`}
+                  >
+                    <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"/>
+                    </svg>
+                    <div className="flex-1">
+                      <div className={`font-medium text-xs ${priceScale === 'Linear' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                        Linear Scale
+                      </div>
+                      <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                        Equal spacing between price intervals
+                      </div>
+                    </div>
+                  </div>
+                  <div 
+                    onClick={() => setPriceScale('Log')}
+                    className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
+                      priceScale === 'Log' 
+                        ? 'bg-[#5B6CFF]/20' 
+                        : 'hover:bg-[#1A1A2E]/80'
+                    }`}
+                  >
+                    <svg className="w-5 h-5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M19,19H5V5H19V19M7,10H9V16H7V10M11,7H13V16H11V7M15,13H17V16H15V13Z"/>
+                    </svg>
+                    <div className="flex-1">
+                      <div className={`font-medium text-xs ${priceScale === 'Log' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
+                        Logarithmic Scale
+                      </div>
+                      <div className="text-[10px] text-[#9CA3AF] mt-0.5">
+                        Better for analyzing percentage changes
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Time Scale Control */}
           <div className="relative group">
@@ -601,54 +762,6 @@ export default function InactiveSupplyChart({
               </div>
             </div>
           </div>
-
-          {/* Bounds Control */}
-          {showPowerLaw === 'Show' && powerLawParams && (
-            <div className="relative group">
-              <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
-                <svg className="w-3.5 h-3.5 text-[#6366F1]" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
-                </svg>
-                <span className="text-[#A0A0B8] text-xs">Bounds:</span>
-                <span className="font-medium text-[#FFFFFF] text-xs">{showBounds}</span>
-                <svg className="w-3 h-3 text-[#6B7280] group-hover:text-[#5B6CFF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              <div className="absolute top-full mt-1 left-0 w-64 bg-[#0F0F1A]/60 border border-[#2D2D45]/50 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20 backdrop-blur-md">
-                <div className="p-1.5">
-                  <div 
-                    onClick={() => setShowBounds('Hide')}
-                    className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
-                      showBounds === 'Hide' 
-                        ? 'bg-[#5B6CFF]/20' 
-                        : 'hover:bg-[#1A1A2E]/80'
-                    }`}
-                  >
-                    <div className="flex-1">
-                      <div className={`font-medium text-xs ${showBounds === 'Hide' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
-                        Hide Bounds
-                      </div>
-                    </div>
-                  </div>
-                  <div 
-                    onClick={() => setShowBounds('Show')}
-                    className={`flex items-center space-x-2.5 p-2.5 rounded-md cursor-pointer transition-all duration-150 ${
-                      showBounds === 'Show' 
-                        ? 'bg-[#5B6CFF]/20' 
-                        : 'hover:bg-[#1A1A2E]/80'
-                    }`}
-                  >
-                    <div className="flex-1">
-                      <div className={`font-medium text-xs ${showBounds === 'Show' ? 'text-[#5B6CFF]' : 'text-[#FFFFFF]'}`}>
-                        Show Bounds
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Time Period Buttons */}
