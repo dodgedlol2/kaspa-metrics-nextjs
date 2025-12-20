@@ -668,4 +668,204 @@ export async function getCurrentMetrics(): Promise<CurrentMetrics> {
       lastUpdated: new Date().toISOString()
     }
   }
+  // Inactive Supply data interface
+export interface InactiveSupplyDataPoint {
+  date: Date
+  timestamp: number
+  percent: number
+  daysFromGenesis: number
+}
+
+// Kaspa genesis date
+const KASPA_GENESIS = new Date('2021-11-07T00:00:00.000Z')
+
+/**
+ * Fetch inactive supply data from Kaspalytics
+ * @param minAge - Timeframe identifier (e.g., '2years', '1year', '6months')
+ * @returns Array of inactive supply data points
+ */
+export async function getInactiveSupplyData(minAge: string): Promise<InactiveSupplyDataPoint[]> {
+  try {
+    const url = `https://www.kaspalytics.com/app/supply/inactive?minAge=${minAge}`
+    
+    console.log(`Fetching inactive supply data from: ${url}`)
+    
+    const response = await fetch(url, {
+      next: { revalidate: 3600 } // Cache for 1 hour
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch inactive supply data: ${response.statusText}`)
+    }
+    
+    const html = await response.text()
+    
+    // Extract chartData from the HTML
+    const chartDataStart = html.indexOf('chartData:{labels:[')
+    if (chartDataStart === -1) {
+      console.error('Could not find chartData in HTML')
+      return []
+    }
+    
+    // Find the closing of chartData by counting braces
+    let braceCount = 0
+    let inChartData = false
+    let chartDataEnd = chartDataStart
+    
+    for (let i = chartDataStart; i < html.length; i++) {
+      const char = html[i]
+      if (char === '{') {
+        braceCount++
+        inChartData = true
+      } else if (char === '}') {
+        braceCount--
+        if (inChartData && braceCount === 0) {
+          chartDataEnd = i + 1
+          break
+        }
+      }
+    }
+    
+    const chartDataStr = html.substring(chartDataStart, chartDataEnd)
+    
+    // Extract labels (timestamps)
+    const labelsMatch = chartDataStr.match(/labels:\[(.*?)\],datasets:/)
+    if (!labelsMatch) {
+      console.error('Could not extract labels from chartData')
+      return []
+    }
+    
+    const labelsStr = labelsMatch[1]
+    const timestampMatches = labelsStr.matchAll(/new Date\((\d+)\)/g)
+    const timestamps: number[] = []
+    
+    for (const match of timestampMatches) {
+      timestamps.push(parseInt(match[1]))
+    }
+    
+    // Extract datasets
+    const datasetsStart = chartDataStr.indexOf('datasets:[')
+    if (datasetsStart === -1) {
+      console.error('Could not find datasets array')
+      return []
+    }
+    
+    const remaining = chartDataStr.substring(datasetsStart + 'datasets:['.length)
+    
+    // Find end of datasets array
+    let bracketCount = 1
+    let datasetsEnd = 0
+    
+    for (let i = 0; i < remaining.length; i++) {
+      const char = remaining[i]
+      if (char === '[') {
+        bracketCount++
+      } else if (char === ']') {
+        bracketCount--
+        if (bracketCount === 0) {
+          datasetsEnd = i
+          break
+        }
+      }
+    }
+    
+    const datasetsStr = remaining.substring(0, datasetsEnd)
+    
+    // Extract CSPERCENT dataset
+    const cspercentMatch = datasetsStr.match(/label:"CSPERCENT".*?data:\[([\d.,e\-+\s]+)\]/)
+    
+    if (!cspercentMatch) {
+      console.error('Could not find CSPERCENT data')
+      return []
+    }
+    
+    const dataStr = cspercentMatch[1].replace(/\s+/g, '')
+    const percentValues = dataStr.split(',').map(v => parseFloat(v)).filter(v => !isNaN(v))
+    
+    // Combine timestamps and values
+    const data: InactiveSupplyDataPoint[] = []
+    const minLength = Math.min(timestamps.length, percentValues.length)
+    
+    for (let i = 0; i < minLength; i++) {
+      const timestamp = timestamps[i]
+      const date = new Date(timestamp)
+      const daysFromGenesis = Math.floor((timestamp - KASPA_GENESIS.getTime()) / (24 * 60 * 60 * 1000))
+      
+      // Only include data points after genesis
+      if (daysFromGenesis >= 0 && percentValues[i] > 0) {
+        data.push({
+          date,
+          timestamp,
+          percent: percentValues[i],
+          daysFromGenesis
+        })
+      }
+    }
+    
+    console.log(`✓ Fetched ${data.length} inactive supply data points for ${minAge}`)
+    
+    return data
+    
+  } catch (error) {
+    console.error('Error fetching inactive supply data:', error)
+    return []
+  }
+}
+
+/**
+ * Calculate power law parameters for inactive supply data
+ * @param data - Array of inactive supply data points
+ * @returns Power law parameters (intercept, slope, r2, constant)
+ */
+export function calculateInactiveSupplyPowerLaw(data: InactiveSupplyDataPoint[]) {
+  try {
+    // Filter valid data points (positive values only)
+    const validData = data.filter(d => d.daysFromGenesis > 0 && d.percent > 0)
+    
+    if (validData.length < 10) {
+      console.warn('Not enough valid data points for power law calculation')
+      return null
+    }
+    
+    // Log transformation
+    const logX = validData.map(d => Math.log10(d.daysFromGenesis))
+    const logY = validData.map(d => Math.log10(d.percent))
+    
+    // Linear regression on log-transformed data
+    const n = logX.length
+    const sumX = logX.reduce((a, b) => a + b, 0)
+    const sumY = logY.reduce((a, b) => a + b, 0)
+    const sumXY = logX.reduce((sum, x, i) => sum + x * logY[i], 0)
+    const sumX2 = logX.reduce((sum, x) => sum + x * x, 0)
+    const sumY2 = logY.reduce((sum, y) => sum + y * y, 0)
+    
+    // Calculate slope (b) and intercept (a) for log-log fit
+    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
+    const intercept = (sumY - slope * sumX) / n
+    
+    // Calculate R² (coefficient of determination)
+    const meanX = sumX / n
+    const meanY = sumY / n
+    const ssXY = sumXY - n * meanX * meanY
+    const ssXX = sumX2 - n * meanX * meanX
+    const ssYY = sumY2 - n * meanY * meanY
+    const rValue = ssXY / Math.sqrt(ssXX * ssYY)
+    const r2 = rValue * rValue
+    
+    // Convert back to power law: y = constant * x^slope
+    const constant = Math.pow(10, intercept)
+    
+    console.log(`Power Law calculated: y = ${constant.toFixed(6)} * x^${slope.toFixed(6)} (R² = ${r2.toFixed(6)})`)
+    
+    return {
+      intercept,
+      slope,
+      r2,
+      constant
+    }
+    
+  } catch (error) {
+    console.error('Error calculating power law:', error)
+    return null
+  }
 }
