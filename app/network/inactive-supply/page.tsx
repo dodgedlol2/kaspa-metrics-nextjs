@@ -1,11 +1,26 @@
 import { getInactiveSupplyData, calculateInactiveSupplyPowerLaw } from '@/lib/sheets'
 import InactiveSupplyChart from '@/components/charts/InactiveSupplyChart'
 
+export const revalidate = 3600 // ISR: Revalidate every hour
+
 export default async function InactiveSupply2YearsPage() {
-  // Fetch inactive supply data for 2+ years
-  const data = await getInactiveSupplyData('2years')
+  // Kaspa genesis: November 7, 2021
+  const kaspaGenesis = new Date('2021-11-07T00:00:00.000Z')
   
-  // Calculate power law parameters
+  // For "2+ years inactive", the genesis is 2 years AFTER Kaspa genesis
+  const adjustedGenesis = new Date(kaspaGenesis)
+  adjustedGenesis.setFullYear(adjustedGenesis.getFullYear() + 2)
+  
+  // Fetch inactive supply data for 2+ years
+  const rawData = await getInactiveSupplyData('2years')
+  
+  // Recalculate daysFromGenesis based on adjusted genesis (2 years after Kaspa genesis)
+  const data = rawData.map(point => ({
+    ...point,
+    daysFromGenesis: Math.max(1, Math.floor((point.timestamp - adjustedGenesis.getTime()) / (24 * 60 * 60 * 1000)))
+  })).filter(point => point.daysFromGenesis > 0) // Only include data after adjusted genesis
+  
+  // Calculate power law parameters with adjusted genesis
   const powerLawParams = calculateInactiveSupplyPowerLaw(data)
   
   return (
@@ -45,7 +60,7 @@ export default async function InactiveSupply2YearsPage() {
           
           <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-4">
             <div className="text-[#9CA3AF] text-sm mb-1">Current Inactive %</div>
-            <div className="text-2xl font-bold text-[#00FFCC]">
+            <div className="text-2xl font-bold text-[#5B6CFF]">
               {data.length > 0 ? data[data.length - 1].percent.toFixed(2) : '0.00'}%
             </div>
           </div>
@@ -57,6 +72,7 @@ export default async function InactiveSupply2YearsPage() {
         <InactiveSupplyChart 
           data={data}
           timeframeName="2 Years"
+          genesisDate={adjustedGenesis}
           powerLawParams={powerLawParams || undefined}
           height={650}
         />
@@ -74,7 +90,7 @@ export default async function InactiveSupply2YearsPage() {
           
           <div className="grid md:grid-cols-2 gap-6 mt-6">
             <div>
-              <h3 className="text-lg font-semibold text-[#00FFCC] mb-2">Power Law Trend</h3>
+              <h3 className="text-lg font-semibold text-[#5B6CFF] mb-2">Power Law Trend</h3>
               <p className="text-sm">
                 The orange dotted line shows the mathematical power law relationship: 
                 <code className="bg-[#0F0F1A] px-2 py-1 rounded text-[#FF8C00] mx-1">
