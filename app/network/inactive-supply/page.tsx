@@ -1,4 +1,4 @@
-import { getInactiveSupplyData, calculateInactiveSupplyPowerLaw } from '@/lib/sheets'
+import { getInactiveSupplyData, calculateInactiveSupplyPowerLaw, getPriceData } from '@/lib/sheets'
 import InactiveSupplyChart from '@/components/charts/InactiveSupplyChart'
 
 export const revalidate = 3600 // ISR: Revalidate every hour
@@ -11,8 +11,11 @@ export default async function InactiveSupply2YearsPage() {
   const adjustedGenesis = new Date(kaspaGenesis)
   adjustedGenesis.setFullYear(adjustedGenesis.getFullYear() + 2)
   
-  // Fetch inactive supply data for 2+ years
-  const rawData = await getInactiveSupplyData('2years')
+  // Fetch inactive supply data for 2+ years AND price data
+  const [rawData, priceData] = await Promise.all([
+    getInactiveSupplyData('2years'),
+    getPriceData()
+  ])
   
   // Recalculate daysFromGenesis based on adjusted genesis (2 years after Kaspa genesis)
   const data = rawData.map(point => ({
@@ -67,10 +70,11 @@ export default async function InactiveSupply2YearsPage() {
         </div>
       )}
 
-      {/* Chart */}
+      {/* Chart with Price Background */}
       <div className="mb-8">
         <InactiveSupplyChart 
           data={data}
+          priceData={priceData}
           timeframeName="2 Years"
           genesisDate={adjustedGenesis}
           powerLawParams={powerLawParams || undefined}
@@ -106,15 +110,13 @@ export default async function InactiveSupply2YearsPage() {
             </div>
             
             <div>
-              <h3 className="text-lg font-semibold text-[#9CA3AF] mb-2">Bounds Interpretation</h3>
+              <h3 className="text-lg font-semibold text-[#9CA3AF] mb-2">Price Context</h3>
               <p className="text-sm">
-                <span className="text-[#9CA3AF]">Lower Bound (-60%):</span> Historically low inactive supply levels
-              </p>
-              <p className="text-sm mt-1">
-                <span className="text-[#9CA3AF]">Upper Bound (+120%):</span> Historically high inactive supply levels
+                The gray line in the background shows Kaspa's price movement over the same period. 
+                This helps identify correlations between price action and changes in long-term holder behavior.
               </p>
               <p className="text-sm mt-2">
-                These bounds help identify unusual market conditions.
+                Compare price peaks and dips with changes in inactive supply to understand market psychology.
               </p>
             </div>
           </div>
