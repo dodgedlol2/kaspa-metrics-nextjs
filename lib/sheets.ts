@@ -653,7 +653,7 @@ export async function getCurrentMetrics(): Promise<CurrentMetrics> {
   } catch (error) {
     console.error('Error getting current metrics:', error)
     
-    // Return fallback data if sheets fail
+      // Return fallback data if sheets fail
     return {
       price: 0,
       priceChange24h: 0,
@@ -668,7 +668,12 @@ export async function getCurrentMetrics(): Promise<CurrentMetrics> {
       lastUpdated: new Date().toISOString()
     }
   }
-  // Inactive Supply data interface
+}
+// ============================================================
+// INACTIVE SUPPLY FUNCTIONS - ADD BELOW HERE
+// ============================================================
+
+// Inactive Supply data interface
 export interface InactiveSupplyDataPoint {
   date: Date
   timestamp: number
