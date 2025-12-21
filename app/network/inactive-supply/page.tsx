@@ -4,17 +4,21 @@ import CombinedInactiveSupplyChart from '@/components/charts/CombinedInactiveSup
 export const revalidate = 3600
 
 export default async function InactiveSupplyOverviewPage() {
-  // Fetch data for key timeframes to show insights
+  // Fetch data for ALL timeframes to show complete insights
   const [
     data3m,
+    data6m,
     data1y, 
     data2y,
+    data3y,
     data4y,
     priceData
   ] = await Promise.all([
     getInactiveSupplyData('3months'),
+    getInactiveSupplyData('6months'),
     getInactiveSupplyData('1year'),
     getInactiveSupplyData('2years'),
+    getInactiveSupplyData('3years'),
     getInactiveSupplyData('4years'),
     getPriceData()
   ])
@@ -26,6 +30,10 @@ export default async function InactiveSupplyOverviewPage() {
   const adjustedGenesis3m = new Date(kaspaGenesis)
   adjustedGenesis3m.setMonth(adjustedGenesis3m.getMonth() + 3)
   
+  // 6-month adjustment
+  const adjustedGenesis6m = new Date(kaspaGenesis)
+  adjustedGenesis6m.setMonth(adjustedGenesis6m.getMonth() + 6)
+  
   // 1-year adjustment
   const adjustedGenesis1y = new Date(kaspaGenesis)
   adjustedGenesis1y.setFullYear(adjustedGenesis1y.getFullYear() + 1)
@@ -33,6 +41,10 @@ export default async function InactiveSupplyOverviewPage() {
   // 2-year adjustment  
   const adjustedGenesis2y = new Date(kaspaGenesis)
   adjustedGenesis2y.setFullYear(adjustedGenesis2y.getFullYear() + 2)
+  
+  // 3-year adjustment
+  const adjustedGenesis3y = new Date(kaspaGenesis)
+  adjustedGenesis3y.setFullYear(adjustedGenesis3y.getFullYear() + 3)
   
   // 4-year adjustment
   const adjustedGenesis4y = new Date(kaspaGenesis)
@@ -42,6 +54,11 @@ export default async function InactiveSupplyOverviewPage() {
   const processed3m = data3m.map(point => ({
     ...point,
     daysFromGenesis: Math.max(1, Math.floor((point.timestamp - adjustedGenesis3m.getTime()) / (24 * 60 * 60 * 1000)))
+  })).filter(point => point.daysFromGenesis > 0)
+
+  const processed6m = data6m.map(point => ({
+    ...point,
+    daysFromGenesis: Math.max(1, Math.floor((point.timestamp - adjustedGenesis6m.getTime()) / (24 * 60 * 60 * 1000)))
   })).filter(point => point.daysFromGenesis > 0)
 
   const processed1y = data1y.map(point => ({
@@ -54,6 +71,11 @@ export default async function InactiveSupplyOverviewPage() {
     daysFromGenesis: Math.max(1, Math.floor((point.timestamp - adjustedGenesis2y.getTime()) / (24 * 60 * 60 * 1000)))
   })).filter(point => point.daysFromGenesis > 0)
 
+  const processed3y = data3y.map(point => ({
+    ...point,
+    daysFromGenesis: Math.max(1, Math.floor((point.timestamp - adjustedGenesis3y.getTime()) / (24 * 60 * 60 * 1000)))
+  })).filter(point => point.daysFromGenesis > 0)
+
   const processed4y = data4y.map(point => ({
     ...point,
     daysFromGenesis: Math.max(1, Math.floor((point.timestamp - adjustedGenesis4y.getTime()) / (24 * 60 * 60 * 1000)))
@@ -61,14 +83,18 @@ export default async function InactiveSupplyOverviewPage() {
 
   // Calculate power law metrics using SAME processing as individual pages
   const powerLaw3m = calculateInactiveSupplyPowerLaw(processed3m)
+  const powerLaw6m = calculateInactiveSupplyPowerLaw(processed6m)
   const powerLaw1y = calculateInactiveSupplyPowerLaw(processed1y)
   const powerLaw2y = calculateInactiveSupplyPowerLaw(processed2y)
+  const powerLaw3y = calculateInactiveSupplyPowerLaw(processed3y)
   const powerLaw4y = calculateInactiveSupplyPowerLaw(processed4y)
 
   // Safely get latest data points - using the correct property name from your interface
   const latest3m = processed3m?.[processed3m.length - 1]?.percent ?? 0
+  const latest6m = processed6m?.[processed6m.length - 1]?.percent ?? 0
   const latest1y = processed1y?.[processed1y.length - 1]?.percent ?? 0
   const latest2y = processed2y?.[processed2y.length - 1]?.percent ?? 0
+  const latest3y = processed3y?.[processed3y.length - 1]?.percent ?? 0
   const latest4y = processed4y?.[processed4y.length - 1]?.percent ?? 0
 
   // Calculate holder strength ratio safely
@@ -98,27 +124,32 @@ export default async function InactiveSupplyOverviewPage() {
         </div>
 
         <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-[#FF8C00] mb-2">Conviction Spectrum</h3>
-          <div className="text-xl font-bold text-white mb-2">
+          <h3 className="text-lg font-semibold text-[#FF8C00] mb-2">Complete Spectrum</h3>
+          <div className="text-sm font-bold text-white mb-2">
             3M: {latest3m.toFixed(1)}%<br/>
+            6M: {latest6m.toFixed(1)}%<br/>
             1Y: {latest1y.toFixed(1)}%<br/>
+            2Y: {latest2y.toFixed(1)}%<br/>
+            3Y: {latest3y.toFixed(1)}%<br/>
             4Y: {latest4y.toFixed(1)}%
           </div>
           <p className="text-[#9CA3AF] text-sm">
-            Clear holder commitment progression
+            Full conviction progression
           </p>
         </div>
 
         <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-[#10B981] mb-2">Multi-Timeframe R²</h3>
+          <h3 className="text-lg font-semibold text-[#10B981] mb-2">Power Law R² Values</h3>
           <div className="text-sm font-bold text-white mb-2">
             3M: {powerLaw3m?.r2?.toFixed(3) || 'N/A'}<br/>
+            6M: {powerLaw6m?.r2?.toFixed(3) || 'N/A'}<br/>
             1Y: {powerLaw1y?.r2?.toFixed(3) || 'N/A'}<br/>
             2Y: {powerLaw2y?.r2?.toFixed(3) || 'N/A'}<br/>
+            3Y: {powerLaw3y?.r2?.toFixed(3) || 'N/A'}<br/>
             4Y: {powerLaw4y?.r2?.toFixed(3) || 'N/A'}
           </div>
           <p className="text-[#9CA3AF] text-sm">
-            Power law correlations across timeframes
+            Mathematical pattern strength
           </p>
         </div>
       </div>
@@ -130,8 +161,10 @@ export default async function InactiveSupplyOverviewPage() {
         <div style={{ height: '600px' }} className="w-full">
           <CombinedInactiveSupplyChart 
             data3m={processed3m}
+            data6m={processed6m}
             data1y={processed1y}
             data2y={processed2y}
+            data3y={processed3y}
             data4y={processed4y}
             priceData={priceData}
             height={600}
@@ -148,7 +181,7 @@ export default async function InactiveSupplyOverviewPage() {
               6+ Months
             </div>
             <div className="text-xs text-[#9CA3AF] font-medium">
-              Active vs Inactive
+              {latest6m > 0 ? `${latest6m.toFixed(1)}% Supply` : 'Medium-term HODLing'}
             </div>
           </div>
         </a>
