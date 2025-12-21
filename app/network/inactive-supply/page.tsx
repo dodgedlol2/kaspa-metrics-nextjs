@@ -18,10 +18,10 @@ export default async function InactiveSupplyOverviewPage() {
   const powerLaw2y = calculateInactiveSupplyPowerLaw(data2y)
   const powerLaw1y = calculateInactiveSupplyPowerLaw(data1y)
 
-  // Safely get latest data points - using the same pattern as your existing pages
-  const latest1y = data1y?.[data1y.length - 1]?.inactiveSupplyPercentage ?? 0
-  const latest2y = data2y?.[data2y.length - 1]?.inactiveSupplyPercentage ?? 0
-  const latest4y = data4y?.[data4y.length - 1]?.inactiveSupplyPercentage ?? 0
+  // Safely get latest data points - using the correct property name from your interface
+  const latest1y = data1y?.[data1y.length - 1]?.percent ?? 0
+  const latest2y = data2y?.[data2y.length - 1]?.percent ?? 0
+  const latest4y = data4y?.[data4y.length - 1]?.percent ?? 0
 
   // Calculate holder strength ratio safely
   const holderStrengthRatio = latest1y > 0 ? (latest4y / latest1y * 100) : 0
