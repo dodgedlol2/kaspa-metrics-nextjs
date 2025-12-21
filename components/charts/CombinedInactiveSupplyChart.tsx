@@ -15,8 +15,10 @@ export interface InactiveSupplyDataPoint {
 
 interface CombinedInactiveSupplyChartProps {
   data3m: InactiveSupplyDataPoint[]
+  data6m: InactiveSupplyDataPoint[]
   data1y: InactiveSupplyDataPoint[]
   data2y: InactiveSupplyDataPoint[]
+  data3y: InactiveSupplyDataPoint[]
   data4y: InactiveSupplyDataPoint[]
   priceData: KaspaMetric[]
   height?: number
@@ -49,8 +51,10 @@ function formatPercent(value: number): string {
 
 export default function CombinedInactiveSupplyChart({ 
   data3m,
+  data6m,
   data1y, 
   data2y,
+  data3y,
   data4y,
   priceData,
   height = 600 
@@ -61,12 +65,14 @@ export default function CombinedInactiveSupplyChart({
   const [showPriceBackground, setShowPriceBackground] = useState(true)
 
   // Filter all data based on time period
-  const { filteredData3m, filteredData1y, filteredData2y, filteredData4y, filteredPriceData } = useMemo(() => {
+  const { filteredData3m, filteredData6m, filteredData1y, filteredData2y, filteredData3y, filteredData4y, filteredPriceData } = useMemo(() => {
     if (timePeriod === 'All') {
       return {
         filteredData3m: data3m,
+        filteredData6m: data6m,
         filteredData1y: data1y,
         filteredData2y: data2y,
+        filteredData3y: data3y,
         filteredData4y: data4y,
         filteredPriceData: priceData
       }
@@ -84,12 +90,14 @@ export default function CombinedInactiveSupplyChart({
 
     return {
       filteredData3m: data3m.filter(point => point.timestamp >= cutoffTime),
+      filteredData6m: data6m.filter(point => point.timestamp >= cutoffTime),
       filteredData1y: data1y.filter(point => point.timestamp >= cutoffTime),
       filteredData2y: data2y.filter(point => point.timestamp >= cutoffTime),
+      filteredData3y: data3y.filter(point => point.timestamp >= cutoffTime),
       filteredData4y: data4y.filter(point => point.timestamp >= cutoffTime),
       filteredPriceData: priceData.filter(point => point.timestamp >= cutoffTime)
     }
-  }, [data3m, data1y, data2y, data4y, priceData, timePeriod])
+  }, [data3m, data6m, data1y, data2y, data3y, data4y, priceData, timePeriod])
 
   // Prepare Plotly data
   const plotlyData = useMemo(() => {
@@ -119,10 +127,12 @@ export default function CombinedInactiveSupplyChart({
 
     // Color scheme for different timeframes
     const timeframeColors = {
-      '3m': '#EF4444', // Red
-      '1y': '#F59E0B', // Amber
-      '2y': '#5B6CFF', // Primary blue
-      '4y': '#10B981'  // Emerald
+      '3m': '#DC2626',  // Red-600
+      '6m': '#EA580C',  // Orange-600  
+      '1y': '#F59E0B',  // Amber-500
+      '2y': '#5B6CFF',  // Primary blue
+      '3y': '#059669',  // Emerald-600
+      '4y': '#10B981'   // Emerald-500
     }
 
     // Add 3-month data
@@ -135,6 +145,23 @@ export default function CombinedInactiveSupplyChart({
         name: '3+ Months',
         line: { 
           color: timeframeColors['3m'],
+          width: 2 
+        },
+        connectgaps: true,
+        hovertemplate: '<b>%{fullData.name}</b><br>Inactive: %{y:.2f}%<br>%{x}<extra></extra>',
+      })
+    }
+
+    // Add 6-month data
+    if (filteredData6m.length > 0) {
+      traces.push({
+        x: filteredData6m.map(d => d.date),
+        y: filteredData6m.map(d => d.percent),
+        mode: 'lines',
+        type: 'scatter',
+        name: '6+ Months',
+        line: { 
+          color: timeframeColors['6m'],
           width: 2 
         },
         connectgaps: true,
@@ -176,6 +203,23 @@ export default function CombinedInactiveSupplyChart({
       })
     }
 
+    // Add 3-year data
+    if (filteredData3y.length > 0) {
+      traces.push({
+        x: filteredData3y.map(d => d.date),
+        y: filteredData3y.map(d => d.percent),
+        mode: 'lines',
+        type: 'scatter',
+        name: '3+ Years',
+        line: { 
+          color: timeframeColors['3y'],
+          width: 2 
+        },
+        connectgaps: true,
+        hovertemplate: '<b>%{fullData.name}</b><br>Inactive: %{y:.2f}%<br>%{x}<extra></extra>',
+      })
+    }
+
     // Add 4-year data
     if (filteredData4y.length > 0) {
       traces.push({
@@ -194,15 +238,17 @@ export default function CombinedInactiveSupplyChart({
     }
 
     return traces
-  }, [filteredData3m, filteredData1y, filteredData2y, filteredData4y, filteredPriceData, showPriceBackground])
+  }, [filteredData3m, filteredData6m, filteredData1y, filteredData2y, filteredData3y, filteredData4y, filteredPriceData, showPriceBackground])
 
   // Plotly layout
   const plotlyLayout = useMemo(() => {
     // Calculate Y-axis range from all timeframe data
     const allPercentValues = [
       ...filteredData3m.map(d => d.percent),
+      ...filteredData6m.map(d => d.percent),
       ...filteredData1y.map(d => d.percent),
       ...filteredData2y.map(d => d.percent),
+      ...filteredData3y.map(d => d.percent),
       ...filteredData4y.map(d => d.percent)
     ]
     
