@@ -180,12 +180,22 @@ const navigation = [
       },
       {
         name: 'Inactive Supply',
+        href: '/network/inactive-supply',
         icon: (
           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
           </svg>
         ),
         children: [
+          {
+            name: 'Overview',
+            href: '/network/inactive-supply',
+            icon: (
+              <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19,3H5C3.9,3 3,3.9 3,5V19C3,20.1 3.9,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19M19,6H5V5H19V6Z"/>
+              </svg>
+            )
+          },
           {
             name: '6+ Months',
             href: '/network/inactive-supply/6-months',
