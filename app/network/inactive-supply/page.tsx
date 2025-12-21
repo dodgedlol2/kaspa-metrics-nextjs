@@ -1,27 +1,75 @@
 import { getInactiveSupplyData, calculateInactiveSupplyPowerLaw, getPriceData } from '@/lib/sheets'
+import CombinedInactiveSupplyChart from '@/components/charts/CombinedInactiveSupplyChart'
 
 export const revalidate = 3600
 
 export default async function InactiveSupplyOverviewPage() {
   // Fetch data for key timeframes to show insights
   const [
+    data3m,
     data1y, 
     data2y,
-    data4y
+    data4y,
+    priceData
   ] = await Promise.all([
+    getInactiveSupplyData('3months'),
     getInactiveSupplyData('1year'),
     getInactiveSupplyData('2years'),
-    getInactiveSupplyData('4years')
+    getInactiveSupplyData('4years'),
+    getPriceData()
   ])
 
-  // Calculate power law metrics for insights
-  const powerLaw2y = calculateInactiveSupplyPowerLaw(data2y)
-  const powerLaw1y = calculateInactiveSupplyPowerLaw(data1y)
+  // Apply the SAME genesis date adjustments as individual pages
+  const kaspaGenesis = new Date('2021-11-07T00:00:00.000Z')
+  
+  // 3-month adjustment
+  const adjustedGenesis3m = new Date(kaspaGenesis)
+  adjustedGenesis3m.setMonth(adjustedGenesis3m.getMonth() + 3)
+  
+  // 1-year adjustment
+  const adjustedGenesis1y = new Date(kaspaGenesis)
+  adjustedGenesis1y.setFullYear(adjustedGenesis1y.getFullYear() + 1)
+  
+  // 2-year adjustment  
+  const adjustedGenesis2y = new Date(kaspaGenesis)
+  adjustedGenesis2y.setFullYear(adjustedGenesis2y.getFullYear() + 2)
+  
+  // 4-year adjustment
+  const adjustedGenesis4y = new Date(kaspaGenesis)
+  adjustedGenesis4y.setFullYear(adjustedGenesis4y.getFullYear() + 4)
+
+  // Process data with SAME logic as individual pages
+  const processed3m = data3m.map(point => ({
+    ...point,
+    daysFromGenesis: Math.max(1, Math.floor((point.timestamp - adjustedGenesis3m.getTime()) / (24 * 60 * 60 * 1000)))
+  })).filter(point => point.daysFromGenesis > 0)
+
+  const processed1y = data1y.map(point => ({
+    ...point,
+    daysFromGenesis: Math.max(1, Math.floor((point.timestamp - adjustedGenesis1y.getTime()) / (24 * 60 * 60 * 1000)))
+  })).filter(point => point.daysFromGenesis > 0)
+
+  const processed2y = data2y.map(point => ({
+    ...point,
+    daysFromGenesis: Math.max(1, Math.floor((point.timestamp - adjustedGenesis2y.getTime()) / (24 * 60 * 60 * 1000)))
+  })).filter(point => point.daysFromGenesis > 0)
+
+  const processed4y = data4y.map(point => ({
+    ...point,
+    daysFromGenesis: Math.max(1, Math.floor((point.timestamp - adjustedGenesis4y.getTime()) / (24 * 60 * 60 * 1000)))
+  })).filter(point => point.daysFromGenesis > 0)
+
+  // Calculate power law metrics using SAME processing as individual pages
+  const powerLaw3m = calculateInactiveSupplyPowerLaw(processed3m)
+  const powerLaw1y = calculateInactiveSupplyPowerLaw(processed1y)
+  const powerLaw2y = calculateInactiveSupplyPowerLaw(processed2y)
+  const powerLaw4y = calculateInactiveSupplyPowerLaw(processed4y)
 
   // Safely get latest data points - using the correct property name from your interface
-  const latest1y = data1y?.[data1y.length - 1]?.percent ?? 0
-  const latest2y = data2y?.[data2y.length - 1]?.percent ?? 0
-  const latest4y = data4y?.[data4y.length - 1]?.percent ?? 0
+  const latest3m = processed3m?.[processed3m.length - 1]?.percent ?? 0
+  const latest1y = processed1y?.[processed1y.length - 1]?.percent ?? 0
+  const latest2y = processed2y?.[processed2y.length - 1]?.percent ?? 0
+  const latest4y = processed4y?.[processed4y.length - 1]?.percent ?? 0
 
   // Calculate holder strength ratio safely
   const holderStrengthRatio = latest1y > 0 ? (latest4y / latest1y * 100) : 0
@@ -50,27 +98,46 @@ export default async function InactiveSupplyOverviewPage() {
         </div>
 
         <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-[#FF8C00] mb-2">Diamond Hands Ratio</h3>
-          <div className="text-3xl font-bold text-white mb-2">
-            {holderStrengthRatio.toFixed(1)}%
+          <h3 className="text-lg font-semibold text-[#FF8C00] mb-2">Conviction Spectrum</h3>
+          <div className="text-xl font-bold text-white mb-2">
+            3M: {latest3m.toFixed(1)}%<br/>
+            1Y: {latest1y.toFixed(1)}%<br/>
+            4Y: {latest4y.toFixed(1)}%
           </div>
           <p className="text-[#9CA3AF] text-sm">
-            4+ year holders vs 1+ year holders
+            Clear holder commitment progression
           </p>
         </div>
 
         <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-[#10B981] mb-2">Ultra Long-Term</h3>
-          <div className="text-3xl font-bold text-white mb-2">
-            {latest4y.toFixed(1)}%
+          <h3 className="text-lg font-semibold text-[#10B981] mb-2">Multi-Timeframe R²</h3>
+          <div className="text-sm font-bold text-white mb-2">
+            3M: {powerLaw3m?.r2?.toFixed(3) || 'N/A'}<br/>
+            1Y: {powerLaw1y?.r2?.toFixed(3) || 'N/A'}<br/>
+            2Y: {powerLaw2y?.r2?.toFixed(3) || 'N/A'}<br/>
+            4Y: {powerLaw4y?.r2?.toFixed(3) || 'N/A'}
           </div>
           <p className="text-[#9CA3AF] text-sm">
-            Supply unmoved for 4+ years
+            Power law correlations across timeframes
           </p>
         </div>
       </div>
 
-      {/* Quick Navigation */}
+      {/* Combined Multi-Timeframe Chart */}
+      <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-6 mb-8">
+        <h2 className="text-2xl font-bold text-white mb-6">Multi-Timeframe Analysis</h2>
+        
+        <div style={{ height: '600px' }} className="w-full">
+          <CombinedInactiveSupplyChart 
+            data3m={processed3m}
+            data1y={processed1y}
+            data2y={processed2y}
+            data4y={processed4y}
+            priceData={priceData}
+            height={600}
+          />
+        </div>
+      </div>
       <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <a
           href="/network/inactive-supply/6-months"
