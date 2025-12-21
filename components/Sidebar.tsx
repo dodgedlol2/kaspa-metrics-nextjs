@@ -206,7 +206,7 @@ const navigation = [
           },
           {
             name: '2+ Years',
-            href: '/network/inactive-supply',
+            href: '/network/inactive-supply/2-years',
             icon: (
               <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
