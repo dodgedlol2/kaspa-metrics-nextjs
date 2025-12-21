@@ -180,12 +180,58 @@ const navigation = [
       },
       {
         name: 'Inactive Supply',
-        href: '/network/inactive-supply',
         icon: (
           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
           </svg>
-        )
+        ),
+        children: [
+          {
+            name: '6+ Months',
+            href: '/network/inactive-supply/6-months',
+            icon: (
+              <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+              </svg>
+            )
+          },
+          {
+            name: '1+ Year',
+            href: '/network/inactive-supply/1-year',
+            icon: (
+              <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+              </svg>
+            )
+          },
+          {
+            name: '2+ Years',
+            href: '/network/inactive-supply',
+            icon: (
+              <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+              </svg>
+            )
+          },
+          {
+            name: '3+ Years',
+            href: '/network/inactive-supply/3-years',
+            icon: (
+              <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+              </svg>
+            )
+          },
+          {
+            name: '4+ Years',
+            href: '/network/inactive-supply/4-years',
+            icon: (
+              <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+              </svg>
+            )
+          }
+        ]
       },
       {
         name: 'Addresses',
@@ -341,7 +387,7 @@ const navigation = [
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const [expandedSections, setExpandedSections] = useState<string[]>(['Market Data', 'Power Law Analysis'])
+  const [expandedSections, setExpandedSections] = useState<string[]>(['Market Data', 'Power Law Analysis', 'Network'])
 
   const toggleSection = (sectionName: string) => {
     setExpandedSections(prev => 
