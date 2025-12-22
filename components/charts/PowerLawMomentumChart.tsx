@@ -15,6 +15,8 @@ export interface InactiveSupplyDataPoint {
 
 interface PowerLawMomentumChartProps {
   data: InactiveSupplyDataPoint[]
+  data3m?: InactiveSupplyDataPoint[]  // Add short-term data
+  data6m?: InactiveSupplyDataPoint[]  // Add short-term data
   priceData?: KaspaMetric[]
   timeframeName: string // e.g., "1 Year", "2 Years"
   powerLawParams: {
@@ -52,7 +54,9 @@ function formatPercent(value: number): string {
 }
 
 export default function PowerLawMomentumChart({ 
-  data, 
+  data,
+  data3m,
+  data6m,
   priceData,
   timeframeName,
   powerLawParams,
@@ -104,35 +108,87 @@ export default function PowerLawMomentumChart({
     })
   }, [filteredData, powerLawParams])
 
-  // Calculate momentum (rate of change in detrended values)
-  const momentumData = useMemo(() => {
-    if (!analysisData || analysisData.length < 14) return null
+  // Calculate relative behavior analysis between short-term and long-term holders
+  const relativeAnalysis = useMemo(() => {
+    if (!analysisData || analysisData.length === 0) return null
 
     return analysisData.map((point, index) => {
-      if (index < 7) return { ...point, momentum7d: 0, momentum30d: 0 }
+      // Find corresponding short-term data points
+      const corresponding3m = data3m?.find(d => 
+        Math.abs(d.timestamp - point.timestamp) < 24 * 60 * 60 * 1000
+      )
+      const corresponding6m = data6m?.find(d => 
+        Math.abs(d.timestamp - point.timestamp) < 24 * 60 * 60 * 1000
+      )
+
+      if (!corresponding3m || !corresponding6m) return { ...point, relativeSignal: 'No Data' }
+
+      // Calculate normalized positions (no power law needed for short-term)
+      // Use simple percentage positions relative to recent range
+      const longTermPosition = point.deviation // Already calculated from power law
+
+      // For short-term, calculate position relative to their recent range
+      const recent3mData = data3m.slice(Math.max(0, index - 30), index + 1) // Last 30 days
+      const recent6mData = data6m.slice(Math.max(0, index - 30), index + 1)
       
-      // 7-day momentum
-      const momentum7d = index >= 7 ? 
-        (point.detrended - analysisData[index - 7].detrended) / 7 : 0
+      const avg3m = recent3mData.reduce((sum, d) => sum + d.percent, 0) / recent3mData.length
+      const avg6m = recent6mData.reduce((sum, d) => sum + d.percent, 0) / recent6mData.length
       
-      // 30-day momentum (if enough data)
-      const momentum30d = index >= 30 ? 
-        (point.detrended - analysisData[index - 30].detrended) / 30 : 0
+      const shortTerm3mPosition = ((corresponding3m.percent - avg3m) / avg3m) * 100
+      const shortTerm6mPosition = ((corresponding6m.percent - avg6m) / avg6m) * 100
+      const shortTermAvgPosition = (shortTerm3mPosition + shortTerm6mPosition) / 2
+
+      // Calculate relative behavior signals
+      const divergence = Math.abs(shortTermAvgPosition - longTermPosition)
+      const direction = shortTermAvgPosition - longTermPosition
+
+      // Determine relative behavior patterns
+      let relativeSignal: string
+      let signalStrength: number
+      
+      if (divergence > 15) {
+        if (direction > 0) {
+          // Short-term much more bullish than long-term
+          relativeSignal = shortTermAvgPosition > 10 ? 'Short-term FOMO' : 'Short-term Leading'
+          signalStrength = 3
+        } else {
+          // Short-term much more bearish than long-term  
+          relativeSignal = longTermPosition > 5 ? 'Smart Money Accumulating' : 'Short-term Panic'
+          signalStrength = 3
+        }
+      } else if (divergence > 8) {
+        if (direction > 0) {
+          relativeSignal = 'Short-term Optimistic'
+          signalStrength = 2
+        } else {
+          relativeSignal = 'Long-term Confident'
+          signalStrength = 2
+        }
+      } else if (divergence > 3) {
+        relativeSignal = direction > 0 ? 'Mild Short-term Premium' : 'Mild Long-term Premium'
+        signalStrength = 1
+      } else {
+        relativeSignal = 'Aligned Behavior'
+        signalStrength = 0
+      }
 
       return {
         ...point,
-        momentum7d,
-        momentum30d
+        shortTermPosition: shortTermAvgPosition,
+        divergence,
+        direction,
+        relativeSignal,
+        signalStrength
       }
-    })
-  }, [analysisData])
+    }).filter(Boolean)
+  }, [analysisData, data3m, data6m])
 
-  // Prepare Plotly data for single chart with bubble overlays
+  // Prepare Plotly data for relative behavior analysis
   const plotlyData = useMemo(() => {
-    if (!momentumData || momentumData.length === 0) return []
+    if (!relativeAnalysis || relativeAnalysis.length === 0) return []
 
     const traces: any[] = []
-    const xValues = momentumData.map(d => d.date)
+    const xValues = relativeAnalysis.map(d => d.date)
 
     // === MAIN PRICE CHART ===
     if (filteredPriceData.length > 0) {
@@ -152,83 +208,86 @@ export default function PowerLawMomentumChart({
         yaxis: 'y',
       })
 
-      // === COLORED BUBBLES FOR POWER LAW DEVIATION SIGNALS ===
+      // === COLORED BUBBLES FOR RELATIVE BEHAVIOR SIGNALS ===
       
-      // Create bubble data based purely on deviation from power law
-      const bubbleData = momentumData.map(point => {
-        const deviation = point.deviation
-        
+      // Create bubble data based on relative behavior between timeframes
+      const bubbleData = relativeAnalysis.map(point => {
         // Find corresponding price
         const pricePoint = filteredPriceData.find(p => 
-          Math.abs(p.timestamp - point.timestamp) < 24 * 60 * 60 * 1000 // Within 1 day
+          Math.abs(p.timestamp - point.timestamp) < 24 * 60 * 60 * 1000
         )
         
-        if (!pricePoint) return null
+        if (!pricePoint || point.relativeSignal === 'No Data') return null
 
-        // Simple color logic based ONLY on deviation from power law
+        // Color and size based on relative behavior patterns
         let color: string
-        let size: number = 8 // Base size
-        let signalType: string
+        let size: number = 8
+        const signal = point.relativeSignal
 
-        if (deviation < -15) {
-          // Strongly below power law trend
-          color = 'rgba(34, 197, 94, 0.9)' // Bright green
-          size = 14
-          signalType = 'Strong Undervalued'
-        } else if (deviation < -8) {
-          // Moderately below power law trend
-          color = 'rgba(74, 222, 128, 0.8)' // Green
-          size = 11
-          signalType = 'Undervalued'
-        } else if (deviation < -3) {
-          // Slightly below power law trend
-          color = 'rgba(134, 239, 172, 0.7)' // Light green
-          size = 9
-          signalType = 'Slightly Undervalued'
-        } else if (deviation > 15) {
-          // Strongly above power law trend
-          color = 'rgba(239, 68, 68, 0.9)' // Bright red
-          size = 14
-          signalType = 'Strong Overvalued'
-        } else if (deviation > 8) {
-          // Moderately above power law trend
-          color = 'rgba(248, 113, 113, 0.8)' // Red
-          size = 11
-          signalType = 'Overvalued'
-        } else if (deviation > 3) {
-          // Slightly above power law trend
-          color = 'rgba(252, 165, 165, 0.7)' // Light red
-          size = 9
-          signalType = 'Slightly Overvalued'
-        } else {
-          // Within normal range of power law
-          color = 'rgba(139, 92, 246, 0.4)' // Purple
-          size = 6
-          signalType = 'Fair Value'
+        switch (signal) {
+          case 'Short-term FOMO':
+            color = 'rgba(239, 68, 68, 0.9)' // Bright red
+            size = 16
+            break
+          case 'Smart Money Accumulating':
+            color = 'rgba(34, 197, 94, 0.9)' // Bright green  
+            size = 16
+            break
+          case 'Short-term Leading':
+            color = 'rgba(251, 146, 60, 0.8)' // Orange
+            size = 13
+            break
+          case 'Short-term Panic':
+            color = 'rgba(248, 113, 113, 0.8)' // Light red
+            size = 13
+            break
+          case 'Short-term Optimistic':
+            color = 'rgba(59, 130, 246, 0.7)' // Blue
+            size = 10
+            break
+          case 'Long-term Confident':
+            color = 'rgba(74, 222, 128, 0.7)' // Green
+            size = 10
+            break
+          case 'Mild Short-term Premium':
+            color = 'rgba(168, 85, 247, 0.6)' // Purple
+            size = 8
+            break
+          case 'Mild Long-term Premium':
+            color = 'rgba(139, 92, 246, 0.6)' // Light purple
+            size = 8
+            break
+          default: // Aligned Behavior
+            color = 'rgba(107, 114, 128, 0.4)' // Gray
+            size = 6
         }
 
         return {
           date: point.date,
           price: pricePoint.value,
-          deviation,
+          signal,
+          divergence: point.divergence,
+          shortTermPosition: point.shortTermPosition,
+          longTermPosition: point.deviation,
           color,
-          size,
-          signalType
+          size
         }
       }).filter(Boolean)
 
-      // Group bubbles by signal type for better legend
+      // Group by signal type for legend
       const signalGroups = {
-        'Strong Undervalued': bubbleData.filter(b => b?.signalType === 'Strong Undervalued'),
-        'Undervalued': bubbleData.filter(b => b?.signalType === 'Undervalued'),
-        'Slightly Undervalued': bubbleData.filter(b => b?.signalType === 'Slightly Undervalued'),
-        'Fair Value': bubbleData.filter(b => b?.signalType === 'Fair Value'),
-        'Slightly Overvalued': bubbleData.filter(b => b?.signalType === 'Slightly Overvalued'),
-        'Overvalued': bubbleData.filter(b => b?.signalType === 'Overvalued'),
-        'Strong Overvalued': bubbleData.filter(b => b?.signalType === 'Strong Overvalued'),
+        'Smart Money Accumulating': bubbleData.filter(b => b?.signal === 'Smart Money Accumulating'),
+        'Long-term Confident': bubbleData.filter(b => b?.signal === 'Long-term Confident'),
+        'Aligned Behavior': bubbleData.filter(b => b?.signal === 'Aligned Behavior'),
+        'Mild Long-term Premium': bubbleData.filter(b => b?.signal === 'Mild Long-term Premium'),
+        'Mild Short-term Premium': bubbleData.filter(b => b?.signal === 'Mild Short-term Premium'),
+        'Short-term Optimistic': bubbleData.filter(b => b?.signal === 'Short-term Optimistic'),
+        'Short-term Leading': bubbleData.filter(b => b?.signal === 'Short-term Leading'),
+        'Short-term Panic': bubbleData.filter(b => b?.signal === 'Short-term Panic'),
+        'Short-term FOMO': bubbleData.filter(b => b?.signal === 'Short-term FOMO'),
       }
 
-      // Add bubble traces for each signal type
+      // Add traces for each signal type
       Object.entries(signalGroups).forEach(([signalType, points]) => {
         if (points.length > 0) {
           traces.push({
@@ -247,7 +306,9 @@ export default function PowerLawMomentumChart({
                           '%{text}<br>' +
                           '%{x}<extra></extra>',
             text: points.map(p => 
-              `Deviation from Power Law: ${p?.deviation.toFixed(1)}%`
+              `Divergence: ${p?.divergence.toFixed(1)}%<br>` +
+              `Short-term: ${p?.shortTermPosition.toFixed(1)}%<br>` +
+              `Long-term: ${p?.longTermPosition.toFixed(1)}%`
             ),
             showlegend: true,
             yaxis: 'y',
@@ -260,7 +321,7 @@ export default function PowerLawMomentumChart({
         // Actual inactive supply data
         traces.push({
           x: xValues,
-          y: momentumData.map(d => d.percent),
+          y: relativeAnalysis.map(d => d.percent),
           mode: 'lines',
           type: 'scatter',
           name: `${timeframeName} Inactive Supply`,
@@ -274,7 +335,7 @@ export default function PowerLawMomentumChart({
         // Power law prediction line
         traces.push({
           x: xValues,
-          y: momentumData.map(d => d.predicted),
+          y: relativeAnalysis.map(d => d.predicted),
           mode: 'lines',
           type: 'scatter',
           name: `Power Law Trend`,
@@ -288,7 +349,7 @@ export default function PowerLawMomentumChart({
     }
 
     return traces
-  }, [momentumData, filteredPriceData, showPowerLaw, timeframeName])
+  }, [relativeAnalysis, filteredPriceData, showPowerLaw, timeframeName])
 
   // Plotly layout with single panel and dual Y-axes
   const plotlyLayout = useMemo(() => {
@@ -350,7 +411,7 @@ export default function PowerLawMomentumChart({
       // Add signal zone annotations
       annotations: [
         {
-          text: "🟢 Green = Below Power Law (Undervalued)<br>🔴 Red = Above Power Law (Overvalued)<br>🟣 Purple = Fair Value<br>Size = Deviation Magnitude",
+          text: "🟢 Green = Smart Money/Long-term Confident<br>🔴 Red = Short-term FOMO/Panic<br>🔵 Blue/🟠 Orange = Leading Behavior<br>🟣 Purple = Aligned/Mild Divergence",
           showarrow: false,
           xref: "paper",
           yref: "paper",
@@ -453,23 +514,23 @@ export default function PowerLawMomentumChart({
         </div>
       </div>
 
-      {/* Power Law Deviation Statistics */}
-      {momentumData && (
+      {/* Relative Behavior Statistics */}
+      {relativeAnalysis && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-4">
             <div className="text-sm text-[#A0A0B8] mb-1">Power Law R²</div>
             <div className="text-xl font-bold text-white">{powerLawParams.r2.toFixed(3)}</div>
           </div>
           <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-4">
-            <div className="text-sm text-[#A0A0B8] mb-1">Current Deviation</div>
-            <div className={`text-xl font-bold ${momentumData[momentumData.length - 1]?.deviation > 0 ? 'text-[#EF4444]' : 'text-[#10B981]'}`}>
-              {formatPercent(momentumData[momentumData.length - 1]?.deviation || 0)}
+            <div className="text-sm text-[#A0A0B8] mb-1">Current Divergence</div>
+            <div className={`text-xl font-bold ${relativeAnalysis[relativeAnalysis.length - 1]?.divergence > 10 ? 'text-[#EF4444]' : relativeAnalysis[relativeAnalysis.length - 1]?.divergence > 5 ? 'text-[#F59E0B]' : 'text-[#10B981]'}`}>
+              {(relativeAnalysis[relativeAnalysis.length - 1]?.divergence || 0).toFixed(1)}%
             </div>
           </div>
           <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-4">
-            <div className="text-sm text-[#A0A0B8] mb-1">Current Price</div>
-            <div className="text-xl font-bold text-white">
-              {filteredPriceData.length > 0 ? formatCurrency(filteredPriceData[filteredPriceData.length - 1]?.value || 0) : 'N/A'}
+            <div className="text-sm text-[#A0A0B8] mb-1">Current Signal</div>
+            <div className="text-xs font-bold text-white">
+              {relativeAnalysis[relativeAnalysis.length - 1]?.relativeSignal || 'N/A'}
             </div>
           </div>
           <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-4">
