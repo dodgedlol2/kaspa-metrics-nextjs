@@ -110,14 +110,14 @@ export default function PowerLawMomentumChart({
 
   // Calculate relative behavior analysis between short-term and long-term holders
   const relativeAnalysis = useMemo(() => {
-    if (!analysisData || analysisData.length === 0) return null
+    if (!analysisData || analysisData.length === 0 || !data3m || !data6m) return null
 
     return analysisData.map((point, index) => {
       // Find corresponding short-term data points
-      const corresponding3m = data3m?.find(d => 
+      const corresponding3m = data3m.find(d => 
         Math.abs(d.timestamp - point.timestamp) < 24 * 60 * 60 * 1000
       )
-      const corresponding6m = data6m?.find(d => 
+      const corresponding6m = data6m.find(d => 
         Math.abs(d.timestamp - point.timestamp) < 24 * 60 * 60 * 1000
       )
 
@@ -131,6 +131,10 @@ export default function PowerLawMomentumChart({
       const recent3mData = data3m.slice(Math.max(0, index - 30), index + 1) // Last 30 days
       const recent6mData = data6m.slice(Math.max(0, index - 30), index + 1)
       
+      if (recent3mData.length === 0 || recent6mData.length === 0) {
+        return { ...point, relativeSignal: 'Insufficient Data' }
+      }
+
       const avg3m = recent3mData.reduce((sum, d) => sum + d.percent, 0) / recent3mData.length
       const avg6m = recent6mData.reduce((sum, d) => sum + d.percent, 0) / recent6mData.length
       
@@ -180,12 +184,46 @@ export default function PowerLawMomentumChart({
         relativeSignal,
         signalStrength
       }
-    }).filter(Boolean)
+    }).filter(item => item && item.relativeSignal !== 'No Data' && item.relativeSignal !== 'Insufficient Data')
   }, [analysisData, data3m, data6m])
 
   // Prepare Plotly data for relative behavior analysis
   const plotlyData = useMemo(() => {
-    if (!relativeAnalysis || relativeAnalysis.length === 0) return []
+    if (!relativeAnalysis || relativeAnalysis.length === 0) {
+      // Fallback when no 3M/6M data available - show just the price chart
+      if (filteredPriceData.length > 0) {
+        const priceXValues = filteredPriceData.map(d => new Date(d.timestamp))
+        const priceYValues = filteredPriceData.map(d => d.value)
+
+        traces.push({
+          x: priceXValues,
+          y: priceYValues,
+          mode: 'lines',
+          type: 'scatter',
+          name: 'Kaspa Price',
+          line: { color: 'rgba(156, 163, 175, 0.8)', width: 2 },
+          connectgaps: true,
+          showlegend: true,
+          hovertemplate: '<b>Price</b><br>$%{y:.4f}<br>%{x}<extra></extra>',
+          yaxis: 'y',
+        })
+
+        // Add a message annotation
+        traces.push({
+          x: [priceXValues[Math.floor(priceXValues.length / 2)]],
+          y: [priceYValues[Math.floor(priceYValues.length / 2)]],
+          mode: 'text',
+          type: 'scatter',
+          text: ['Relative analysis requires 3M/6M data'],
+          textposition: 'middle center',
+          textfont: { color: '#9CA3AF', size: 14 },
+          showlegend: false,
+          hoverinfo: 'skip',
+          yaxis: 'y',
+        })
+      }
+      return traces
+    }
 
     const traces: any[] = []
     const xValues = relativeAnalysis.map(d => d.date)
@@ -217,7 +255,7 @@ export default function PowerLawMomentumChart({
           Math.abs(p.timestamp - point.timestamp) < 24 * 60 * 60 * 1000
         )
         
-        if (!pricePoint || point.relativeSignal === 'No Data') return null
+        if (!pricePoint || !point.relativeSignal || point.relativeSignal === 'No Data' || point.relativeSignal === 'Insufficient Data') return null
 
         // Color and size based on relative behavior patterns
         let color: string
