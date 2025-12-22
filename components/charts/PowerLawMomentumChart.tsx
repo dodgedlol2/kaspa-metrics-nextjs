@@ -62,7 +62,6 @@ export default function PowerLawMomentumChart({
   const [priceScale, setPriceScale] = useState<'Linear' | 'Log'>('Log')
   const [timePeriod, setTimePeriod] = useState<'6M' | '1Y' | '2Y' | '3Y' | 'All'>('All')
   const [showPowerLaw, setShowPowerLaw] = useState<'Hide' | 'Show'>('Show')
-  const [showPriceOverlay, setShowPriceOverlay] = useState(true)
 
   // Filter data based on time period
   const { filteredData, filteredPriceData } = useMemo(() => {
@@ -128,17 +127,15 @@ export default function PowerLawMomentumChart({
     })
   }, [analysisData])
 
-  // Prepare Plotly data for dual subplot layout
+  // Prepare Plotly data for single chart with bubble overlays
   const plotlyData = useMemo(() => {
     if (!momentumData || momentumData.length === 0) return []
 
     const traces: any[] = []
     const xValues = momentumData.map(d => d.date)
 
-    // === MAIN CHART (Top Subplot) ===
-    
-    // Price background (if enabled)
-    if (showPriceOverlay && filteredPriceData.length > 0) {
+    // === MAIN PRICE CHART ===
+    if (filteredPriceData.length > 0) {
       const priceXValues = filteredPriceData.map(d => new Date(d.timestamp))
       const priceYValues = filteredPriceData.map(d => d.value)
 
@@ -148,108 +145,150 @@ export default function PowerLawMomentumChart({
         mode: 'lines',
         type: 'scatter',
         name: 'Kaspa Price',
-        line: { color: 'rgba(156, 163, 175, 0.3)', width: 1 },
-        yaxis: 'y3', // Tertiary y-axis for price
+        line: { color: 'rgba(156, 163, 175, 0.8)', width: 2 },
         connectgaps: true,
         showlegend: true,
         hovertemplate: '<b>Price</b><br>$%{y:.4f}<br>%{x}<extra></extra>',
-        xaxis: 'x',
-      })
-    }
-
-    // Actual inactive supply data
-    traces.push({
-      x: xValues,
-      y: momentumData.map(d => d.percent),
-      mode: 'lines',
-      type: 'scatter',
-      name: `Actual ${timeframeName}`,
-      line: { color: '#5B6CFF', width: 2 },
-      connectgaps: true,
-      hovertemplate: '<b>Actual</b><br>%{y:.2f}%<br>%{x}<extra></extra>',
-      xaxis: 'x',
-      yaxis: 'y',
-    })
-
-    // Power law prediction line
-    if (showPowerLaw === 'Show') {
-      traces.push({
-        x: xValues,
-        y: momentumData.map(d => d.predicted),
-        mode: 'lines',
-        type: 'scatter',
-        name: `Power Law Trend`,
-        line: { color: '#FF8C00', width: 2, dash: 'dot' },
-        connectgaps: true,
-        hovertemplate: '<b>Power Law</b><br>%{y:.2f}%<br>%{x}<extra></extra>',
-        xaxis: 'x',
         yaxis: 'y',
       })
+
+      // === COLORED BUBBLES FOR MOMENTUM SIGNALS ===
+      
+      // Create bubble data with momentum-based coloring
+      const bubbleData = momentumData.map(point => {
+        const deviation = point.deviation
+        const momentum = point.momentum7d * 100 // Convert to percentage
+        
+        // Find corresponding price
+        const pricePoint = filteredPriceData.find(p => 
+          Math.abs(p.timestamp - point.timestamp) < 24 * 60 * 60 * 1000 // Within 1 day
+        )
+        
+        if (!pricePoint) return null
+
+        // Color logic based on momentum and deviation
+        let color: string
+        let size: number = 8 // Base size
+        let signalType: string
+
+        if (deviation < -10 && momentum > 0.01) {
+          // Strong accumulation signal (below power law + positive momentum)
+          color = 'rgba(34, 197, 94, 0.8)' // Bright green
+          size = 12
+          signalType = 'Strong Buy Signal'
+        } else if (deviation < -5 && momentum > 0) {
+          // Moderate accumulation
+          color = 'rgba(74, 222, 128, 0.7)' // Green
+          size = 10
+          signalType = 'Buy Signal'
+        } else if (deviation > 10 && momentum < -0.01) {
+          // Strong distribution signal (above power law + negative momentum)
+          color = 'rgba(239, 68, 68, 0.8)' // Bright red
+          size = 12
+          signalType = 'Strong Sell Signal'
+        } else if (deviation > 5 && momentum < 0) {
+          // Moderate distribution
+          color = 'rgba(248, 113, 113, 0.7)' // Red
+          size = 10
+          signalType = 'Sell Signal'
+        } else if (Math.abs(momentum) > 0.02) {
+          // High momentum (regardless of deviation)
+          color = momentum > 0 ? 'rgba(59, 130, 246, 0.6)' : 'rgba(251, 146, 60, 0.6)' // Blue or orange
+          size = 9
+          signalType = momentum > 0 ? 'High Positive Momentum' : 'High Negative Momentum'
+        } else {
+          // Neutral/consolidation
+          color = 'rgba(139, 92, 246, 0.4)' // Purple
+          size = 6
+          signalType = 'Neutral'
+        }
+
+        return {
+          date: point.date,
+          price: pricePoint.value,
+          deviation,
+          momentum,
+          color,
+          size,
+          signalType
+        }
+      }).filter(Boolean)
+
+      // Group bubbles by signal type for better legend
+      const signalGroups = {
+        'Strong Buy Signal': bubbleData.filter(b => b?.signalType === 'Strong Buy Signal'),
+        'Buy Signal': bubbleData.filter(b => b?.signalType === 'Buy Signal'),
+        'High Positive Momentum': bubbleData.filter(b => b?.signalType === 'High Positive Momentum'),
+        'Neutral': bubbleData.filter(b => b?.signalType === 'Neutral'),
+        'High Negative Momentum': bubbleData.filter(b => b?.signalType === 'High Negative Momentum'),
+        'Sell Signal': bubbleData.filter(b => b?.signalType === 'Sell Signal'),
+        'Strong Sell Signal': bubbleData.filter(b => b?.signalType === 'Strong Sell Signal'),
+      }
+
+      // Add bubble traces for each signal type
+      Object.entries(signalGroups).forEach(([signalType, points]) => {
+        if (points.length > 0) {
+          traces.push({
+            x: points.map(p => p?.date),
+            y: points.map(p => p?.price),
+            mode: 'markers',
+            type: 'scatter',
+            name: signalType,
+            marker: {
+              size: points.map(p => p?.size),
+              color: points[0]?.color,
+              line: { color: 'rgba(255, 255, 255, 0.3)', width: 1 }
+            },
+            hovertemplate: `<b>${signalType}</b><br>` +
+                          'Price: $%{y:.4f}<br>' +
+                          '%{text}<br>' +
+                          '%{x}<extra></extra>',
+            text: points.map(p => 
+              `Deviation: ${p?.deviation.toFixed(1)}%<br>` +
+              `Momentum: ${p?.momentum.toFixed(3)}%/day`
+            ),
+            showlegend: true,
+            yaxis: 'y',
+          })
+        }
+      })
+
+      // === INACTIVE SUPPLY OVERLAY (Secondary Y-axis) ===
+      if (showPowerLaw === 'Show') {
+        // Actual inactive supply data
+        traces.push({
+          x: xValues,
+          y: momentumData.map(d => d.percent),
+          mode: 'lines',
+          type: 'scatter',
+          name: `${timeframeName} Inactive Supply`,
+          line: { color: 'rgba(91, 108, 255, 0.6)', width: 1.5 },
+          connectgaps: true,
+          hovertemplate: '<b>Inactive Supply</b><br>%{y:.2f}%<br>%{x}<extra></extra>',
+          yaxis: 'y2',
+          opacity: 0.7,
+        })
+
+        // Power law prediction line
+        traces.push({
+          x: xValues,
+          y: momentumData.map(d => d.predicted),
+          mode: 'lines',
+          type: 'scatter',
+          name: `Power Law Trend`,
+          line: { color: 'rgba(255, 140, 0, 0.6)', width: 1.5, dash: 'dot' },
+          connectgaps: true,
+          hovertemplate: '<b>Power Law</b><br>%{y:.2f}%<br>%{x}<extra></extra>',
+          yaxis: 'y2',
+          opacity: 0.7,
+        })
+      }
     }
 
-    // === MOMENTUM OSCILLATOR (Bottom Subplot) ===
-
-    // Detrended values (deviation from power law)
-    traces.push({
-      x: xValues,
-      y: momentumData.map(d => d.deviation),
-      mode: 'lines',
-      type: 'scatter',
-      name: 'Deviation from Power Law',
-      line: { color: '#8B5CF6', width: 2 },
-      fill: 'tozeroy',
-      fillcolor: 'rgba(139, 92, 246, 0.1)',
-      connectgaps: true,
-      hovertemplate: '<b>Deviation</b><br>%{y:.1f}%<br>%{x}<extra></extra>',
-      xaxis: 'x2',
-      yaxis: 'y2',
-    })
-
-    // 7-day momentum line
-    traces.push({
-      x: xValues,
-      y: momentumData.map(d => d.momentum7d),
-      mode: 'lines',
-      type: 'scatter',
-      name: '7D Momentum',
-      line: { color: '#10B981', width: 1.5 },
-      connectgaps: true,
-      hovertemplate: '<b>7D Momentum</b><br>%{y:.3f}%/day<br>%{x}<extra></extra>',
-      xaxis: 'x2',
-      yaxis: 'y4',
-    })
-
-    // Zero lines for reference
-    traces.push({
-      x: [xValues[0], xValues[xValues.length - 1]],
-      y: [0, 0],
-      mode: 'lines',
-      type: 'scatter',
-      name: 'Zero Line',
-      line: { color: 'rgba(255, 255, 255, 0.3)', width: 1, dash: 'dash' },
-      showlegend: false,
-      hoverinfo: 'skip',
-      xaxis: 'x2',
-      yaxis: 'y2',
-    })
-
-    traces.push({
-      x: [xValues[0], xValues[xValues.length - 1]],
-      y: [0, 0],
-      mode: 'lines',
-      type: 'scatter',
-      name: 'Zero Line',
-      line: { color: 'rgba(255, 255, 255, 0.3)', width: 1, dash: 'dash' },
-      showlegend: false,
-      hoverinfo: 'skip',
-      xaxis: 'x2',
-      yaxis: 'y4',
-    })
-
     return traces
-  }, [momentumData, filteredPriceData, showPowerLaw, showPriceOverlay, timeframeName])
+  }, [momentumData, filteredPriceData, showPowerLaw, timeframeName])
 
-  // Plotly layout with subplots
+  // Plotly layout with single panel and dual Y-axes
   const plotlyLayout = useMemo(() => {
     if (!momentumData || momentumData.length === 0) return {}
 
@@ -260,84 +299,40 @@ export default function PowerLawMomentumChart({
       font: { color: '#9CA3AF', family: 'Inter, ui-sans-serif, system-ui, sans-serif' },
       hovermode: 'x unified',
       showlegend: true,
-      margin: { l: 80, r: showPriceOverlay && filteredPriceData.length > 0 ? 80 : 20, t: 20, b: 50 },
-      
-      // Subplot configuration
-      grid: {
-        rows: 2,
-        columns: 1,
-        pattern: 'independent',
-        roworder: 'top to bottom',
-        ygap: 0.15
-      },
+      margin: { l: 80, r: 80, t: 20, b: 50 },
 
-      // Main chart X-axis
+      // Single X-axis
       xaxis: {
-        domain: [0, 1],
-        anchor: 'y',
         type: 'date',
         showgrid: true,
         gridcolor: '#363650',
-        showticklabels: false, // Hide labels on top chart
-        color: '#9CA3AF',
-      },
-
-      // Oscillator X-axis  
-      xaxis2: {
-        domain: [0, 1],
-        anchor: 'y2',
-        type: 'date',
-        showgrid: true,
-        gridcolor: '#363650',
+        gridwidth: 1,
         color: '#9CA3AF',
         tickformat: '%b %Y',
+        title: { text: 'Date' },
       },
 
-      // Main chart Y-axis (Inactive Supply %)
+      // Primary Y-axis (Price in USD)
       yaxis: {
-        domain: [0.4, 1],
-        anchor: 'x',
-        title: { text: `${timeframeName} Inactive Supply (%)` },
-        type: yScale === 'Log' ? 'log' : 'linear',
-        gridcolor: '#363650',
-        color: '#9CA3AF',
-      },
-
-      // Oscillator Y-axis (Deviation %)
-      yaxis2: {
-        domain: [0, 0.35],
-        anchor: 'x2',
-        title: { text: 'Deviation from Power Law (%)' },
-        gridcolor: '#363650',
-        color: '#9CA3AF',
-        zeroline: true,
-        zerolinecolor: '#666',
-      },
-
-      // Price Y-axis (right side of main chart)
-      yaxis3: showPriceOverlay && filteredPriceData.length > 0 ? {
-        domain: [0.4, 1],
-        anchor: 'x',
-        overlaying: 'y',
-        side: 'right',
-        title: { text: 'Price (USD)', standoff: 20 },
+        title: { text: 'Price (USD)', standoff: 15 },
         type: priceScale === 'Log' ? 'log' : 'linear',
-        showgrid: false,
+        side: 'left',
+        gridcolor: '#363650',
+        gridwidth: 1,
         color: '#9CA3AF',
-      } : undefined,
-
-      // Momentum Y-axis (right side of oscillator)
-      yaxis4: {
-        domain: [0, 0.35],
-        anchor: 'x2',
-        overlaying: 'y2',
-        side: 'right',
-        title: { text: 'Momentum (%/day)', standoff: 20 },
-        showgrid: false,
-        color: '#9CA3AF',
-        zeroline: true,
-        zerolinecolor: '#666',
+        showgrid: true,
       },
+
+      // Secondary Y-axis (Inactive Supply %) - only if power law is shown
+      yaxis2: showPowerLaw === 'Show' ? {
+        title: { text: `${timeframeName} Inactive Supply (%)`, standoff: 15 },
+        type: yScale === 'Log' ? 'log' : 'linear',
+        side: 'right',
+        overlaying: 'y',
+        showgrid: false,
+        color: '#9CA3AF',
+        tickfont: { size: 10 },
+      } : undefined,
 
       legend: {
         orientation: "h",
@@ -346,12 +341,31 @@ export default function PowerLawMomentumChart({
         xanchor: "left",
         x: 0,
         bgcolor: 'rgba(0,0,0,0)',
-        font: { size: 11 }
+        font: { size: 10 },
+        itemwidth: 30,
       },
+
+      // Add signal zone annotations
+      annotations: [
+        {
+          text: "🟢 Green = Buy Signals<br>🔴 Red = Sell Signals<br>🔵 Blue/🟠 Orange = High Momentum<br>🟣 Purple = Neutral",
+          showarrow: false,
+          xref: "paper",
+          yref: "paper",
+          x: 0.02,
+          y: 0.98,
+          xanchor: "left",
+          yanchor: "top",
+          bgcolor: "rgba(26, 26, 46, 0.8)",
+          bordercolor: "#2D2D45",
+          borderwidth: 1,
+          font: { size: 9, color: "#9CA3AF" },
+        }
+      ],
     }
 
     return layout
-  }, [momentumData, yScale, priceScale, height, showPriceOverlay, filteredPriceData, timeframeName])
+  }, [momentumData, yScale, priceScale, height, showPowerLaw, timeframeName])
 
   return (
     <div className="space-y-6">
@@ -396,7 +410,7 @@ export default function PowerLawMomentumChart({
             </div>
           )}
 
-          {/* Power Law Toggle */}
+          {/* Power Law Overlay Toggle */}
           <button
             onClick={() => setShowPowerLaw(showPowerLaw === 'Show' ? 'Hide' : 'Show')}
             className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
@@ -405,19 +419,7 @@ export default function PowerLawMomentumChart({
                 : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
             }`}
           >
-            Power Law Trend
-          </button>
-
-          {/* Price Overlay Toggle */}
-          <button
-            onClick={() => setShowPriceOverlay(!showPriceOverlay)}
-            className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-              showPriceOverlay
-                ? 'bg-[#5B6CFF] text-white'
-                : 'bg-[#1A1A2E] text-[#A0A0B8] hover:bg-[#2A2A3E] hover:text-white'
-            }`}
-          >
-            Price Overlay
+            Inactive Supply Lines
           </button>
         </div>
 
@@ -451,7 +453,7 @@ export default function PowerLawMomentumChart({
 
       {/* Power Law Statistics */}
       {momentumData && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-4">
             <div className="text-sm text-[#A0A0B8] mb-1">Power Law R²</div>
             <div className="text-xl font-bold text-white">{powerLawParams.r2.toFixed(3)}</div>
@@ -466,6 +468,12 @@ export default function PowerLawMomentumChart({
             <div className="text-sm text-[#A0A0B8] mb-1">7D Momentum</div>
             <div className={`text-xl font-bold ${(momentumData[momentumData.length - 1]?.momentum7d || 0) > 0 ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
               {((momentumData[momentumData.length - 1]?.momentum7d || 0) * 100).toFixed(3)}%
+            </div>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-4">
+            <div className="text-sm text-[#A0A0B8] mb-1">Current Price</div>
+            <div className="text-xl font-bold text-white">
+              {filteredPriceData.length > 0 ? formatCurrency(filteredPriceData[filteredPriceData.length - 1]?.value || 0) : 'N/A'}
             </div>
           </div>
           <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-4">
