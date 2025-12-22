@@ -391,7 +391,7 @@ export default function PowerLawMomentumChart({
           </div>
 
           {/* Price Scale Control */}
-          {showPriceOverlay && filteredPriceData.length > 0 && (
+          {filteredPriceData.length > 0 && (
             <div className="relative group">
               <button className="flex items-center space-x-1.5 bg-[#1A1A2E] rounded-md px-2.5 py-1.5 text-xs text-white hover:bg-[#2A2A3E] transition-all duration-200">
                 <span className="text-[#A0A0B8] text-xs">Price:</span>
