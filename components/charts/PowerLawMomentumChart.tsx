@@ -152,12 +152,11 @@ export default function PowerLawMomentumChart({
         yaxis: 'y',
       })
 
-      // === COLORED BUBBLES FOR MOMENTUM SIGNALS ===
+      // === COLORED BUBBLES FOR POWER LAW DEVIATION SIGNALS ===
       
-      // Create bubble data with momentum-based coloring
+      // Create bubble data based purely on deviation from power law
       const bubbleData = momentumData.map(point => {
         const deviation = point.deviation
-        const momentum = point.momentum7d * 100 // Convert to percentage
         
         // Find corresponding price
         const pricePoint = filteredPriceData.find(p => 
@@ -166,48 +165,52 @@ export default function PowerLawMomentumChart({
         
         if (!pricePoint) return null
 
-        // Color logic based on momentum and deviation
+        // Simple color logic based ONLY on deviation from power law
         let color: string
         let size: number = 8 // Base size
         let signalType: string
 
-        if (deviation < -10 && momentum > 0.01) {
-          // Strong accumulation signal (below power law + positive momentum)
-          color = 'rgba(34, 197, 94, 0.8)' // Bright green
-          size = 12
-          signalType = 'Strong Buy Signal'
-        } else if (deviation < -5 && momentum > 0) {
-          // Moderate accumulation
-          color = 'rgba(74, 222, 128, 0.7)' // Green
-          size = 10
-          signalType = 'Buy Signal'
-        } else if (deviation > 10 && momentum < -0.01) {
-          // Strong distribution signal (above power law + negative momentum)
-          color = 'rgba(239, 68, 68, 0.8)' // Bright red
-          size = 12
-          signalType = 'Strong Sell Signal'
-        } else if (deviation > 5 && momentum < 0) {
-          // Moderate distribution
-          color = 'rgba(248, 113, 113, 0.7)' // Red
-          size = 10
-          signalType = 'Sell Signal'
-        } else if (Math.abs(momentum) > 0.02) {
-          // High momentum (regardless of deviation)
-          color = momentum > 0 ? 'rgba(59, 130, 246, 0.6)' : 'rgba(251, 146, 60, 0.6)' // Blue or orange
+        if (deviation < -15) {
+          // Strongly below power law trend
+          color = 'rgba(34, 197, 94, 0.9)' // Bright green
+          size = 14
+          signalType = 'Strong Undervalued'
+        } else if (deviation < -8) {
+          // Moderately below power law trend
+          color = 'rgba(74, 222, 128, 0.8)' // Green
+          size = 11
+          signalType = 'Undervalued'
+        } else if (deviation < -3) {
+          // Slightly below power law trend
+          color = 'rgba(134, 239, 172, 0.7)' // Light green
           size = 9
-          signalType = momentum > 0 ? 'High Positive Momentum' : 'High Negative Momentum'
+          signalType = 'Slightly Undervalued'
+        } else if (deviation > 15) {
+          // Strongly above power law trend
+          color = 'rgba(239, 68, 68, 0.9)' // Bright red
+          size = 14
+          signalType = 'Strong Overvalued'
+        } else if (deviation > 8) {
+          // Moderately above power law trend
+          color = 'rgba(248, 113, 113, 0.8)' // Red
+          size = 11
+          signalType = 'Overvalued'
+        } else if (deviation > 3) {
+          // Slightly above power law trend
+          color = 'rgba(252, 165, 165, 0.7)' // Light red
+          size = 9
+          signalType = 'Slightly Overvalued'
         } else {
-          // Neutral/consolidation
+          // Within normal range of power law
           color = 'rgba(139, 92, 246, 0.4)' // Purple
           size = 6
-          signalType = 'Neutral'
+          signalType = 'Fair Value'
         }
 
         return {
           date: point.date,
           price: pricePoint.value,
           deviation,
-          momentum,
           color,
           size,
           signalType
@@ -216,13 +219,13 @@ export default function PowerLawMomentumChart({
 
       // Group bubbles by signal type for better legend
       const signalGroups = {
-        'Strong Buy Signal': bubbleData.filter(b => b?.signalType === 'Strong Buy Signal'),
-        'Buy Signal': bubbleData.filter(b => b?.signalType === 'Buy Signal'),
-        'High Positive Momentum': bubbleData.filter(b => b?.signalType === 'High Positive Momentum'),
-        'Neutral': bubbleData.filter(b => b?.signalType === 'Neutral'),
-        'High Negative Momentum': bubbleData.filter(b => b?.signalType === 'High Negative Momentum'),
-        'Sell Signal': bubbleData.filter(b => b?.signalType === 'Sell Signal'),
-        'Strong Sell Signal': bubbleData.filter(b => b?.signalType === 'Strong Sell Signal'),
+        'Strong Undervalued': bubbleData.filter(b => b?.signalType === 'Strong Undervalued'),
+        'Undervalued': bubbleData.filter(b => b?.signalType === 'Undervalued'),
+        'Slightly Undervalued': bubbleData.filter(b => b?.signalType === 'Slightly Undervalued'),
+        'Fair Value': bubbleData.filter(b => b?.signalType === 'Fair Value'),
+        'Slightly Overvalued': bubbleData.filter(b => b?.signalType === 'Slightly Overvalued'),
+        'Overvalued': bubbleData.filter(b => b?.signalType === 'Overvalued'),
+        'Strong Overvalued': bubbleData.filter(b => b?.signalType === 'Strong Overvalued'),
       }
 
       // Add bubble traces for each signal type
@@ -237,15 +240,14 @@ export default function PowerLawMomentumChart({
             marker: {
               size: points.map(p => p?.size),
               color: points[0]?.color,
-              line: { color: 'rgba(255, 255, 255, 0.3)', width: 1 }
+              line: { color: 'rgba(255, 255, 255, 0.2)', width: 1 }
             },
             hovertemplate: `<b>${signalType}</b><br>` +
                           'Price: $%{y:.4f}<br>' +
                           '%{text}<br>' +
                           '%{x}<extra></extra>',
             text: points.map(p => 
-              `Deviation: ${p?.deviation.toFixed(1)}%<br>` +
-              `Momentum: ${p?.momentum.toFixed(3)}%/day`
+              `Deviation from Power Law: ${p?.deviation.toFixed(1)}%`
             ),
             showlegend: true,
             yaxis: 'y',
@@ -348,7 +350,7 @@ export default function PowerLawMomentumChart({
       // Add signal zone annotations
       annotations: [
         {
-          text: "🟢 Green = Buy Signals<br>🔴 Red = Sell Signals<br>🔵 Blue/🟠 Orange = High Momentum<br>🟣 Purple = Neutral",
+          text: "🟢 Green = Below Power Law (Undervalued)<br>🔴 Red = Above Power Law (Overvalued)<br>🟣 Purple = Fair Value<br>Size = Deviation Magnitude",
           showarrow: false,
           xref: "paper",
           yref: "paper",
@@ -451,9 +453,9 @@ export default function PowerLawMomentumChart({
         </div>
       </div>
 
-      {/* Power Law Statistics */}
+      {/* Power Law Deviation Statistics */}
       {momentumData && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-4">
             <div className="text-sm text-[#A0A0B8] mb-1">Power Law R²</div>
             <div className="text-xl font-bold text-white">{powerLawParams.r2.toFixed(3)}</div>
@@ -462,12 +464,6 @@ export default function PowerLawMomentumChart({
             <div className="text-sm text-[#A0A0B8] mb-1">Current Deviation</div>
             <div className={`text-xl font-bold ${momentumData[momentumData.length - 1]?.deviation > 0 ? 'text-[#EF4444]' : 'text-[#10B981]'}`}>
               {formatPercent(momentumData[momentumData.length - 1]?.deviation || 0)}
-            </div>
-          </div>
-          <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-4">
-            <div className="text-sm text-[#A0A0B8] mb-1">7D Momentum</div>
-            <div className={`text-xl font-bold ${(momentumData[momentumData.length - 1]?.momentum7d || 0) > 0 ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
-              {((momentumData[momentumData.length - 1]?.momentum7d || 0) * 100).toFixed(3)}%
             </div>
           </div>
           <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-4">
