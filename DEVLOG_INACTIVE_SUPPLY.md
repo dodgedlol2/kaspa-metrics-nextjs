@@ -309,7 +309,7 @@ console.log('Property names:', Object.keys(data[0]))
 - Verify all hrefs are correct
 - Ensure no conflicting `href` + `children` properties
 
-### Console Debugging
+### Console Debugging 123
 After deployment, check browser console (F12) for:
 ```javascript
 // Data fetching success
