@@ -6,13 +6,17 @@ export const revalidate = 3600
 export default async function PowerLawMomentumPage() {
   const kaspaGenesis = new Date('2021-11-07T00:00:00.000Z')
 
-  // Fetch data for 1Y, 2Y, and 3Y timeframes (most reliable power laws)
+  // Fetch data for ALL timeframes including short-term for relative analysis
   const [
+    data3m,
+    data6m,
     data1y,
     data2y, 
     data3y,
     priceData
   ] = await Promise.all([
+    getInactiveSupplyData('3months'),
+    getInactiveSupplyData('6months'),
     getInactiveSupplyData('1year'),
     getInactiveSupplyData('2years'),
     getInactiveSupplyData('3years'),
@@ -20,6 +24,12 @@ export default async function PowerLawMomentumPage() {
   ])
 
   // Process data with same genesis adjustments as individual pages
+  const adjustedGenesis3m = new Date(kaspaGenesis)
+  adjustedGenesis3m.setMonth(adjustedGenesis3m.getMonth() + 3)
+  
+  const adjustedGenesis6m = new Date(kaspaGenesis)
+  adjustedGenesis6m.setMonth(adjustedGenesis6m.getMonth() + 6)
+  
   const adjustedGenesis1y = new Date(kaspaGenesis)
   adjustedGenesis1y.setFullYear(adjustedGenesis1y.getFullYear() + 1)
   
@@ -28,6 +38,16 @@ export default async function PowerLawMomentumPage() {
   
   const adjustedGenesis3y = new Date(kaspaGenesis)
   adjustedGenesis3y.setFullYear(adjustedGenesis3y.getFullYear() + 3)
+
+  const processed3m = data3m.map(point => ({
+    ...point,
+    daysFromGenesis: Math.max(1, Math.floor((point.timestamp - adjustedGenesis3m.getTime()) / (24 * 60 * 60 * 1000)))
+  })).filter(point => point.daysFromGenesis > 0)
+
+  const processed6m = data6m.map(point => ({
+    ...point,
+    daysFromGenesis: Math.max(1, Math.floor((point.timestamp - adjustedGenesis6m.getTime()) / (24 * 60 * 60 * 1000)))
+  })).filter(point => point.daysFromGenesis > 0)
 
   const processed1y = data1y.map(point => ({
     ...point,
@@ -44,7 +64,7 @@ export default async function PowerLawMomentumPage() {
     daysFromGenesis: Math.max(1, Math.floor((point.timestamp - adjustedGenesis3y.getTime()) / (24 * 60 * 60 * 1000)))
   })).filter(point => point.daysFromGenesis > 0)
 
-  // Calculate power law parameters
+  // Calculate power law parameters (only for long-term timeframes)
   const powerLaw1y = calculateInactiveSupplyPowerLaw(processed1y)
   const powerLaw2y = calculateInactiveSupplyPowerLaw(processed2y)
   const powerLaw3y = calculateInactiveSupplyPowerLaw(processed3y)
@@ -107,6 +127,8 @@ export default async function PowerLawMomentumPage() {
             <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-6">
               <PowerLawMomentumChart 
                 data={processed1y}
+                data3m={processed3m}
+                data6m={processed6m}
                 priceData={priceData}
                 timeframeName="1 Year"
                 powerLawParams={powerLaw1y}
@@ -128,6 +150,8 @@ export default async function PowerLawMomentumPage() {
             <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-6">
               <PowerLawMomentumChart 
                 data={processed2y}
+                data3m={processed3m}
+                data6m={processed6m}
                 priceData={priceData}
                 timeframeName="2 Years"
                 powerLawParams={powerLaw2y}
@@ -149,6 +173,8 @@ export default async function PowerLawMomentumPage() {
             <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-6">
               <PowerLawMomentumChart 
                 data={processed3y}
+                data3m={processed3m}
+                data6m={processed6m}
                 priceData={priceData}
                 timeframeName="3 Years"
                 powerLawParams={powerLaw3y}
