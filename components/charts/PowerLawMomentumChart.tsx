@@ -189,6 +189,8 @@ export default function PowerLawMomentumChart({
 
   // Prepare Plotly data for relative behavior analysis
   const plotlyData = useMemo(() => {
+    const traces: any[] = []
+
     if (!relativeAnalysis || relativeAnalysis.length === 0) {
       // Fallback when no 3M/6M data available - show just the price chart
       if (filteredPriceData.length > 0) {
@@ -225,7 +227,6 @@ export default function PowerLawMomentumChart({
       return traces
     }
 
-    const traces: any[] = []
     const xValues = relativeAnalysis.map(d => d.date)
 
     // === MAIN PRICE CHART ===
