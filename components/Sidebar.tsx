@@ -196,6 +196,15 @@ const navigation = [
             )
           },
           {
+            name: 'Momentum Analysis',
+            href: '/network/inactive-supply/momentum',
+            icon: (
+              <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
+              </svg>
+            )
+          },
+          {
             name: '3+ Months',
             href: '/network/inactive-supply/3-months',
             icon: (
