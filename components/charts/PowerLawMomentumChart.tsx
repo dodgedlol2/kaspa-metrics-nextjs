@@ -121,7 +121,14 @@ export default function PowerLawMomentumChart({
         Math.abs(d.timestamp - point.timestamp) < 24 * 60 * 60 * 1000
       )
 
-      if (!corresponding3m || !corresponding6m) return { ...point, relativeSignal: 'No Data' }
+      if (!corresponding3m || !corresponding6m) return { 
+        ...point, 
+        relativeSignal: 'No Data',
+        shortTermPosition: 0,
+        divergence: 0,
+        direction: 0,
+        signalStrength: 0
+      }
 
       // Calculate normalized positions (no power law needed for short-term)
       // Use simple percentage positions relative to recent range
@@ -132,7 +139,14 @@ export default function PowerLawMomentumChart({
       const recent6mData = data6m.slice(Math.max(0, index - 30), index + 1)
       
       if (recent3mData.length === 0 || recent6mData.length === 0) {
-        return { ...point, relativeSignal: 'Insufficient Data' }
+        return { 
+          ...point, 
+          relativeSignal: 'Insufficient Data',
+          shortTermPosition: 0,
+          divergence: 0,
+          direction: 0,
+          signalStrength: 0
+        }
       }
 
       const avg3m = recent3mData.reduce((sum, d) => sum + d.percent, 0) / recent3mData.length
@@ -392,7 +406,7 @@ export default function PowerLawMomentumChart({
 
   // Plotly layout with single panel and dual Y-axes
   const plotlyLayout = useMemo(() => {
-    if (!momentumData || momentumData.length === 0) return {}
+    if (!relativeAnalysis || relativeAnalysis.length === 0) return {}
 
     const layout: any = {
       height: height,
@@ -467,7 +481,7 @@ export default function PowerLawMomentumChart({
     }
 
     return layout
-  }, [momentumData, yScale, priceScale, height, showPowerLaw, timeframeName])
+  }, [relativeAnalysis, yScale, priceScale, height, showPowerLaw, timeframeName])
 
   return (
     <div className="space-y-6">
