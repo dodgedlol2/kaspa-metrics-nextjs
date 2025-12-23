@@ -461,13 +461,13 @@ export default function SmartTopBottomIndicator({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-4">
             <div className="text-sm text-[#A0A0B8] mb-1">Current Signal</div>
-            <div className={`text-lg font-bold ${smartIndicator[smartIndicator.length - 1]?.signalStrength > 0 ? 'text-[#10B981]' : smartIndicator[smartIndicator.length - 1]?.signalStrength < 0 ? 'text-[#EF4444]' : 'text-[#9CA3AF]'}`}>
-              {smartIndicator[smartIndicator.length - 1]?.signal}
+            <div className={`text-lg font-bold ${(smartIndicator[smartIndicator.length - 1]?.signalStrength || 0) > 0 ? 'text-[#10B981]' : (smartIndicator[smartIndicator.length - 1]?.signalStrength || 0) < 0 ? 'text-[#EF4444]' : 'text-[#9CA3AF]'}`}>
+              {smartIndicator[smartIndicator.length - 1]?.signal || 'N/A'}
             </div>
           </div>
           <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-4">
             <div className="text-sm text-[#A0A0B8] mb-1">Smart Score</div>
-            <div className={`text-xl font-bold ${smartIndicator[smartIndicator.length - 1]?.smartScore > 0 ? 'text-[#EF4444]' : 'text-[#10B981]'}`}>
+            <div className={`text-xl font-bold ${(smartIndicator[smartIndicator.length - 1]?.smartScore || 0) > 0 ? 'text-[#EF4444]' : 'text-[#10B981]'}`}>
               {smartIndicator[smartIndicator.length - 1]?.smartScore?.toFixed(1) || 'N/A'}
             </div>
           </div>
