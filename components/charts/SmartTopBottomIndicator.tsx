@@ -86,7 +86,7 @@ export default function SmartTopBottomIndicator({
     }
   }, [data3m, data6m, data1y, data2y, data3y, priceData, timePeriod])
 
-  // Calculate the smart top/bottom indicator
+  // Calculate the smart top/bottom indicator based on observed behavioral patterns
   const smartIndicator = useMemo(() => {
     if (!filteredData || filteredPriceData.length === 0) return null
 
@@ -100,75 +100,115 @@ export default function SmartTopBottomIndicator({
 
       if (!find1y || !find2y || !find3y || !powerLawParams1y || !powerLawParams2y || !powerLawParams3y) return null
 
-      // Calculate power law deviations for long-term holders (they have reliable power laws)
+      // === 1. MAIN SIGNAL: 1Y Power Law Deviation (Smart Money) ===
+      // When above power law = accumulating during relative price weakness
+      // When below power law = distributing during relative price strength
       const deviation1y = find1y ? ((find1y.percent - (powerLawParams1y.constant * Math.pow(find1y.daysFromGenesis, powerLawParams1y.slope))) / (powerLawParams1y.constant * Math.pow(find1y.daysFromGenesis, powerLawParams1y.slope))) * 100 : 0
+      
+      // Secondary confirmation from 2Y and 3Y (also reliable power laws)
       const deviation2y = find2y ? ((find2y.percent - (powerLawParams2y.constant * Math.pow(find2y.daysFromGenesis, powerLawParams2y.slope))) / (powerLawParams2y.constant * Math.pow(find2y.daysFromGenesis, powerLawParams2y.slope))) * 100 : 0
       const deviation3y = find3y ? ((find3y.percent - (powerLawParams3y.constant * Math.pow(find3y.daysFromGenesis, powerLawParams3y.slope))) / (powerLawParams3y.constant * Math.pow(find3y.daysFromGenesis, powerLawParams3y.slope))) * 100 : 0
 
-      // Calculate short-term vs long-term ratios (momentum indicators)
-      const shortTerm = ((find3m?.percent || 0) + (find6m?.percent || 0)) / 2
-      const longTerm = ((find2y?.percent || 0) + (find3y?.percent || 0)) / 2
-      const shortLongRatio = longTerm > 0 ? (shortTerm / longTerm) : 1
+      // === 2. SENTIMENT INDICATORS: 3M/6M Behavior (No power laws) ===
+      // Calculate relative position for short-term holders vs their recent averages
+      const priceIndex = filteredPriceData.findIndex(p => Math.abs(p.timestamp - pricePoint.timestamp) < 24 * 60 * 60 * 1000)
+      if (priceIndex < 30) return null // Need enough history for moving averages
 
-      // Create composite scores
-      // Conviction Score: How much do long-term holders deviate from their power laws?
-      const convictionScore = (deviation1y + deviation2y * 1.5 + deviation3y * 2) / 4.5 // Weight longer timeframes more
+      // Calculate 30-day moving averages for short-term percentages
+      const recent3mData = filteredData.data3m.slice(Math.max(0, priceIndex - 30), priceIndex + 1)
+      const recent6mData = filteredData.data6m.slice(Math.max(0, priceIndex - 30), priceIndex + 1)
+      const recentPriceData = filteredPriceData.slice(Math.max(0, priceIndex - 30), priceIndex + 1)
 
-      // Momentum Score: Are short-term holders out of sync with long-term?
-      const normalRatio = 3.5 // Normal ratio between short-term and long-term
-      const momentumScore = ((shortLongRatio - normalRatio) / normalRatio) * 100
+      if (recent3mData.length < 15 || recent6mData.length < 15 || recentPriceData.length < 15) return null
 
-      // Combined Smart Score
-      // Negative = Potential Bottom (accumulation)
-      // Positive = Potential Top (distribution)
-      const smartScore = (convictionScore * 0.6) + (momentumScore * 0.4)
+      const avg3m = recent3mData.reduce((sum, d) => sum + d.percent, 0) / recent3mData.length
+      const avg6m = recent6mData.reduce((sum, d) => sum + d.percent, 0) / recent6mData.length
+      const avgPrice = recentPriceData.reduce((sum, d) => sum + d.value, 0) / recentPriceData.length
 
-      // Determine signal strength and type
+      // Calculate sentiment positions
+      const sentiment3m = find3m ? ((find3m.percent - avg3m) / avg3m) * 100 : 0  // Relative to their average
+      const sentiment6m = find6m ? ((find6m.percent - avg6m) / avg6m) * 100 : 0
+      const pricePosition = ((pricePoint.value - avgPrice) / avgPrice) * 100  // Price vs its average
+
+      // === 3. SMART MONEY SCORE (Primary Signal) ===
+      // Higher weight for longer timeframes, 1Y is the key indicator
+      const smartMoneyScore = (deviation1y * 0.6) + (deviation2y * 0.3) + (deviation3y * 0.1)
+
+      // === 4. SENTIMENT NOISE SCORE ===
+      // Positive = buying into tops, Negative = selling into bottoms (contrarian indicators)
+      // When price is high and short-term holders are accumulating = potential top
+      // When price is low and short-term holders are selling = potential bottom
+      const sentimentNoise = ((sentiment3m * 0.4) + (sentiment6m * 0.6)) - (pricePosition * 0.5)
+
+      // === 5. COMBINED SIGNAL ===
+      // Smart Money Score is primary, Sentiment Noise is contrarian confirmation
+      // Positive smartMoneyScore = 1Y+ accumulating above trend = BUY (price relatively low)
+      // Negative sentimentNoise = short-term selling when they should buy = BUY confirmation
+      const combinedScore = smartMoneyScore - (sentimentNoise * 0.3) // Sentiment as contrarian indicator
+
+      // === 6. SIGNAL CLASSIFICATION ===
       let signal: string
       let signalStrength: number
       let bubbleSize: number
+      let confidence: number
 
-      if (smartScore < -20) {
-        signal = 'Strong Buy Zone'
+      // Strong signals (high confidence)
+      if (combinedScore > 8 && smartMoneyScore > 5) {
+        signal = 'Strong Buy'
         signalStrength = 3
-        bubbleSize = 20
-      } else if (smartScore < -10) {
-        signal = 'Buy Zone'
+        bubbleSize = 18
+        confidence = 0.9
+      } else if (combinedScore > 4 && smartMoneyScore > 2) {
+        signal = 'Buy'
         signalStrength = 2
-        bubbleSize = 15
-      } else if (smartScore < -5) {
+        bubbleSize = 14
+        confidence = 0.7
+      } else if (combinedScore > 1) {
         signal = 'Weak Buy'
         signalStrength = 1
         bubbleSize = 10
-      } else if (smartScore > 20) {
-        signal = 'Strong Sell Zone'
+        confidence = 0.5
+      } else if (combinedScore < -8 && smartMoneyScore < -5) {
+        signal = 'Strong Sell'
         signalStrength = -3
-        bubbleSize = 20
-      } else if (smartScore > 10) {
-        signal = 'Sell Zone'
+        bubbleSize = 18
+        confidence = 0.9
+      } else if (combinedScore < -4 && smartMoneyScore < -2) {
+        signal = 'Sell'
         signalStrength = -2
-        bubbleSize = 15
-      } else if (smartScore > 5) {
+        bubbleSize = 14
+        confidence = 0.7
+      } else if (combinedScore < -1) {
         signal = 'Weak Sell'
         signalStrength = -1
         bubbleSize = 10
+        confidence = 0.5
       } else {
         signal = 'Neutral'
         signalStrength = 0
         bubbleSize = 6
+        confidence = 0.3
       }
 
       return {
         date: new Date(pricePoint.timestamp),
         price: pricePoint.value,
-        smartScore,
-        convictionScore,
-        momentumScore,
-        shortLongRatio,
+        combinedScore,
+        smartMoneyScore,
+        sentimentNoise,
         signal,
         signalStrength,
         bubbleSize,
-        deviations: { deviation1y, deviation2y, deviation3y },
+        confidence,
+        // Detailed breakdown for tooltips
+        breakdown: {
+          deviation1y,
+          deviation2y,  
+          deviation3y,
+          sentiment3m,
+          sentiment6m,
+          pricePosition
+        },
         percentages: {
           p3m: find3m?.percent || 0,
           p6m: find6m?.percent || 0,
@@ -205,23 +245,23 @@ export default function SmartTopBottomIndicator({
 
     // === SMART INDICATOR BUBBLES ===
     const signalGroups = {
-      'Strong Buy Zone': smartIndicator.filter(d => d?.signal === 'Strong Buy Zone'),
-      'Buy Zone': smartIndicator.filter(d => d?.signal === 'Buy Zone'),
+      'Strong Buy': smartIndicator.filter(d => d?.signal === 'Strong Buy'),
+      'Buy': smartIndicator.filter(d => d?.signal === 'Buy'),
       'Weak Buy': smartIndicator.filter(d => d?.signal === 'Weak Buy'),
       'Neutral': smartIndicator.filter(d => d?.signal === 'Neutral'),
       'Weak Sell': smartIndicator.filter(d => d?.signal === 'Weak Sell'),
-      'Sell Zone': smartIndicator.filter(d => d?.signal === 'Sell Zone'),
-      'Strong Sell Zone': smartIndicator.filter(d => d?.signal === 'Strong Sell Zone'),
+      'Sell': smartIndicator.filter(d => d?.signal === 'Sell'),
+      'Strong Sell': smartIndicator.filter(d => d?.signal === 'Strong Sell'),
     }
 
     const colors = {
-      'Strong Buy Zone': 'rgba(34, 197, 94, 0.9)', // Bright green
-      'Buy Zone': 'rgba(74, 222, 128, 0.8)', // Green
+      'Strong Buy': 'rgba(34, 197, 94, 0.9)', // Bright green
+      'Buy': 'rgba(74, 222, 128, 0.8)', // Green
       'Weak Buy': 'rgba(134, 239, 172, 0.7)', // Light green
       'Neutral': 'rgba(107, 114, 128, 0.4)', // Gray
       'Weak Sell': 'rgba(252, 165, 165, 0.7)', // Light red
-      'Sell Zone': 'rgba(248, 113, 113, 0.8)', // Red
-      'Strong Sell Zone': 'rgba(239, 68, 68, 0.9)', // Bright red
+      'Sell': 'rgba(248, 113, 113, 0.8)', // Red
+      'Strong Sell': 'rgba(239, 68, 68, 0.9)', // Bright red
     }
 
     Object.entries(signalGroups).forEach(([signalType, points]) => {
@@ -242,10 +282,11 @@ export default function SmartTopBottomIndicator({
                         '%{text}<br>' +
                         '%{x}<extra></extra>',
           text: points.map(p => 
-            `Smart Score: ${p?.smartScore.toFixed(1)}<br>` +
-            `Conviction: ${p?.convictionScore.toFixed(1)}<br>` +
-            `Momentum: ${p?.momentumScore.toFixed(1)}<br>` +
-            `Short/Long Ratio: ${p?.shortLongRatio.toFixed(2)}`
+            `Combined Score: ${p?.combinedScore.toFixed(1)}<br>` +
+            `Smart Money: ${p?.smartMoneyScore.toFixed(1)}<br>` +
+            `1Y Deviation: ${p?.breakdown?.deviation1y.toFixed(1)}%<br>` +
+            `Sentiment Noise: ${p?.sentimentNoise.toFixed(1)}<br>` +
+            `Confidence: ${(p?.confidence * 100).toFixed(0)}%`
           ),
           showlegend: true,
           yaxis: 'y',
@@ -256,19 +297,19 @@ export default function SmartTopBottomIndicator({
     // === SMART SCORE OSCILLATOR (Secondary Y-axis) ===
     traces.push({
       x: smartIndicator.map(d => d?.date),
-      y: smartIndicator.map(d => d?.smartScore),
+      y: smartIndicator.map(d => d?.combinedScore),
       mode: 'lines',
       type: 'scatter',
-      name: 'Smart Score',
+      name: 'Combined Score',
       line: { color: 'rgba(139, 92, 246, 0.8)', width: 2 },
       fill: 'tozeroy',
       fillcolor: 'rgba(139, 92, 246, 0.1)',
       connectgaps: true,
-      hovertemplate: '<b>Smart Score</b><br>%{y:.1f}<br>%{x}<extra></extra>',
+      hovertemplate: '<b>Combined Score</b><br>%{y:.1f}<br>%{x}<extra></extra>',
       yaxis: 'y2',
     })
 
-    // Zero line for smart score
+    // Zero line for combined score
     const xRange = [smartIndicator[0]?.date, smartIndicator[smartIndicator.length - 1]?.date]
     traces.push({
       x: xRange,
@@ -282,10 +323,10 @@ export default function SmartTopBottomIndicator({
       yaxis: 'y2',
     })
 
-    // Signal zone lines
+    // Signal zone lines (adjusted for new scoring)
     traces.push({
       x: xRange,
-      y: [-20, -20],
+      y: [-8, -8],
       mode: 'lines',
       type: 'scatter',
       name: 'Strong Buy Threshold',
@@ -297,7 +338,7 @@ export default function SmartTopBottomIndicator({
 
     traces.push({
       x: xRange,
-      y: [20, 20],
+      y: [8, 8],
       mode: 'lines',
       type: 'scatter',
       name: 'Strong Sell Threshold',
@@ -366,7 +407,7 @@ export default function SmartTopBottomIndicator({
       yaxis2: {
         domain: [0, 0.35],
         anchor: 'x2',
-        title: { text: 'Smart Score' },
+        title: { text: 'Combined Score' },
         gridcolor: '#363650',
         color: '#9CA3AF',
         zeroline: true,
@@ -385,7 +426,7 @@ export default function SmartTopBottomIndicator({
 
       annotations: [
         {
-          text: "🟢 Green = Buy Zones (Multi-timeframe accumulation)<br>🔴 Red = Sell Zones (Multi-timeframe distribution)<br>🟣 Purple = Smart Score oscillator<br>Size = Signal strength",
+          text: "🟢 Green = 1Y+ holders accumulating above trend (Smart Money)<br>🔴 Red = 1Y+ holders distributing below trend<br>🟣 Purple = Combined score oscillator<br>Size = Signal confidence",
           showarrow: false,
           xref: "paper",
           yref: "paper",
@@ -466,9 +507,9 @@ export default function SmartTopBottomIndicator({
             </div>
           </div>
           <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-4">
-            <div className="text-sm text-[#A0A0B8] mb-1">Smart Score</div>
-            <div className={`text-xl font-bold ${(smartIndicator[smartIndicator.length - 1]?.smartScore || 0) > 0 ? 'text-[#EF4444]' : 'text-[#10B981]'}`}>
-              {smartIndicator[smartIndicator.length - 1]?.smartScore?.toFixed(1) || 'N/A'}
+            <div className="text-sm text-[#A0A0B8] mb-1">Combined Score</div>
+            <div className={`text-xl font-bold ${(smartIndicator[smartIndicator.length - 1]?.combinedScore || 0) > 0 ? 'text-[#EF4444]' : 'text-[#10B981]'}`}>
+              {smartIndicator[smartIndicator.length - 1]?.combinedScore?.toFixed(1) || 'N/A'}
             </div>
           </div>
           <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-4">
