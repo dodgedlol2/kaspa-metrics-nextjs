@@ -281,13 +281,19 @@ export default function SmartTopBottomIndicator({
                         'Price: $%{y:.4f}<br>' +
                         '%{text}<br>' +
                         '%{x}<extra></extra>',
-          text: points.map(p => 
-            `Combined Score: ${p?.combinedScore.toFixed(1)}<br>` +
-            `Smart Money: ${p?.smartMoneyScore.toFixed(1)}<br>` +
-            `1Y Deviation: ${p?.breakdown?.deviation1y.toFixed(1)}%<br>` +
-            `Sentiment Noise: ${p?.sentimentNoise.toFixed(1)}<br>` +
-            `Confidence: ${(p?.confidence * 100).toFixed(0)}%`
-          ),
+          text: points.map(p => {
+            const combinedScore = p?.combinedScore?.toFixed(1) || '0.0'
+            const smartMoney = p?.smartMoneyScore?.toFixed(1) || '0.0'
+            const deviation1y = p?.breakdown?.deviation1y?.toFixed(1) || '0.0'
+            const sentimentNoise = p?.sentimentNoise?.toFixed(1) || '0.0'
+            const confidence = ((p?.confidence || 0) * 100).toFixed(0)
+            
+            return `Combined Score: ${combinedScore}<br>` +
+                   `Smart Money: ${smartMoney}<br>` +
+                   `1Y Deviation: ${deviation1y}%<br>` +
+                   `Sentiment Noise: ${sentimentNoise}<br>` +
+                   `Confidence: ${confidence}%`
+          }),
           showlegend: true,
           yaxis: 'y',
         })
