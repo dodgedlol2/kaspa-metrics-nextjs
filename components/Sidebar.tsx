@@ -373,6 +373,25 @@ const navigation = [
     ]
   },
   {
+    name: 'Indicators',
+    icon: (
+      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M22,7L20.59,5.59L13.5,12.68L9.91,9.09L2,17L3.41,18.41L9.91,11.91L13.5,15.5L22,7Z"/>
+      </svg>
+    ),
+    children: [
+      {
+        name: 'Smart Top/Bottom',
+        href: '/indicators/smart-top-bottom',
+        icon: (
+          <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M7,13H11V7H13V13H17L12,18L7,13Z"/>
+          </svg>
+        )
+      }
+    ]
+  },
+  {
     name: 'Premium Features',
     icon: (
       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -414,7 +433,7 @@ const navigation = [
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const [expandedSections, setExpandedSections] = useState<string[]>(['Market Data', 'Power Law Analysis', 'Network'])
+  const [expandedSections, setExpandedSections] = useState<string[]>(['Market Data', 'Power Law Analysis', 'Network', 'Indicators'])
 
   const toggleSection = (sectionName: string) => {
     setExpandedSections(prev => 
