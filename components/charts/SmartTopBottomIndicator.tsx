@@ -20,9 +20,9 @@ interface SmartTopBottomIndicatorProps {
   data2y: InactiveSupplyDataPoint[]
   data3y: InactiveSupplyDataPoint[]
   priceData: KaspaMetric[]
-  powerLawParams1y: { intercept: number; slope: number; r2: number; constant: number }
-  powerLawParams2y: { intercept: number; slope: number; r2: number; constant: number }
-  powerLawParams3y: { intercept: number; slope: number; r2: number; constant: number }
+  powerLawParams1y?: { intercept: number; slope: number; r2: number; constant: number }
+  powerLawParams2y?: { intercept: number; slope: number; r2: number; constant: number }
+  powerLawParams3y?: { intercept: number; slope: number; r2: number; constant: number }
   height?: number
 }
 
@@ -98,7 +98,7 @@ export default function SmartTopBottomIndicator({
       const find2y = filteredData.data2y.find(d => Math.abs(d.timestamp - pricePoint.timestamp) < 24 * 60 * 60 * 1000)
       const find3y = filteredData.data3y.find(d => Math.abs(d.timestamp - pricePoint.timestamp) < 24 * 60 * 60 * 1000)
 
-      if (!find1y || !find2y || !find3y) return null
+      if (!find1y || !find2y || !find3y || !powerLawParams1y || !powerLawParams2y || !powerLawParams3y) return null
 
       // Calculate power law deviations for long-term holders (they have reliable power laws)
       const deviation1y = find1y ? ((find1y.percent - (powerLawParams1y.constant * Math.pow(find1y.daysFromGenesis, powerLawParams1y.slope))) / (powerLawParams1y.constant * Math.pow(find1y.daysFromGenesis, powerLawParams1y.slope))) * 100 : 0
