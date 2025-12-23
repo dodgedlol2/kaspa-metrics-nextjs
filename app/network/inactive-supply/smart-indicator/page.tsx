@@ -65,10 +65,16 @@ export default async function SmartIndicatorPage() {
     daysFromGenesis: Math.max(1, Math.floor((point.timestamp - adjustedGenesis3y.getTime()) / (24 * 60 * 60 * 1000)))
   })).filter(point => point.daysFromGenesis > 0)
 
-  // Calculate power law parameters (only for reliable timeframes)
-  const powerLawParams1y = calculateInactiveSupplyPowerLaw(processed1y)
-  const powerLawParams2y = calculateInactiveSupplyPowerLaw(processed2y)
-  const powerLawParams3y = calculateInactiveSupplyPowerLaw(processed3y)
+  // Calculate power law parameters (only for reliable timeframes) with null checks
+  const powerLawParams1y = calculateInactiveSupplyPowerLaw(processed1y) || {
+    intercept: 0, slope: 1, r2: 0, constant: 1
+  }
+  const powerLawParams2y = calculateInactiveSupplyPowerLaw(processed2y) || {
+    intercept: 0, slope: 1, r2: 0, constant: 1
+  }
+  const powerLawParams3y = calculateInactiveSupplyPowerLaw(processed3y) || {
+    intercept: 0, slope: 1, r2: 0, constant: 1
+  }
 
   // Get current values
   const latest = {
@@ -110,19 +116,19 @@ export default async function SmartIndicatorPage() {
           <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-4">
             <h3 className="text-sm font-semibold text-[#F59E0B] mb-1">1Y Holders</h3>
             <div className="text-lg font-bold text-white">{latest.p1y.toFixed(1)}%</div>
-            <div className="text-xs text-[#9CA3AF]">R² {powerLawParams1y?.r2.toFixed(3)}</div>
+            <div className="text-xs text-[#9CA3AF]">R² {powerLawParams1y?.r2.toFixed(3) || 'N/A'}</div>
           </div>
 
           <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-4">
             <h3 className="text-sm font-semibold text-[#5B6CFF] mb-1">2Y Holders</h3>
             <div className="text-lg font-bold text-white">{latest.p2y.toFixed(1)}%</div>
-            <div className="text-xs text-[#9CA3AF]">R² {powerLawParams2y?.r2.toFixed(3)}</div>
+            <div className="text-xs text-[#9CA3AF]">R² {powerLawParams2y?.r2.toFixed(3) || 'N/A'}</div>
           </div>
 
           <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-4">
             <h3 className="text-sm font-semibold text-[#059669] mb-1">3Y Holders</h3>
             <div className="text-lg font-bold text-white">{latest.p3y.toFixed(1)}%</div>
-            <div className="text-xs text-[#9CA3AF]">R² {powerLawParams3y?.r2.toFixed(3)}</div>
+            <div className="text-xs text-[#9CA3AF]">R² {powerLawParams3y?.r2.toFixed(3) || 'N/A'}</div>
           </div>
 
           <div className="bg-[#1A1A2E] border border-[#2D2D45] rounded-lg p-4">
