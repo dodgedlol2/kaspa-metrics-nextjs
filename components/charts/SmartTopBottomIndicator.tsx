@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { KaspaMetric } from '@/lib/sheets'
 
-// Dynamically import Plotly to avoid SSR issues
+// Dynamically import Plotly to avoid SSR issuesss
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false })
 
 export interface InactiveSupplyDataPoint {
