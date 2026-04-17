@@ -2,7 +2,7 @@ import { getPriceData, getAddressDistribution1to100Data } from '@/lib/sheets'
 import AddressDistributionChart from '@/components/charts/AddressDistributionChart'
 
 export default async function KAS1to100DistributionPage() {
-  // Fetch real data from Google Sheets
+  // Fetch real data from Google Sheetsz
   const [addressData, priceData] = await Promise.all([
     getAddressDistribution1to100Data(),
     getPriceData()
